@@ -139,7 +139,10 @@ const formatDate = (dateString: string) => {
   })
 }
 
-const getItemName = (item: MockOrderItem) => item.name || item.productName || '商品'
+const getItemName = (item: MockOrderItem) => {
+  const base = item.name || item.productName || '商品'
+  return item.skuName ? `${base} · ${item.skuName}` : base
+}
 
 const getItemImage = (item: MockOrderItem) => {
   return item.imageUrl || item.productImage || 'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=500&q=85'
