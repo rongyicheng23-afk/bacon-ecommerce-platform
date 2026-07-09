@@ -13,6 +13,9 @@ const createUser = (data: {
   email: string
   password: string
   phone?: string
+  role?: 'buyer' | 'seller'
+  shopName?: string
+  mainCategory?: string
 }): MockUser => {
   const now = new Date().toISOString()
 
@@ -21,6 +24,9 @@ const createUser = (data: {
     username: data.username,
     email: data.email,
     phone: data.phone || '',
+    role: data.role || 'buyer',
+    shopName: data.shopName,
+    mainCategory: data.mainCategory,
     password: data.password,
     status: 'active',
     createdAt: now,
@@ -28,32 +34,61 @@ const createUser = (data: {
   }
 }
 
+const normalizeUser = (user: MockUser): MockUser => ({
+  ...user,
+  role: user.role || 'buyer'
+})
+
 const getMockUsers = (): MockUser[] => {
-  const users = JSON.parse(localStorage.getItem(userStorageKey) || '[]') as MockUser[]
+  const users = (JSON.parse(localStorage.getItem(userStorageKey) || '[]') as MockUser[]).map(normalizeUser)
 
-  if (users.length > 0) return users
+  const hasBuyerDemo = users.some((user) => user.email === 'student@example.com')
+  const hasSellerDemo = users.some((user) => user.email === 'seller@example.com')
 
-  const demoUser = createUser({
-    username: '荣同学',
-    email: 'student@example.com',
-    password: '123456',
-    phone: '13800002026'
-  })
-  localStorage.setItem(userStorageKey, JSON.stringify([demoUser]))
-  return [demoUser]
-}
+  const demoUsers = [...users]
 
-const saveCurrentUser = (user: User, token: string) => {
-  localStorage.setItem('token', token)
-  localStorage.setItem(currentUserKey, JSON.stringify(user))
+  if (!hasBuyerDemo) {
+    demoUsers.push(createUser({
+      username: '荣同学',
+      email: 'student@example.com',
+      password: '123456',
+      phone: '13800002026',
+      role: 'buyer'
+    }))
+  }
+
+  if (!hasSellerDemo) {
+    demoUsers.push(createUser({
+      username: 'Bacon 数码旗舰店',
+      email: 'seller@example.com',
+      password: '123456',
+      phone: '13900002026',
+      role: 'seller',
+      shopName: 'Bacon 数码旗舰店',
+      mainCategory: '数码'
+    }))
+  }
+
+  localStorage.setItem(userStorageKey, JSON.stringify(demoUsers))
+  return demoUsers
 }
 
 const readCurrentUser = () => {
   try {
-    return JSON.parse(localStorage.getItem(currentUserKey) || 'null') as User | null
+    const user = JSON.parse(localStorage.getItem(currentUserKey) || 'null') as User | null
+    return user ? { ...user, role: user.role || 'buyer' } : null
   } catch {
     return null
   }
+}
+
+const getUserLandingPath = (user: User | null) => {
+  return user?.role === 'seller' ? '/seller' : '/'
+}
+
+const saveCurrentUser = (user: User, token: string) => {
+  localStorage.setItem('token', token)
+  localStorage.setItem(currentUserKey, JSON.stringify({ ...user, role: user.role || 'buyer' }))
 }
 
 export const useUserStore = defineStore('user', {
@@ -66,7 +101,10 @@ export const useUserStore = defineStore('user', {
 
   getters: {
     isAuthenticated: (state) => !!state.token && !!state.currentUser,
-    isActive: (state) => state.currentUser?.status === 'active'
+    isActive: (state) => state.currentUser?.status === 'active',
+    isSeller: (state) => state.currentUser?.role === 'seller',
+    isBuyer: (state) => !state.currentUser || state.currentUser.role === 'buyer',
+    landingPath: (state) => getUserLandingPath(state.currentUser)
   },
 
   actions: {

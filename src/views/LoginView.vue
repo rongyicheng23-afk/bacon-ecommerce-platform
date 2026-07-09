@@ -22,7 +22,7 @@ const handleLogin = async () => {
 
   try {
     await userStore.login(loginForm.value)
-    router.push((route.query.redirect as string) || '/')
+    router.push((route.query.redirect as string) || userStore.landingPath)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '登录失败'
   } finally {
@@ -51,7 +51,7 @@ const handleLogin = async () => {
       <div class="auth-heading">
         <span>Welcome back</span>
         <h2>登录账号</h2>
-        <p>测试账号：student@example.com / 123456</p>
+        <p>买家：student@example.com / 123456<br />商家：seller@example.com / 123456</p>
       </div>
 
       <form class="auth-form" @submit.prevent="handleLogin">

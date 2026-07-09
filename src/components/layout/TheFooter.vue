@@ -18,6 +18,7 @@
         <router-link to="/cart">购物车</router-link>
         <router-link to="/orders">我的订单</router-link>
         <router-link to="/profile">个人中心</router-link>
+        <router-link to="/seller">商家中心</router-link>
       </section>
     </div>
 

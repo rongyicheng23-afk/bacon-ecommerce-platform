@@ -11,6 +11,7 @@ import OrderDetail from '@/views/OrderDetail.vue'
 import ProfileView from '@/views/ProfileView.vue'
 import PaymentPage from '@/components/PaymentPage.vue'
 import PaymentSuccess from '@/views/PaymentSuccess.vue'
+import SellerDashboard from '@/views/SellerDashboard.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -44,43 +45,49 @@ const router = createRouter({
       path: '/cart',
       name: 'cart',
       component: CartView,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, role: 'buyer' }
     },
     {
       path: '/checkout',
       name: 'checkout',
       component: CheckoutView,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, role: 'buyer' }
     },
     {
       path: '/orders',
       name: 'orders',
       component: OrderList,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, role: 'buyer' }
     },
     {
       path: '/profile',
       name: 'profile',
       component: ProfileView,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, role: 'buyer' }
     },
     {
       path: '/order/:id',
       name: 'order-detail',
       component: OrderDetail,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, role: 'buyer' }
     },
     {
       path: '/payment/:orderId',
       name: 'payment',
       component: PaymentPage,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, role: 'buyer' }
     },
     {
       path: '/payment-success/:orderId',
       name: 'payment-success',
       component: PaymentSuccess,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, role: 'buyer' }
+    },
+    {
+      path: '/seller',
+      name: 'seller-dashboard',
+      component: SellerDashboard,
+      meta: { requiresAuth: true, role: 'seller' }
     }
   ]
 })
@@ -89,12 +96,23 @@ router.beforeEach((to) => {
   if (!to.meta.requiresAuth) return true
 
   const token = localStorage.getItem('token')
-  if (token) return true
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null') as { role?: 'buyer' | 'seller' } | null
 
-  return {
-    name: 'login',
-    query: { redirect: to.fullPath }
+  if (!token || !currentUser) {
+    return {
+      name: 'login',
+      query: { redirect: to.fullPath }
+    }
   }
+
+  const requiredRole = to.meta.role as 'buyer' | 'seller' | undefined
+  const currentRole = currentUser.role || 'buyer'
+
+  if (requiredRole && currentRole !== requiredRole) {
+    return currentRole === 'seller' ? { name: 'seller-dashboard' } : { name: 'home' }
+  }
+
+  return true
 })
 
 export default router

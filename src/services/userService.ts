@@ -12,23 +12,40 @@ interface MockUser extends User {
 
 const getMockUsers = (): MockUser[] => {
   try {
-    const users = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || '[]') as MockUser[]
+    const users = (JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || '[]') as MockUser[])
+      .map((user) => ({ ...user, role: user.role || 'buyer' }))
     if (users.length > 0) return users
 
     // 初始化 demo 用户
     const now = new Date().toISOString()
-    const demoUser: MockUser = {
-      userId: 1,
-      username: '荣同学',
-      email: 'student@example.com',
-      phone: '13800002026',
-      password: '123456',
-      status: 'active',
-      createdAt: now,
-      updatedAt: now
-    }
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify([demoUser]))
-    return [demoUser]
+    const demoUsers: MockUser[] = [
+      {
+        userId: 1,
+        username: '荣同学',
+        email: 'student@example.com',
+        phone: '13800002026',
+        role: 'buyer',
+        password: '123456',
+        status: 'active',
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        userId: 2,
+        username: 'Bacon 数码旗舰店',
+        email: 'seller@example.com',
+        phone: '13900002026',
+        role: 'seller',
+        shopName: 'Bacon 数码旗舰店',
+        mainCategory: '数码',
+        password: '123456',
+        status: 'active',
+        createdAt: now,
+        updatedAt: now
+      }
+    ]
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(demoUsers))
+    return demoUsers
   } catch {
     return []
   }
@@ -75,6 +92,9 @@ export const userService = {
         username: data.username,
         email: data.email,
         phone: data.phone || '',
+        role: data.role,
+        shopName: data.shopName,
+        mainCategory: data.mainCategory,
         password: data.password,
         status: 'active',
         createdAt: now,

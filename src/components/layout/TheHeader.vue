@@ -48,12 +48,17 @@ onUnmounted(() => {
     <div class="top-bar">
       <div class="top-inner">
         <span>
-          {{ userStore.isAuthenticated ? `欢迎回来，${userStore.currentUser?.username}` : '欢迎来到 Bacon Mall' }}
+          {{
+            userStore.isAuthenticated
+              ? `欢迎回来，${userStore.currentUser?.role === 'seller' ? userStore.currentUser?.shopName || userStore.currentUser?.username : userStore.currentUser?.username}`
+              : '欢迎来到 Bacon Mall'
+          }}
         </span>
         <div class="top-links">
-          <RouterLink to="/profile" v-if="userStore.isAuthenticated">个人中心</RouterLink>
-          <RouterLink to="/orders">我的订单</RouterLink>
-          <RouterLink to="/cart">购物车</RouterLink>
+          <RouterLink v-if="userStore.isSeller" to="/seller">商家中心</RouterLink>
+          <RouterLink to="/profile" v-if="userStore.isAuthenticated && userStore.isBuyer">个人中心</RouterLink>
+          <RouterLink v-if="userStore.isBuyer" to="/orders">我的订单</RouterLink>
+          <RouterLink v-if="userStore.isBuyer" to="/cart">购物车</RouterLink>
           <RouterLink to="/login" v-if="!userStore.isAuthenticated">登录</RouterLink>
           <RouterLink to="/register" v-if="!userStore.isAuthenticated">注册</RouterLink>
           <button v-else type="button" @click="handleLogout">退出登录</button>
@@ -75,9 +80,13 @@ onUnmounted(() => {
         <button type="submit">搜索</button>
       </form>
 
-      <RouterLink to="/cart" class="cart-entry">
+      <RouterLink v-if="userStore.isBuyer" to="/cart" class="cart-entry">
         <span>购物车</span>
         <strong>{{ cartItemCount }}</strong>
+      </RouterLink>
+      <RouterLink v-else to="/seller" class="cart-entry">
+        <span>商家中心</span>
+        <strong>店</strong>
       </RouterLink>
     </div>
 
@@ -88,8 +97,9 @@ onUnmounted(() => {
         <RouterLink to="/products?category=数码">数码家电</RouterLink>
         <RouterLink to="/products?category=服饰">服饰穿搭</RouterLink>
         <RouterLink to="/products?category=家居">家居生活</RouterLink>
-        <RouterLink to="/orders">我的订单</RouterLink>
-        <RouterLink to="/profile">个人中心</RouterLink>
+        <RouterLink v-if="userStore.isBuyer" to="/orders">我的订单</RouterLink>
+        <RouterLink v-if="userStore.isBuyer" to="/profile">个人中心</RouterLink>
+        <RouterLink v-if="userStore.isSeller" to="/seller">商家中心</RouterLink>
       </div>
     </nav>
   </header>
