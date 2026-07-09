@@ -8,7 +8,10 @@ interface LocalOrder {
   orderId: number
   status: string
   items: Array<{
+    id?: number
     productId: number
+    skuId?: number
+    skuName?: string
     name?: string
     productName?: string
     description?: string
@@ -56,8 +59,10 @@ const toOrder = (local: LocalOrder): Order => ({
   updatedAt: local.createdAt,
   items: local.items.map(
     (item): OrderItem => ({
-      orderItemId: item.productId,
+      orderItemId: item.id || item.skuId || item.productId,
       productId: item.productId,
+      skuId: item.skuId,
+      skuName: item.skuName,
       quantity: item.quantity,
       price: item.price,
       productName: item.name || item.productName || '商品',

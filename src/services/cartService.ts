@@ -13,6 +13,8 @@ const buildMockCart = (): Cart => {
     cartItemId: line.id,
     cartId: 1,
     productId: line.productId,
+    skuId: line.skuId,
+    skuName: line.skuName,
     quantity: line.quantity,
     totalPrice: line.price * line.quantity,
     createdAt: now,
@@ -60,7 +62,8 @@ export const cartService = {
     } catch {
       const product = mockProducts.find((p) => p.productId === data.productId)
       if (product) {
-        addProductToCart(product, { quantity: data.quantity })
+        const sku = data.skuId ? product.skus.find((item) => item.skuId === data.skuId) : undefined
+        addProductToCart(product, { quantity: data.quantity, sku })
       }
       return mockResponse(buildMockCart())
     }

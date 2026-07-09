@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { removeCartProductIds } from '@/utils/cart'
+import { removeCartLineIds } from '@/utils/cart'
 
 interface CheckoutItem {
   id: number
   productId: number
+  skuId?: number
+  skuName?: string
   name: string
   description: string
   price: number
@@ -120,7 +122,7 @@ const submitOrder = () => {
 
   const orders = JSON.parse(localStorage.getItem('mockOrders') || '[]')
   localStorage.setItem('mockOrders', JSON.stringify([order, ...orders]))
-  removeCartProductIds(draft.value.items.map((item) => item.productId))
+  removeCartLineIds(draft.value.items.map((item) => item.id))
   localStorage.removeItem('checkoutDraft')
   recordBehavior('submit_order')
   actionMessage.value = `订单 ${orderId} 已提交`
@@ -193,9 +195,9 @@ onMounted(() => {
             <article v-for="item in draft.items" :key="item.id" class="order-line">
               <img :src="item.imageUrl || undefined" :alt="item.name" @error="handleImageError" />
               <div>
-                <span>{{ item.category }}</span>
-                <h3>{{ item.name }}</h3>
-                <p>{{ item.description }}</p>
+              <span>{{ item.category }}</span>
+              <h3>{{ item.name }}</h3>
+              <p>{{ item.skuName || item.description }}</p>
               </div>
               <strong>¥{{ item.price }}</strong>
               <small>x {{ item.quantity }}</small>

@@ -144,6 +144,9 @@ const fetchProduct = async () => {
     if (response.code === '0000' && response.data) {
       product.value = Array.isArray(response.data) ? response.data[0] : response.data
       if (product.value) {
+        selectedSkuId.value = product.value.skus[0]?.skuId || 0
+        mainImageIndex.value = 0
+        quantity.value = 1
         recordBehavior(product.value, 'view')
       }
       if (productStore.products.length === 0) {

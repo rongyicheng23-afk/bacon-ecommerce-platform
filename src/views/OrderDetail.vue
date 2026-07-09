@@ -5,7 +5,10 @@ import { useRoute, useRouter } from 'vue-router'
 type OrderStatus = 'pending_payment' | 'paid' | 'shipped' | 'completed' | 'cancelled'
 
 interface MockOrderItem {
+  id?: number
   productId: number
+  skuId?: number
+  skuName?: string
   name?: string
   productName?: string
   description?: string
@@ -305,11 +308,11 @@ onMounted(() => {
       <section class="detail-card item-card">
         <h2>商品清单</h2>
         <div class="detail-items">
-          <article v-for="item in order.items" :key="`${order.orderId}-${item.productId}`" class="detail-item">
+          <article v-for="item in order.items" :key="`${order.orderId}-${item.id || item.skuId || item.productId}`" class="detail-item">
             <img :src="getItemImage(item)" :alt="getItemName(item)" @error="handleImageError" />
             <div>
               <h3>{{ getItemName(item) }}</h3>
-              <p>{{ item.description || item.category || '精选好物' }}</p>
+              <p>{{ item.skuName || item.description || item.category || '精选好物' }}</p>
             </div>
             <span>¥{{ item.price.toFixed(2) }}</span>
             <strong>× {{ item.quantity }}</strong>

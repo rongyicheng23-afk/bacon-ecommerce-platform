@@ -33,9 +33,9 @@ export const useCartStore = defineStore('cart', {
       }
     },
 
-    async addToCart(productId: number, quantity: number) {
+    async addToCart(productId: number, quantity: number, skuId?: number) {
       try {
-        const response = await cartService.addToCart({ productId, quantity })
+        const response = await cartService.addToCart({ productId, skuId, quantity })
         if (response.code === '0000') {
           this.cart = response.data
         } else {

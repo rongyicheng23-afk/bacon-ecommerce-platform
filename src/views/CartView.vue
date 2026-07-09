@@ -175,7 +175,7 @@ onMounted(async () => {
             <div class="line-info">
               <span>{{ item.category }}</span>
               <h2 @click="openProduct(item.productId)">{{ item.name }}</h2>
-              <p>{{ item.description }}</p>
+              <p>{{ item.skuName || item.description }}</p>
               <small>正品保障 · 48小时内发货</small>
             </div>
 

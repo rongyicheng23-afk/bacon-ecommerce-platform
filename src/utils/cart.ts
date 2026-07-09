@@ -99,3 +99,9 @@ export const removeCartProductIds = (productIds: number[]) => {
   const nextItems = readCartItems().filter((item) => !idSet.has(item.productId))
   saveCartItems(nextItems)
 }
+
+export const removeCartLineIds = (lineIds: number[]) => {
+  const idSet = new Set(lineIds)
+  const nextItems = readCartItems().filter((item) => !idSet.has(item.id))
+  saveCartItems(nextItems)
+}

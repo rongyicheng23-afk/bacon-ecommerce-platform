@@ -7,6 +7,8 @@ type OrderStatus = 'all' | 'pending_payment' | 'paid' | 'shipped' | 'completed' 
 interface MockOrderItem {
   id?: number
   productId: number
+  skuId?: number
+  skuName?: string
   name?: string
   productName?: string
   description?: string
@@ -236,11 +238,11 @@ onMounted(() => {
 
           <div class="order-card-body">
             <div class="order-items">
-              <div v-for="item in order.items" :key="`${order.orderId}-${item.productId}`" class="order-item">
+              <div v-for="item in order.items" :key="`${order.orderId}-${item.id || item.skuId || item.productId}`" class="order-item">
                 <img :src="getItemImage(item)" :alt="getItemName(item)" @error="handleImageError" />
                 <div>
                   <h3>{{ getItemName(item) }}</h3>
-                  <p>{{ item.description || item.category || '精选好物' }}</p>
+                  <p>{{ item.skuName || item.description || item.category || '精选好物' }}</p>
                   <span>¥{{ item.price.toFixed(2) }} × {{ item.quantity }}</span>
                 </div>
               </div>
