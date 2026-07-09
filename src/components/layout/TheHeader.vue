@@ -34,7 +34,9 @@ const handleLogout = async () => {
   <header class="site-header">
     <div class="top-bar">
       <div class="top-inner">
-        <span>欢迎来到 Bacon Mall</span>
+        <span>
+          {{ userStore.isAuthenticated ? `欢迎回来，${userStore.currentUser?.username}` : '欢迎来到 Bacon Mall' }}
+        </span>
         <div class="top-links">
           <RouterLink to="/orders">我的订单</RouterLink>
           <RouterLink to="/cart">购物车</RouterLink>

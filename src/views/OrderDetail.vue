@@ -1,258 +1,507 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useOrderStore } from '@/stores/orderStore'
+
+type OrderStatus = 'pending_payment' | 'paid' | 'shipped' | 'completed' | 'cancelled'
+
+interface MockOrderItem {
+  productId: number
+  name?: string
+  productName?: string
+  description?: string
+  price: number
+  imageUrl?: string | null
+  productImage?: string
+  category?: string
+  quantity: number
+}
+
+interface MockAddress {
+  name: string
+  phone: string
+  detail: string
+}
+
+interface MockOrder {
+  orderId: number
+  status: OrderStatus
+  items: MockOrderItem[]
+  address?: MockAddress
+  deliveryType?: string
+  paymentType?: string
+  remark?: string
+  totalAmount: number
+  totalSavings?: number
+  deliveryFee?: number
+  payableAmount: number
+  createdAt: string
+}
 
 const route = useRoute()
 const router = useRouter()
-const orderStore = useOrderStore()
+const order = ref<MockOrder | null>(null)
+const actionMessage = ref('')
 
-const orderId = Number(route.params.id)
+const statusText: Record<OrderStatus, string> = {
+  pending_payment: '待付款',
+  paid: '待发货',
+  shipped: '待收货',
+  completed: '已完成',
+  cancelled: '已取消'
+}
+
+const paymentText: Record<string, string> = {
+  alipay: '支付宝',
+  wechat: '微信支付',
+  card: '银行卡'
+}
+
+const deliveryText = computed(() => {
+  return order.value?.deliveryType === 'express' ? '加急配送' : '普通配送'
+})
+
+const itemQuantity = computed(() => {
+  return order.value?.items.reduce((sum, item) => sum + item.quantity, 0) || 0
+})
 
 const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleString()
+  return new Date(dateString).toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
-const getStatusText = (status: string) => {
-  const statusMap = {
-    pending: '待支付',
-    paid: '已支付',
-    cancelled: '已取消'
-  }
-  return statusMap[status as keyof typeof statusMap] || status
+const getItemName = (item: MockOrderItem) => item.name || item.productName || '商品'
+
+const getItemImage = (item: MockOrderItem) => {
+  return item.imageUrl || item.productImage || 'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=500&q=85'
 }
 
-const getPayTypeText = (payType?: number) => {
-  if (!payType) return '未支付'
-  const payTypeMap = {
-    1: '支付宝',
-    2: '微信',
-    3: '信用卡'
-  }
-  return payTypeMap[payType as keyof typeof payTypeMap] || '未知'
+const handleImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.src = 'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=500&q=85'
 }
 
-const handleCancelOrder = async () => {
-  if (!orderStore.currentOrder) return
-
-  try {
-    await orderStore.cancelOrder(orderStore.currentOrder.orderId)
-    // 可以添加一个提示消息
-  } catch (error) {
-    console.error('取消订单失败:', error)
-    // 可以添加一个错误提示
-  }
-}
-
-const handleBack = () => {
-  router.push('/orders')
-}
-
-onMounted(async () => {
-  if (isNaN(orderId)) {
+const readOrder = () => {
+  const orderId = Number(route.params.id)
+  if (Number.isNaN(orderId)) {
     router.push('/orders')
     return
   }
 
   try {
-    await orderStore.fetchOrderById(orderId)
-  } catch (error) {
-    console.error('获取订单详情失败:', error)
+    const orders = JSON.parse(localStorage.getItem('mockOrders') || '[]') as MockOrder[]
+    order.value = orders.find((item) => item.orderId === orderId) || null
+  } catch {
+    order.value = null
   }
+}
+
+const saveOrder = () => {
+  if (!order.value) return
+  const orders = JSON.parse(localStorage.getItem('mockOrders') || '[]') as MockOrder[]
+  const nextOrders = orders.map((item) => (item.orderId === order.value?.orderId ? order.value : item))
+  localStorage.setItem('mockOrders', JSON.stringify(nextOrders))
+}
+
+const recordBehavior = (action: string) => {
+  if (!order.value) return
+  const logs = JSON.parse(localStorage.getItem('behaviorLogs') || '[]')
+  logs.push({
+    userId: 1,
+    action,
+    orderId: order.value.orderId,
+    amount: order.value.payableAmount,
+    timestamp: new Date().toISOString()
+  })
+  localStorage.setItem('behaviorLogs', JSON.stringify(logs.slice(-100)))
+}
+
+const showMessage = (message: string) => {
+  actionMessage.value = message
+  window.setTimeout(() => {
+    actionMessage.value = ''
+  }, 1600)
+}
+
+const updateStatus = (status: OrderStatus, message: string) => {
+  if (!order.value) return
+  order.value.status = status
+  saveOrder()
+  recordBehavior(`order_${status}`)
+  showMessage(message)
+}
+
+const payOrder = () => {
+  updateStatus('paid', '支付成功，等待商家发货')
+}
+
+const cancelOrder = () => {
+  updateStatus('cancelled', '订单已取消')
+}
+
+const confirmReceive = () => {
+  updateStatus('completed', '已确认收货')
+}
+
+onMounted(() => {
+  readOrder()
 })
 </script>
 
 <template>
-  <div class="order-detail-container">
-    <div class="page-header">
-      <button class="btn-back" @click="handleBack">返回订单列表</button>
-      <h1 class="page-title">订单详情</h1>
-    </div>
+  <main class="order-detail-page">
+    <p v-if="actionMessage" class="order-detail-toast">{{ actionMessage }}</p>
 
-    <div v-if="orderStore.loading" class="loading-state">
-      加载中...
-    </div>
+    <button type="button" class="back-button" @click="router.push('/orders')">返回我的订单</button>
 
-    <div v-else-if="orderStore.error" class="error-state">
-      {{ orderStore.error }}
-    </div>
+    <section v-if="!order" class="order-missing">
+      <h1>订单不存在</h1>
+      <p>可能是本地 mock 数据被清空，或者订单号不正确。</p>
+      <button type="button" @click="router.push('/orders')">返回订单列表</button>
+    </section>
 
-    <div v-else-if="!orderStore.currentOrder" class="error-state">
-      订单不存在
-    </div>
-
-    <div v-else class="order-detail">
-      <div class="order-header">
-        <div class="order-basic-info">
-          <h2>订单号: {{ orderStore.currentOrder.orderId }}</h2>
-          <span :class="['order-status', `status-${orderStore.currentOrder.status}`]">
-            {{ getStatusText(orderStore.currentOrder.status) }}
-          </span>
+    <template v-else>
+      <section class="detail-hero">
+        <div>
+          <span>订单号 {{ order.orderId }}</span>
+          <h1>{{ statusText[order.status] }}</h1>
+          <p>下单时间：{{ formatDate(order.createdAt) }}</p>
         </div>
 
-        <div class="order-actions">
-          <button
-            v-if="orderStore.currentOrder.status === 'pending'"
-            class="btn-cancel"
-            @click="handleCancelOrder"
-          >
-            取消订单
-          </button>
+        <div class="detail-actions">
+          <button v-if="order.status === 'pending_payment'" type="button" class="primary" @click="payOrder">立即付款</button>
+          <button v-if="order.status === 'pending_payment'" type="button" @click="cancelOrder">取消订单</button>
+          <button v-if="order.status === 'shipped'" type="button" class="primary" @click="confirmReceive">确认收货</button>
         </div>
-      </div>
+      </section>
 
-      <div class="info-section">
-        <h3>订单信息</h3>
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="label">创建时间</span>
-            <span>{{ formatDate(orderStore.currentOrder.createdAt) }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">支付方式</span>
-            <span>{{ getPayTypeText(orderStore.currentOrder.payType) }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">支付时间</span>
-            <span>{{ orderStore.currentOrder.payTime ? formatDate(orderStore.currentOrder.payTime) : '未支付' }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">订单金额</span>
-            <span class="amount">¥{{ orderStore.currentOrder.totalAmount.toFixed(2) }}</span>
-          </div>
+      <section class="detail-grid">
+        <article class="detail-card">
+          <h2>收货信息</h2>
+          <p v-if="order.address">
+            <strong>{{ order.address.name }} {{ order.address.phone }}</strong>
+            <span>{{ order.address.detail }}</span>
+          </p>
+          <p v-else>
+            <strong>暂无收货信息</strong>
+            <span>后续接入后端时会保存用户地址表。</span>
+          </p>
+        </article>
+
+        <article class="detail-card">
+          <h2>订单信息</h2>
+          <dl>
+            <div>
+              <dt>支付方式</dt>
+              <dd>{{ paymentText[order.paymentType || ''] || '未选择' }}</dd>
+            </div>
+            <div>
+              <dt>配送方式</dt>
+              <dd>{{ deliveryText }}</dd>
+            </div>
+            <div>
+              <dt>商品数量</dt>
+              <dd>{{ itemQuantity }} 件</dd>
+            </div>
+            <div>
+              <dt>订单状态</dt>
+              <dd>{{ statusText[order.status] }}</dd>
+            </div>
+          </dl>
+        </article>
+      </section>
+
+      <section class="detail-card item-card">
+        <h2>商品清单</h2>
+        <div class="detail-items">
+          <article v-for="item in order.items" :key="`${order.orderId}-${item.productId}`" class="detail-item">
+            <img :src="getItemImage(item)" :alt="getItemName(item)" @error="handleImageError" />
+            <div>
+              <h3>{{ getItemName(item) }}</h3>
+              <p>{{ item.description || item.category || '精选好物' }}</p>
+            </div>
+            <span>¥{{ item.price.toFixed(2) }}</span>
+            <strong>× {{ item.quantity }}</strong>
+          </article>
         </div>
-      </div>
-    </div>
-  </div>
+      </section>
+
+      <section class="detail-card price-card">
+        <dl>
+          <div>
+            <dt>商品总价</dt>
+            <dd>¥{{ order.totalAmount.toFixed(2) }}</dd>
+          </div>
+          <div>
+            <dt>优惠</dt>
+            <dd>-¥{{ (order.totalSavings || 0).toFixed(2) }}</dd>
+          </div>
+          <div>
+            <dt>运费</dt>
+            <dd>¥{{ (order.deliveryFee || 0).toFixed(2) }}</dd>
+          </div>
+          <div class="payable">
+            <dt>实付款</dt>
+            <dd>¥{{ order.payableAmount.toFixed(2) }}</dd>
+          </div>
+        </dl>
+      </section>
+    </template>
+  </main>
 </template>
 
-<style scoped>
-.order-detail-container {
-  padding: 1rem;
-  max-width: 1200px;
+<style>
+.order-detail-page {
+  max-width: 1180px;
   margin: 0 auto;
+  padding: 24px 20px 56px;
 }
 
-.page-header {
+.order-detail-toast {
+  position: fixed;
+  top: 92px;
+  left: 50%;
+  z-index: 20;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 10px 18px;
+  color: #fff;
+  background: rgba(17, 24, 39, 0.88);
+  border-radius: 999px;
+  box-shadow: 0 12px 30px rgba(17, 24, 39, 0.18);
+}
+
+.back-button {
+  border: 0;
+  color: #374151;
+  background: #fff;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-weight: 800;
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.08);
+  cursor: pointer;
+}
+
+.detail-hero,
+.order-missing {
+  margin-top: 18px;
+  padding: 30px;
+  color: #fff;
+  background:
+    linear-gradient(120deg, rgba(17, 24, 39, 0.86), rgba(254, 44, 85, 0.7)),
+    url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1800&q=85') center/cover;
+  border-radius: 16px;
+}
+
+.detail-hero {
   display: flex;
   align-items: center;
-  margin-bottom: 2rem;
-  gap: 1rem;
+  justify-content: space-between;
+  gap: 20px;
 }
 
-.btn-back {
-  padding: 0.5rem 1rem;
-  background-color: #f5f5f5;
-  border: none;
-  border-radius: 4px;
+.detail-hero span {
+  color: rgba(255, 255, 255, 0.76);
+  font-weight: 800;
+}
+
+.detail-hero h1,
+.order-missing h1 {
+  margin: 8px 0;
+  font-size: 34px;
+}
+
+.detail-hero p,
+.order-missing p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.detail-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.detail-actions button,
+.order-missing button {
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  color: #fff;
+  background: transparent;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-weight: 800;
   cursor: pointer;
-  font-size: 0.9rem;
 }
 
-.btn-back:hover {
-  background-color: #e8e8e8;
+.detail-actions button.primary,
+.order-missing button {
+  color: #111827;
+  background: #fff;
 }
 
-.page-title {
-  font-size: 1.5rem;
-  color: #333;
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.detail-card {
+  margin-top: 18px;
+  padding: 22px;
+  background: #fff;
+  border: 1px solid rgba(17, 24, 39, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 14px 34px rgba(17, 24, 39, 0.06);
+}
+
+.detail-grid .detail-card {
+  margin-top: 0;
+}
+
+.detail-card h2 {
+  margin: 0 0 16px;
+  color: #111827;
+  font-size: 20px;
+}
+
+.detail-card p {
+  display: grid;
+  gap: 6px;
   margin: 0;
 }
 
-.loading-state,
-.error-state {
-  text-align: center;
-  padding: 2rem;
-  color: #666;
+.detail-card strong {
+  color: #111827;
 }
 
-.order-detail {
-  background: white;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.detail-card span {
+  color: #6b7280;
 }
 
-.order-header {
+.detail-card dl {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.detail-card dl div {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #f0f0f0;
+  gap: 16px;
 }
 
-.order-basic-info h2 {
-  font-size: 1.2rem;
-  color: #333;
-  margin-bottom: 0.5rem;
+.detail-card dt {
+  color: #6b7280;
 }
 
-.order-status {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.9rem;
+.detail-card dd {
+  margin: 0;
+  color: #111827;
+  font-weight: 800;
 }
 
-.status-pending {
-  background-color: #fff7e6;
-  color: #fa8c16;
-}
-
-.status-paid {
-  background-color: #f6ffed;
-  color: #52c41a;
-}
-
-.status-cancelled {
-  background-color: #f5f5f5;
-  color: #999;
-}
-
-.info-section {
-  margin-bottom: 2rem;
-}
-
-.info-section h3 {
-  font-size: 1.1rem;
-  color: #333;
-  margin-bottom: 1rem;
-}
-
-.info-grid {
+.detail-items {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  gap: 14px;
 }
 
-.info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.detail-item {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f1f2f4;
 }
 
-.label {
-  color: #666;
-  font-size: 0.9rem;
+.detail-item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
-.amount {
-  color: #ff4d4f;
-  font-weight: bold;
+.detail-item img {
+  width: 86px;
+  height: 86px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #f5f6f8;
 }
 
-.btn-cancel {
-  padding: 0.5rem 1rem;
-  background-color: #ff4d4f;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.3s;
+.detail-item h3 {
+  margin: 0 0 7px;
+  color: #111827;
+  font-size: 16px;
 }
 
-.btn-cancel:hover {
-  background-color: #ff7875;
+.detail-item p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.detail-item span,
+.detail-item strong {
+  color: #111827;
+  font-weight: 900;
+}
+
+.price-card {
+  margin-left: auto;
+  max-width: 420px;
+}
+
+.price-card .payable {
+  padding-top: 12px;
+  border-top: 1px solid #f1f2f4;
+}
+
+.price-card .payable dd {
+  color: #fe2c55;
+  font-size: 24px;
+}
+
+@media (max-width: 820px) {
+  .order-detail-page {
+    padding: 16px 12px 40px;
+  }
+
+  .detail-hero,
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .detail-actions {
+    justify-content: flex-start;
+  }
+
+  .detail-item {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .detail-item img {
+    width: 72px;
+    height: 72px;
+  }
+
+  .detail-item span,
+  .detail-item strong {
+    grid-column: 2;
+  }
+
+  .price-card {
+    max-width: none;
+  }
 }
 </style>

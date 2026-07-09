@@ -1,10 +1,64 @@
 import { defineStore } from 'pinia'
-import { userService } from '../services/userService'
 import type { User, LoginRequest, RegisterRequest } from '../types/user'
+
+interface MockUser extends User {
+  password: string
+}
+
+const userStorageKey = 'mockUsers'
+const currentUserKey = 'currentUser'
+
+const createUser = (data: {
+  username: string
+  email: string
+  password: string
+  phone?: string
+}): MockUser => {
+  const now = new Date().toISOString()
+
+  return {
+    user_id: Date.now(),
+    username: data.username,
+    email: data.email,
+    phone: data.phone || '',
+    password: data.password,
+    status: 'active',
+    created_at: now,
+    updated_at: now
+  }
+}
+
+const getMockUsers = (): MockUser[] => {
+  const users = JSON.parse(localStorage.getItem(userStorageKey) || '[]') as MockUser[]
+
+  if (users.length > 0) return users
+
+  const demoUser = createUser({
+    username: '荣同学',
+    email: 'student@example.com',
+    password: '123456',
+    phone: '13800002026'
+  })
+  localStorage.setItem(userStorageKey, JSON.stringify([demoUser]))
+  return [demoUser]
+}
+
+const saveCurrentUser = (user: User, token: string) => {
+  localStorage.setItem('token', token)
+  localStorage.setItem(currentUserKey, JSON.stringify(user))
+}
+
+const readCurrentUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem(currentUserKey) || 'null') as User | null
+  } catch {
+    return null
+  }
+}
 
 export const useUserStore = defineStore('user', {
   state: () => ({
-    currentUser: null as User | null,
+    currentUser: readCurrentUser(),
     token: localStorage.getItem('token'),
     loading: false,
     error: null as string | null
@@ -20,14 +74,19 @@ export const useUserStore = defineStore('user', {
       this.loading = true
       this.error = null
       try {
-        const response = await userService.login(credentials)
-        if (response.code === '0000') {
-          this.token = response.data.token
-          this.currentUser = response.data.user
-          localStorage.setItem('token', response.data.token)
-        } else {
-          throw new Error(response.info)
+        const users = getMockUsers()
+        const user = users.find((item) => item.email === credentials.email)
+
+        if (!user || user.password !== credentials.password) {
+          throw new Error('邮箱或密码不正确。测试账号：student@example.com / 123456')
         }
+
+        const { password, ...publicUser } = user
+        const token = `mock-token-${user.user_id}`
+
+        this.token = token
+        this.currentUser = publicUser
+        saveCurrentUser(publicUser, token)
       } catch (error) {
         this.error = error instanceof Error ? error.message : '登录失败'
         throw error
@@ -40,14 +99,20 @@ export const useUserStore = defineStore('user', {
       this.loading = true
       this.error = null
       try {
-        const response = await userService.register(data)
-        if (response.code === '0000') {
-          this.token = response.data.token
-          this.currentUser = response.data.user
-          localStorage.setItem('token', response.data.token)
-        } else {
-          throw new Error(response.info)
+        const users = getMockUsers()
+
+        if (users.some((user) => user.email === data.email)) {
+          throw new Error('该邮箱已经注册，请直接登录')
         }
+
+        const user = createUser(data)
+        const { password, ...publicUser } = user
+        const token = `mock-token-${user.user_id}`
+
+        localStorage.setItem(userStorageKey, JSON.stringify([user, ...users]))
+        this.token = token
+        this.currentUser = publicUser
+        saveCurrentUser(publicUser, token)
       } catch (error) {
         this.error = error instanceof Error ? error.message : '注册失败'
         throw error
@@ -57,13 +122,10 @@ export const useUserStore = defineStore('user', {
     },
 
     async logout() {
-      try {
-        await userService.logout()
-      } finally {
-        this.token = null
-        this.currentUser = null
-        localStorage.removeItem('token')
-      }
+      this.token = null
+      this.currentUser = null
+      localStorage.removeItem('token')
+      localStorage.removeItem(currentUserKey)
     }
   }
 })

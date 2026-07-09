@@ -113,7 +113,18 @@ const checkout = () => {
   }
 
   selectedItems.value.forEach((item) => recordBehavior(item, 'checkout'))
-  actionMessage.value = `已生成 ${selectedItems.value.length} 件商品的结算草稿`
+  localStorage.setItem(
+    'checkoutDraft',
+    JSON.stringify({
+      items: selectedItems.value,
+      totalQuantity: totalQuantity.value,
+      totalAmount: totalAmount.value,
+      totalSavings: totalSavings.value,
+      payableAmount: totalAmount.value - totalSavings.value,
+      createdAt: new Date().toISOString()
+    })
+  )
+  router.push('/checkout')
 }
 
 const openProduct = (productId: number) => {
