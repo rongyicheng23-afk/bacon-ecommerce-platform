@@ -28,8 +28,17 @@ const totalSales = computed(() => {
     .reduce((sum, order) => sum + order.payableAmount, 0)
 })
 
+const sellerProducts = computed(() => {
+  // 按商家的 mainCategory 过滤（如需精确 sellerId 过滤，等后端接好再加）
+  const cat = userStore.currentUser?.mainCategory
+  if (!cat) return productStore.products
+  return productStore.products.filter((p) => p.category === cat)
+})
+
+const sellerProductCount = computed(() => sellerProducts.value.length)
+
 const lowStockProducts = computed(() => {
-  return productStore.products.filter((product) => product.stock < 30).slice(0, 5)
+  return sellerProducts.value.filter((product) => product.stock < 30).slice(0, 5)
 })
 
 const recentOrders = computed(() => {
@@ -86,7 +95,7 @@ onMounted(async () => {
     <section class="seller-stats" aria-label="商家经营概览">
       <article>
         <span>商品总数</span>
-        <strong>{{ productStore.products.length }}</strong>
+        <strong>{{ sellerProductCount }}</strong>
       </article>
       <article>
         <span>待发货</span>

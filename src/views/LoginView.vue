@@ -22,7 +22,7 @@ const handleLogin = async () => {
 
   try {
     await userStore.login(loginForm.value)
-    router.push((route.query.redirect as string) || userStore.landingPath)
+    router.push(userStore.getLoginRedirect(route.query.redirect as string | undefined))
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '登录失败'
   } finally {

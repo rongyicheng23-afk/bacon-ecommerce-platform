@@ -1,77 +1,8 @@
 import { defineStore } from 'pinia'
 import type { User, LoginRequest, RegisterRequest } from '../types/user'
+import { getMockUsers, saveMockUsers, createMockUser, toPublicUser } from '@/utils/mockUsers'
 
-interface MockUser extends User {
-  password: string
-}
-
-const userStorageKey = 'mockUsers'
 const currentUserKey = 'currentUser'
-
-const createUser = (data: {
-  username: string
-  email: string
-  password: string
-  phone?: string
-  role?: 'buyer' | 'seller'
-  shopName?: string
-  mainCategory?: string
-}): MockUser => {
-  const now = new Date().toISOString()
-
-  return {
-    userId: Date.now(),
-    username: data.username,
-    email: data.email,
-    phone: data.phone || '',
-    role: data.role || 'buyer',
-    shopName: data.shopName,
-    mainCategory: data.mainCategory,
-    password: data.password,
-    status: 'active',
-    createdAt: now,
-    updatedAt: now
-  }
-}
-
-const normalizeUser = (user: MockUser): MockUser => ({
-  ...user,
-  role: user.role || 'buyer'
-})
-
-const getMockUsers = (): MockUser[] => {
-  const users = (JSON.parse(localStorage.getItem(userStorageKey) || '[]') as MockUser[]).map(normalizeUser)
-
-  const hasBuyerDemo = users.some((user) => user.email === 'student@example.com')
-  const hasSellerDemo = users.some((user) => user.email === 'seller@example.com')
-
-  const demoUsers = [...users]
-
-  if (!hasBuyerDemo) {
-    demoUsers.push(createUser({
-      username: '荣同学',
-      email: 'student@example.com',
-      password: '123456',
-      phone: '13800002026',
-      role: 'buyer'
-    }))
-  }
-
-  if (!hasSellerDemo) {
-    demoUsers.push(createUser({
-      username: 'Bacon 数码旗舰店',
-      email: 'seller@example.com',
-      password: '123456',
-      phone: '13900002026',
-      role: 'seller',
-      shopName: 'Bacon 数码旗舰店',
-      mainCategory: '数码'
-    }))
-  }
-
-  localStorage.setItem(userStorageKey, JSON.stringify(demoUsers))
-  return demoUsers
-}
 
 const readCurrentUser = () => {
   try {
@@ -89,6 +20,15 @@ const getUserLandingPath = (user: User | null) => {
 const saveCurrentUser = (user: User, token: string) => {
   localStorage.setItem('token', token)
   localStorage.setItem(currentUserKey, JSON.stringify({ ...user, role: user.role || 'buyer' }))
+}
+
+/** 判断 redirect 路径是否与用户角色兼容 */
+const isRedirectCompatible = (user: User, path: string): boolean => {
+  const buyerOnly = ['/cart', '/checkout', '/orders', '/profile', '/payment']
+  const sellerOnly = ['/seller']
+  if (user.role === 'buyer' && sellerOnly.some((p) => path.startsWith(p))) return false
+  if (user.role === 'seller' && buyerOnly.some((p) => path.startsWith(p))) return false
+  return true
 }
 
 export const useUserStore = defineStore('user', {
@@ -116,10 +56,10 @@ export const useUserStore = defineStore('user', {
         const user = users.find((item) => item.email === credentials.email)
 
         if (!user || user.password !== credentials.password) {
-          throw new Error('邮箱或密码不正确。测试账号：student@example.com / 123456')
+          throw new Error('邮箱或密码不正确。测试账号：student@example.com / seller@example.com / 123456')
         }
 
-        const { password, ...publicUser } = user
+        const publicUser = toPublicUser(user)
         const token = `mock-token-${user.userId}`
 
         this.token = token
@@ -143,11 +83,11 @@ export const useUserStore = defineStore('user', {
           throw new Error('该邮箱已经注册，请直接登录')
         }
 
-        const user = createUser(data)
-        const { password, ...publicUser } = user
+        const user = createMockUser(data)
+        const publicUser = toPublicUser(user)
         const token = `mock-token-${user.userId}`
 
-        localStorage.setItem(userStorageKey, JSON.stringify([user, ...users]))
+        saveMockUsers([user, ...users])
         this.token = token
         this.currentUser = publicUser
         saveCurrentUser(publicUser, token)
@@ -164,6 +104,15 @@ export const useUserStore = defineStore('user', {
       this.currentUser = null
       localStorage.removeItem('token')
       localStorage.removeItem(currentUserKey)
+    },
+
+    /** 登录后跳转：检查 redirect 与角色是否兼容 */
+    getLoginRedirect(redirectPath?: string): string {
+      if (!this.currentUser) return '/login'
+      if (redirectPath && isRedirectCompatible(this.currentUser, redirectPath)) {
+        return redirectPath
+      }
+      return getUserLandingPath(this.currentUser)
     }
   }
 })

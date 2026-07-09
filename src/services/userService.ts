@@ -1,65 +1,10 @@
 import axios from 'axios'
-import type { AuthResponse, LoginRequest, RegisterRequest, User } from '../types/user'
+import type { AuthResponse, LoginRequest, RegisterRequest } from '../types/user'
+import { getMockUsers, saveMockUsers, createMockUser, toPublicUser } from '@/utils/mockUsers'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
-const USER_STORAGE_KEY = 'mockUsers'
-const CURRENT_USER_KEY = 'currentUser'
 const TOKEN_KEY = 'token'
-
-interface MockUser extends User {
-  password: string
-}
-
-const getMockUsers = (): MockUser[] => {
-  try {
-    const users = (JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || '[]') as MockUser[])
-      .map((user) => ({ ...user, role: user.role || 'buyer' }))
-    if (users.length > 0) return users
-
-    // 初始化 demo 用户
-    const now = new Date().toISOString()
-    const demoUsers: MockUser[] = [
-      {
-        userId: 1,
-        username: '荣同学',
-        email: 'student@example.com',
-        phone: '13800002026',
-        role: 'buyer',
-        password: '123456',
-        status: 'active',
-        createdAt: now,
-        updatedAt: now
-      },
-      {
-        userId: 2,
-        username: 'Bacon 数码旗舰店',
-        email: 'seller@example.com',
-        phone: '13900002026',
-        role: 'seller',
-        shopName: 'Bacon 数码旗舰店',
-        mainCategory: '数码',
-        password: '123456',
-        status: 'active',
-        createdAt: now,
-        updatedAt: now
-      }
-    ]
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(demoUsers))
-    return demoUsers
-  } catch {
-    return []
-  }
-}
-
-const mockAuthResponse = (user: MockUser): AuthResponse => {
-  const { password, ...publicUser } = user
-  const token = `mock-token-${user.userId}-${Date.now()}`
-  return {
-    code: '0000',
-    info: 'success',
-    data: { token, user: publicUser }
-  }
-}
+const CURRENT_USER_KEY = 'currentUser'
 
 export const userService = {
   async login(data: LoginRequest): Promise<AuthResponse> {
@@ -72,7 +17,12 @@ export const userService = {
       if (!user || user.password !== data.password) {
         throw new Error('邮箱或密码不正确')
       }
-      return mockAuthResponse(user)
+      const token = `mock-token-${user.userId}-${Date.now()}`
+      return {
+        code: '0000',
+        info: 'success',
+        data: { token, user: toPublicUser(user) }
+      }
     }
   },
 
@@ -86,23 +36,15 @@ export const userService = {
         throw new Error('该邮箱已经注册')
       }
 
-      const now = new Date().toISOString()
-      const newUser: MockUser = {
-        userId: Date.now(),
-        username: data.username,
-        email: data.email,
-        phone: data.phone || '',
-        role: data.role,
-        shopName: data.shopName,
-        mainCategory: data.mainCategory,
-        password: data.password,
-        status: 'active',
-        createdAt: now,
-        updatedAt: now
-      }
+      const newUser = createMockUser(data)
+      saveMockUsers([newUser, ...users])
 
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify([newUser, ...users]))
-      return mockAuthResponse(newUser)
+      const token = `mock-token-${newUser.userId}-${Date.now()}`
+      return {
+        code: '0000',
+        info: 'success',
+        data: { token, user: toPublicUser(newUser) }
+      }
     }
   },
 
@@ -110,7 +52,6 @@ export const userService = {
     try {
       await axios.post(`${BASE_URL}/user/logout`)
     } catch {
-      // mock 登出：清除本地状态
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem(CURRENT_USER_KEY)
     }
