@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { CreateOrderRequest, OrderResponse, OrderListResponse, Order, OrderItem } from '../types/order'
+import type { CreateOrderRequest, OrderResponse, OrderListResponse, Order, OrderItem, OrderStatus } from '../types/order'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
 const STORAGE_KEY = 'mockOrders'
@@ -48,7 +48,8 @@ const toOrder = (local: LocalOrder): Order => ({
   orderId: local.orderId,
   userId: 1,
   totalAmount: local.totalAmount,
-  status: local.status as Order['status'],
+  payableAmount: local.payableAmount,
+  status: local.status as OrderStatus,
   payType: (local.paymentType === 'alipay' ? 1 : local.paymentType === 'wechat' ? 2 : 3) as Order['payType'],
   payTime: local.paidAt,
   createdAt: local.createdAt,

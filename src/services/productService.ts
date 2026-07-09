@@ -172,7 +172,7 @@ const minSkuPrice = (skus: ProductSku[]): number =>
 const totalSkuStock = (skus: ProductSku[]): number =>
   skus.reduce((sum, s) => sum + s.stock, 0)
 
-const mockProducts: Product[] = productSeeds.map((seed, groupIndex) => {
+export const mockProducts: Product[] = productSeeds.map((seed, groupIndex) => {
   const productId = 1001 + groupIndex
   const skus = generateSkus(productId, seed.price, seed.imageUrls)
 

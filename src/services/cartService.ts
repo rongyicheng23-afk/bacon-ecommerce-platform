@@ -1,6 +1,7 @@
 import axios from 'axios'
 import type { CartResponse, AddToCartRequest, Cart, CartItem } from '../types/cart'
-import { readCartItems, saveCartItems } from '@/utils/cart'
+import { readCartItems, saveCartItems, addProductToCart } from '@/utils/cart'
+import { mockProducts } from '@/services/productService'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
 
@@ -57,10 +58,10 @@ export const cartService = {
       })
       return response.data
     } catch {
-      // 委托给 utils/cart.ts 的 addProductToCart，需要 product 对象
-      // 这里直接从 productStore 或 mock 数据中获取是困难的
-      // 对于纯 mock 场景，调用方（cartStore）会通过 productStore.fetchProducts 先拿到数据
-      // 此处做最小 mock：直接返回当前购物车状态
+      const product = mockProducts.find((p) => p.productId === data.productId)
+      if (product) {
+        addProductToCart(product, { quantity: data.quantity })
+      }
       return mockResponse(buildMockCart())
     }
   },

@@ -1,7 +1,10 @@
 export interface Order {
   orderId: number;
   userId: number;
+  /** 商品原价总和 */
   totalAmount: number;
+  /** 实付金额（优惠 + 运费后） */
+  payableAmount: number;
   status: OrderStatus;
   payType?: PaymentType;
   payTime?: string;
@@ -10,7 +13,7 @@ export interface Order {
   items: OrderItem[];
 }
 
-export type OrderStatus = 'pending' | 'paid' | 'cancelled' | 'completed';
+export type OrderStatus = 'pending_payment' | 'paid' | 'shipped' | 'completed' | 'cancelled';
 export type PaymentType = 1 | 2 | 3; // 1: alipay, 2: wechat, 3: credit card
 
 export interface OrderItem {

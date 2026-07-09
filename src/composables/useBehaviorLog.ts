@@ -52,6 +52,9 @@ export const useBehaviorLog = () => {
     recordBehavior(payload)
     if (message) {
       actionMessage.value = message
+      window.setTimeout(() => {
+        actionMessage.value = ''
+      }, 1600)
     }
   }
 

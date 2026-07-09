@@ -10,6 +10,7 @@ interface BehaviorLog {
 const actionWeights: Record<string, number> = {
   view: 1,
   favorite: 4,
+  unfavorite: 0,   // 取消收藏不参与推荐计算
   cart: 6,
   buy: 8,
   submit_order: 10,

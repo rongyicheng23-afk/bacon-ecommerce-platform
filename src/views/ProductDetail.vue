@@ -183,13 +183,19 @@ const toggleFavorite = () => {
 
 const addToCart = () => {
   if (!product.value || !canBuy.value) return
-  addProductToCart(product.value, quantity.value)
+  addProductToCart(product.value, {
+    quantity: quantity.value,
+    sku: selectedSku.value ?? undefined
+  })
   handleAction('cart')
 }
 
 const buyNow = () => {
   if (!product.value || !canBuy.value) return
-  addProductToCart(product.value, quantity.value)
+  addProductToCart(product.value, {
+    quantity: quantity.value,
+    sku: selectedSku.value ?? undefined
+  })
   handleAction('buy')
   router.push('/cart')
 }
