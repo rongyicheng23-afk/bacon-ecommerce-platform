@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { removeCartProductIds } from '@/utils/cart'
 
 interface CheckoutItem {
   id: number
@@ -119,12 +120,13 @@ const submitOrder = () => {
 
   const orders = JSON.parse(localStorage.getItem('mockOrders') || '[]')
   localStorage.setItem('mockOrders', JSON.stringify([order, ...orders]))
+  removeCartProductIds(draft.value.items.map((item) => item.productId))
   localStorage.removeItem('checkoutDraft')
   recordBehavior('submit_order')
   actionMessage.value = `订单 ${orderId} 已提交`
 
   window.setTimeout(() => {
-    router.push('/orders')
+    router.push(`/payment/${orderId}`)
   }, 700)
 }
 

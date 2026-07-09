@@ -1,25 +1,25 @@
 export interface CartItem {
-  cart_item_id: number;
-  cart_id: number;
-  product_id: number;
+  cartItemId: number;
+  cartId: number;
+  productId: number;
   quantity: number;
-  total_price: number;
-  created_at: string;
-  updated_at: string;
+  totalPrice: number;
+  createdAt: string;
+  updatedAt: string;
   product?: {
     name: string;
     description: string;
     price: number;
-    image_url?: string;
+    imageUrl?: string;
   };
 }
 
 export interface Cart {
-  cart_id: number;
-  user_id: number;
+  cartId: number;
+  userId: number;
   items: CartItem[];
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CartResponse {
@@ -29,6 +29,6 @@ export interface CartResponse {
 }
 
 export interface AddToCartRequest {
-  product_id: number;
+  productId: number;
   quantity: number;
 }

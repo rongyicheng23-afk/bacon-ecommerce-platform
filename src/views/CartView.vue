@@ -3,19 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProductStore } from '@/stores/productStore'
 import type { Product } from '@/types'
-
-interface CartLine {
-  id: number
-  productId: number
-  name: string
-  description: string
-  price: number
-  imageUrl: string | null
-  category: string
-  stock: number
-  quantity: number
-  selected: boolean
-}
+import { readCartItems, saveCartItems, type CartLine } from '@/utils/cart'
 
 type BehaviorAction = 'cart_update' | 'cart_remove' | 'checkout' | 'view_recommendation'
 
@@ -40,29 +28,8 @@ const totalQuantity = computed(() => selectedItems.value.reduce((sum, item) => s
 const totalAmount = computed(() => selectedItems.value.reduce((sum, item) => sum + item.price * item.quantity, 0))
 const totalSavings = computed(() => Math.round(totalAmount.value * 0.08))
 
-const toCartLine = (product: Product, index: number): CartLine => ({
-  id: product.productId,
-  productId: product.productId,
-  name: product.name,
-  description: product.description,
-  price: product.price,
-  imageUrl: product.imageUrl,
-  category: product.category || '精选',
-  stock: product.stock,
-  quantity: index + 1,
-  selected: true
-})
-
 const saveCart = () => {
-  localStorage.setItem('mockCartItems', JSON.stringify(cartItems.value))
-}
-
-const readSavedCart = () => {
-  try {
-    return JSON.parse(localStorage.getItem('mockCartItems') || '[]') as CartLine[]
-  } catch {
-    return []
-  }
+  saveCartItems(cartItems.value)
 }
 
 const recordBehavior = (product: Pick<CartLine, 'productId' | 'name' | 'category'>, action: BehaviorAction) => {
@@ -156,8 +123,7 @@ onMounted(async () => {
       await productStore.fetchProducts()
     }
 
-    const savedCart = readSavedCart()
-    cartItems.value = savedCart.length > 0 ? savedCart : productStore.products.slice(0, 3).map(toCartLine)
+    cartItems.value = readCartItems()
   } finally {
     loading.value = false
   }
@@ -262,7 +228,7 @@ onMounted(async () => {
             class="recommend-card"
             @click="openRecommendation(product)"
           >
-            <img :src="product.imageUrl || undefined" :alt="product.name" @error="handleImageError" />
+            <img :src="product.imageUrls[0]" :alt="product.name" @error="handleImageError" />
             <div>
               <span>{{ product.category || '精选' }}</span>
               <h3>{{ product.name }}</h3>

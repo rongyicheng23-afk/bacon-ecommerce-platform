@@ -12,7 +12,7 @@ export const useCartStore = defineStore('cart', {
   getters: {
     itemCount: (state) => state.cart?.items.length || 0,
     totalAmount: (state) =>
-      state.cart?.items.reduce((sum, item) => sum + item.total_price, 0) || 0
+      state.cart?.items.reduce((sum, item) => sum + item.totalPrice, 0) || 0
   },
 
   actions: {
@@ -35,7 +35,7 @@ export const useCartStore = defineStore('cart', {
 
     async addToCart(productId: number, quantity: number) {
       try {
-        const response = await cartService.addToCart({ product_id: productId, quantity })
+        const response = await cartService.addToCart({ productId, quantity })
         if (response.code === '0000') {
           this.cart = response.data
         } else {

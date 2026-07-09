@@ -64,6 +64,68 @@ const itemQuantity = computed(() => {
   return order.value?.items.reduce((sum, item) => sum + item.quantity, 0) || 0
 })
 
+interface TimelineStep {
+  key: string
+  title: string
+  description: string
+  time?: string
+  done: boolean
+  active: boolean
+  cancelled: boolean
+}
+
+const timelineSteps = computed<TimelineStep[]>(() => {
+  if (!order.value) return []
+  const { status, createdAt } = order.value
+  const isCancelled = status === 'cancelled'
+  const isDone = (step: string) => {
+    const order_ = ['pending_payment', 'paid', 'shipped', 'completed']
+    const stepIdx = order_.indexOf(step)
+    const currentIdx = order_.indexOf(status)
+    return currentIdx > stepIdx || (currentIdx === stepIdx && status !== 'cancelled')
+  }
+  const isActive = (step: string) => status === step
+
+  return [
+    {
+      key: 'pending_payment',
+      title: '提交订单',
+      description: '订单已生成，等待付款',
+      time: createdAt,
+      done: isDone('pending_payment') || isActive('pending_payment'),
+      active: isActive('pending_payment'),
+      cancelled: isCancelled
+    },
+    {
+      key: 'paid',
+      title: '支付成功',
+      description: '已付款，等待商家发货',
+      time: status !== 'pending_payment' && !isCancelled ? createdAt : undefined,
+      done: isDone('paid'),
+      active: isActive('paid'),
+      cancelled: isCancelled
+    },
+    {
+      key: 'shipped',
+      title: '已发货',
+      description: '商品已出库，运输中',
+      time: status === 'shipped' || status === 'completed' ? createdAt : undefined,
+      done: isDone('shipped'),
+      active: isActive('shipped'),
+      cancelled: isCancelled
+    },
+    {
+      key: 'completed',
+      title: '已签收',
+      description: isCancelled ? '订单已取消' : '确认收货，交易完成',
+      time: status === 'completed' ? createdAt : undefined,
+      done: status === 'completed',
+      active: isActive('completed'),
+      cancelled: isCancelled
+    }
+  ]
+})
+
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleString('zh-CN', {
     year: 'numeric',
@@ -136,7 +198,8 @@ const updateStatus = (status: OrderStatus, message: string) => {
 }
 
 const payOrder = () => {
-  updateStatus('paid', '支付成功，等待商家发货')
+  if (!order.value) return
+  router.push(`/payment/${order.value.orderId}`)
 }
 
 const cancelOrder = () => {
@@ -176,6 +239,30 @@ onMounted(() => {
           <button v-if="order.status === 'pending_payment'" type="button" class="primary" @click="payOrder">立即付款</button>
           <button v-if="order.status === 'pending_payment'" type="button" @click="cancelOrder">取消订单</button>
           <button v-if="order.status === 'shipped'" type="button" class="primary" @click="confirmReceive">确认收货</button>
+        </div>
+      </section>
+
+      <section class="logistics-timeline" aria-label="物流进度">
+        <div class="timeline-track">
+          <div
+            v-for="(step, index) in timelineSteps"
+            :key="step.key"
+            :class="[
+              'timeline-node',
+              { done: step.done, active: step.active, cancelled: step.cancelled }
+            ]"
+          >
+            <div class="timeline-dot">
+              <span v-if="step.done && !step.cancelled">✓</span>
+              <span v-else-if="step.cancelled">✕</span>
+              <span v-else>{{ index + 1 }}</span>
+            </div>
+            <div class="timeline-body">
+              <strong>{{ step.title }}</strong>
+              <p>{{ step.description }}</p>
+              <time v-if="step.time">{{ formatDate(step.time) }}</time>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -284,6 +371,130 @@ onMounted(() => {
   font-weight: 800;
   box-shadow: 0 10px 24px rgba(17, 24, 39, 0.08);
   cursor: pointer;
+}
+
+.logistics-timeline {
+  margin-top: 18px;
+  padding: 28px 30px;
+  background: #fff;
+  border: 1px solid rgba(17, 24, 39, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 14px 34px rgba(17, 24, 39, 0.06);
+}
+
+.timeline-track {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+
+.timeline-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 12px;
+}
+
+.timeline-node::before {
+  content: '';
+  position: absolute;
+  top: 18px;
+  left: calc(50% + 24px);
+  width: calc(100% - 48px);
+  height: 3px;
+  background: #e5e7eb;
+  border-radius: 999px;
+}
+
+.timeline-node:last-child::before {
+  display: none;
+}
+
+.timeline-node.done::before {
+  background: #fe2c55;
+}
+
+.timeline-node.cancelled::before {
+  background: #e5e7eb;
+}
+
+.timeline-dot {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #9ca3af;
+  font-weight: 900;
+  font-size: 14px;
+  margin-bottom: 14px;
+  transition: all 0.3s ease;
+}
+
+.timeline-node.done .timeline-dot {
+  background: #fe2c55;
+  color: #fff;
+}
+
+.timeline-node.active .timeline-dot {
+  background: #fe2c55;
+  color: #fff;
+  box-shadow: 0 0 0 6px rgba(254, 44, 85, 0.2);
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+
+.timeline-node.cancelled .timeline-dot {
+  background: #9ca3af;
+  color: #fff;
+}
+
+@keyframes dot-pulse {
+  0%, 100% { box-shadow: 0 0 0 6px rgba(254, 44, 85, 0.2); }
+  50% { box-shadow: 0 0 0 12px rgba(254, 44, 85, 0.08); }
+}
+
+.timeline-body strong {
+  display: block;
+  color: #9ca3af;
+  font-size: 14px;
+  font-weight: 900;
+  transition: color 0.3s ease;
+}
+
+.timeline-node.done .timeline-body strong,
+.timeline-node.active .timeline-body strong {
+  color: #111827;
+}
+
+.timeline-node.active .timeline-body strong {
+  color: #fe2c55;
+}
+
+.timeline-node.cancelled .timeline-body strong {
+  color: #9ca3af;
+}
+
+.timeline-body p {
+  margin: 4px 0;
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1.5;
+  transition: color 0.3s ease;
+}
+
+.timeline-node.done .timeline-body p,
+.timeline-node.active .timeline-body p {
+  color: #6b7280;
+}
+
+.timeline-body time {
+  color: #9ca3af;
+  font-size: 11px;
 }
 
 .detail-hero,
@@ -472,6 +683,19 @@ onMounted(() => {
     padding: 16px 12px 40px;
   }
 
+  .logistics-timeline {
+    padding: 20px 16px;
+  }
+
+  .timeline-track {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px 0;
+  }
+
+  .timeline-node:nth-child(2)::before {
+    display: none;
+  }
+
   .detail-hero,
   .detail-grid {
     grid-template-columns: 1fr;
@@ -502,6 +726,17 @@ onMounted(() => {
 
   .price-card {
     max-width: none;
+  }
+
+  @media (max-width: 480px) {
+    .timeline-track {
+      grid-template-columns: 1fr;
+      gap: 24px 0;
+    }
+
+    .timeline-node::before {
+      display: none;
+    }
   }
 }
 </style>

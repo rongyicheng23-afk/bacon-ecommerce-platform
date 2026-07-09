@@ -1,11 +1,11 @@
 export interface User {
-  user_id: number;
+  userId: number;
   username: string;
   email: string;
   phone: string;
   status: 'active' | 'inactive';
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface LoginRequest {

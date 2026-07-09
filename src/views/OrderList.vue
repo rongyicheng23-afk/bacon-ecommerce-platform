@@ -152,7 +152,7 @@ const cancelOrder = (order: MockOrder) => {
 }
 
 const payOrder = (order: MockOrder) => {
-  updateStatus(order, 'paid', '支付成功，等待商家发货')
+  router.push(`/payment/${order.orderId}`)
 }
 
 const confirmReceive = (order: MockOrder) => {

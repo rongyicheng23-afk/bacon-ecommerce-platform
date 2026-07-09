@@ -8,7 +8,9 @@ import CartView from '@/views/CartView.vue'
 import CheckoutView from '@/views/CheckoutView.vue'
 import OrderList from '@/views/OrderList.vue'
 import OrderDetail from '@/views/OrderDetail.vue'
+import ProfileView from '@/views/ProfileView.vue'
 import PaymentPage from '@/components/PaymentPage.vue'
+import PaymentSuccess from '@/views/PaymentSuccess.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -57,6 +59,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/profile',
+      name: 'profile',
+      component: ProfileView,
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/order/:id',
       name: 'order-detail',
       component: OrderDetail,
@@ -65,9 +73,28 @@ const router = createRouter({
     {
       path: '/payment/:orderId',
       name: 'payment',
-      component: PaymentPage
+      component: PaymentPage,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/payment-success/:orderId',
+      name: 'payment-success',
+      component: PaymentSuccess,
+      meta: { requiresAuth: true }
     }
   ]
+})
+
+router.beforeEach((to) => {
+  if (!to.meta.requiresAuth) return true
+
+  const token = localStorage.getItem('token')
+  if (token) return true
+
+  return {
+    name: 'login',
+    query: { redirect: to.fullPath }
+  }
 })
 
 export default router

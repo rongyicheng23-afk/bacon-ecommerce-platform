@@ -3,8 +3,10 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useProductStore } from '../stores/productStore'
 import type { Product } from '../types'
+import { addProductToCart } from '@/utils/cart'
+import { readFavoriteIds, toggleFavoriteId } from '@/utils/favorites'
 
-type BehaviorAction = 'view' | 'favorite' | 'cart' | 'buy'
+type BehaviorAction = 'view' | 'favorite' | 'unfavorite' | 'cart' | 'buy'
 type SortType = 'default' | 'price-asc' | 'price-desc' | 'stock-desc'
 
 const route = useRoute()
@@ -19,6 +21,7 @@ const minPrice = ref('')
 const maxPrice = ref('')
 const stockOnly = ref(false)
 const actionMessage = ref('')
+const favoriteIds = ref<number[]>([])
 
 const products = computed(() => productStore.products)
 const categories = computed(() => ['全部', ...new Set(products.value.map((product) => product.category || '精选'))])
@@ -100,8 +103,29 @@ const navigateToDetail = (product: Product) => {
 
 const recordProductAction = (product: Product, action: Exclude<BehaviorAction, 'view'>) => {
   recordBehavior(product, action)
-  const actionText = action === 'favorite' ? '收藏' : action === 'cart' ? '加购' : '购买'
+  const actionText = action === 'favorite' ? '收藏' : action === 'unfavorite' ? '取消收藏' : action === 'cart' ? '加购' : '购买'
   actionMessage.value = `已${actionText}《${product.name}》`
+}
+
+const isFavorite = (productId: number) => {
+  return favoriteIds.value.includes(productId)
+}
+
+const toggleFavorite = (product: Product) => {
+  const wasFavorite = isFavorite(product.productId)
+  favoriteIds.value = toggleFavoriteId(product.productId)
+  recordProductAction(product, wasFavorite ? 'unfavorite' : 'favorite')
+}
+
+const addToCart = (product: Product) => {
+  addProductToCart(product)
+  recordProductAction(product, 'cart')
+}
+
+const buyNow = (product: Product) => {
+  addProductToCart(product)
+  recordProductAction(product, 'buy')
+  router.push('/cart')
 }
 
 const submitSearch = () => {
@@ -133,6 +157,16 @@ const resetFilters = () => {
   submitSearch()
 }
 
+const getProductTags = (product: Product): Array<{ text: string; type: string }> => {
+  const tags: Array<{ text: string; type: string }> = []
+  if (product.stock < 50) tags.push({ text: '热卖', type: 'hot' })
+  if (product.price < 100) tags.push({ text: '超值', type: 'value' })
+  if (product.price >= 200) tags.push({ text: '满199减20', type: 'discount' })
+  if (product.stock < 20) tags.push({ text: '库存紧张', type: 'urgent' })
+  if (product.productId % 7 === 0) tags.push({ text: '新品', type: 'new' })
+  return tags.slice(0, 2)
+}
+
 const handleImageError = (event: Event) => {
   const img = event.target as HTMLImageElement
   img.src = 'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=900&q=85'
@@ -142,6 +176,8 @@ watch(() => route.query, syncQuery)
 
 onMounted(async () => {
   syncQuery()
+  favoriteIds.value = readFavoriteIds()
+
   try {
     if (productStore.products.length === 0) {
       await productStore.fetchProducts()
@@ -228,7 +264,14 @@ onMounted(async () => {
           @click="navigateToDetail(product)"
         >
           <div class="product-image">
-            <img :src="product.imageUrl || undefined" :alt="product.name" @error="handleImageError" />
+            <img :src="product.imageUrls[0]" :alt="product.name" @error="handleImageError" />
+            <div v-if="getProductTags(product).length" class="card-tags">
+              <span
+                v-for="tag in getProductTags(product)"
+                :key="tag.text"
+                :class="['card-tag', `tag-${tag.type}`]"
+              >{{ tag.text }}</span>
+            </div>
           </div>
           <div class="product-info">
             <span>{{ product.category || '精选' }}</span>
@@ -239,9 +282,15 @@ onMounted(async () => {
               <small>库存 {{ product.stock }}</small>
             </div>
             <div class="product-actions" @click.stop>
-              <button type="button" @click="recordProductAction(product, 'favorite')">收藏</button>
-              <button type="button" @click="recordProductAction(product, 'cart')">加购</button>
-              <button type="button" class="buy-button" @click="recordProductAction(product, 'buy')">购买</button>
+              <button
+                type="button"
+                :class="{ active: isFavorite(product.productId) }"
+                @click="toggleFavorite(product)"
+              >
+                {{ isFavorite(product.productId) ? '已收藏' : '收藏' }}
+              </button>
+              <button type="button" @click="addToCart(product)">加购</button>
+              <button type="button" class="buy-button" @click="buyNow(product)">购买</button>
             </div>
           </div>
         </article>
@@ -485,9 +534,35 @@ onMounted(async () => {
 }
 
 .product-image {
+  position: relative;
   aspect-ratio: 1;
   overflow: hidden;
 }
+
+.card-tags {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 2;
+}
+
+.card-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.6;
+}
+
+.tag-hot { background: #fe2c55; color: #fff; }
+.tag-value { background: #ff6b35; color: #fff; }
+.tag-discount { background: linear-gradient(135deg, #ff4757, #ff6b81); color: #fff; }
+.tag-urgent { background: #ff6348; color: #fff; }
+.tag-new { background: #2ed573; color: #fff; }
 
 .product-image img {
   width: 100%;
@@ -575,6 +650,12 @@ onMounted(async () => {
 
 .product-actions button:hover {
   border-color: #fe2c55;
+  color: #fe2c55;
+}
+
+.product-actions button.active {
+  border-color: #fe2c55;
+  background: #fff1f2;
   color: #fe2c55;
 }
 

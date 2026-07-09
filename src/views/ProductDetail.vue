@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { Product } from '@/types'
+import type { Product, ProductSku } from '@/types'
 import { productService } from '@/services/productService'
 import { useProductStore } from '@/stores/productStore'
+import { addProductToCart } from '@/utils/cart'
+import { readFavoriteIds, toggleFavoriteId } from '@/utils/favorites'
 
-type BehaviorAction = 'view' | 'favorite' | 'cart' | 'buy' | 'view_recommendation'
+type BehaviorAction = 'view' | 'favorite' | 'unfavorite' | 'cart' | 'buy' | 'view_recommendation'
 type DetailTab = 'detail' | 'reviews' | 'recommend'
 
 const route = useRoute()
@@ -14,18 +16,83 @@ const productStore = useProductStore()
 const product = ref<Product | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
-const selectedSpec = ref('标准版')
+const selectedSkuId = ref<number>(0)
+const mainImageIndex = ref(0)
 const quantity = ref(1)
 const activeTab = ref<DetailTab>('detail')
 const actionMessage = ref('')
+const favoriteIds = ref<number[]>([])
 
-const specs = ['标准版', 'Pro 版', '旗舰版']
 const serviceItems = ['正品保障', '极速配送', '7天无理由', '售后无忧']
 const reviews = [
   { user: '用户 A', rating: 5, content: '商品质感不错，物流也很快，整体符合预期。' },
   { user: '用户 B', rating: 5, content: '包装完整，价格合适，日常使用很方便。' },
   { user: '用户 C', rating: 4, content: '功能比较实用，后续还会继续关注同类商品。' }
 ]
+
+/** 当前选中的 SKU */
+const selectedSku = computed<ProductSku | null>(() => {
+  if (!product.value) return null
+  const skus = product.value.skus
+  if (skus.length === 0) return null
+  return skus.find((s) => s.skuId === selectedSkuId.value) || skus[0]
+})
+
+/** 当前展示价格（选中 SKU 的价格，无 SKU 则用商品最低价） */
+const currentPrice = computed(() => {
+  return selectedSku.value?.price ?? product.value?.price ?? 0
+})
+
+/** 当前可用库存（选中 SKU 的库存，无 SKU 则用总库存） */
+const currentStock = computed(() => {
+  return selectedSku.value?.stock ?? product.value?.stock ?? 0
+})
+
+/** 按属性分组 SKU，用于渲染规格选择面板 */
+const skuGroups = computed(() => {
+  if (!product.value) return []
+  const skus = product.value.skus
+  const attrKeys = skus.length > 0 ? Object.keys(skus[0].attributes) : []
+  return attrKeys.map((key) => ({
+    label: key,
+    values: [...new Set(skus.map((s) => s.attributes[key] as string))].map(
+      (value) => ({
+        value,
+        available: skus.some((s) => s.attributes[key] === value)
+      })
+    )
+  }))
+})
+
+/** 选中某个规格值 */
+const selectSkuAttribute = (attrLabel: string, attrValue: string) => {
+  if (!product.value) return
+  const { skus } = product.value
+  // 尝试找到完全匹配当前所有已选属性的 SKU
+  let targetSku: ProductSku | undefined
+
+  if (selectedSku.value) {
+    const currentAttrs = { ...selectedSku.value.attributes, [attrLabel]: attrValue }
+    targetSku = skus.find((s) =>
+      Object.entries(currentAttrs).every(([k, v]) => s.attributes[k] === v)
+    )
+  }
+
+  if (!targetSku) {
+    targetSku = skus.find((s) => s.attributes[attrLabel] === attrValue)
+  }
+
+  if (targetSku) {
+    selectedSkuId.value = targetSku.skuId
+    // 切换 SKU 时更新主图为该 SKU 对应的图片
+    const skuImageIndex = product.value.imageUrls.indexOf(targetSku.imageUrl)
+    if (skuImageIndex >= 0) {
+      mainImageIndex.value = skuImageIndex
+    }
+    // 数量不能超过 SKU 库存
+    quantity.value = Math.max(1, Math.min(quantity.value, targetSku.stock))
+  }
+}
 
 const relatedProducts = computed(() => {
   if (!product.value) return []
@@ -35,7 +102,7 @@ const relatedProducts = computed(() => {
 })
 
 const canBuy = computed(() => {
-  return Boolean(product.value && product.value.status === 'active' && product.value.stock > 0)
+  return Boolean(product.value && product.value.status === 'active' && currentStock.value > 0)
 })
 
 const readBehaviorLogs = () => {
@@ -55,7 +122,8 @@ const recordBehavior = (target: Product, action: BehaviorAction) => {
     action,
     category: target.category || '未分类',
     quantity: quantity.value,
-    spec: selectedSpec.value,
+    skuId: selectedSkuId.value,
+    skuName: selectedSku.value?.name || '',
     timestamp: new Date().toISOString()
   })
   localStorage.setItem('behaviorLogs', JSON.stringify(logs.slice(-100)))
@@ -92,18 +160,36 @@ const fetchProduct = async () => {
 }
 
 const setQuantity = (value: number) => {
-  if (!product.value) return
-  quantity.value = Math.max(1, Math.min(value, product.value.stock || 1))
+  quantity.value = Math.max(1, Math.min(value, currentStock.value || 1))
 }
 
 const handleAction = (action: Exclude<BehaviorAction, 'view' | 'view_recommendation'>) => {
   if (!product.value || !canBuy.value) return
   recordBehavior(product.value, action)
-  const actionText = action === 'favorite' ? '收藏' : action === 'cart' ? '加入购物车' : '立即购买'
+  const actionText = action === 'favorite' ? '收藏' : action === 'unfavorite' ? '取消收藏' : action === 'cart' ? '加入购物车' : '立即购买'
   actionMessage.value = `已${actionText}《${product.value.name}》`
 }
 
+const isFavorite = computed(() => {
+  return Boolean(product.value && favoriteIds.value.includes(product.value.productId))
+})
+
+const toggleFavorite = () => {
+  if (!product.value || !canBuy.value) return
+  const wasFavorite = isFavorite.value
+  favoriteIds.value = toggleFavoriteId(product.value.productId)
+  handleAction(wasFavorite ? 'unfavorite' : 'favorite')
+}
+
+const addToCart = () => {
+  if (!product.value || !canBuy.value) return
+  addProductToCart(product.value, quantity.value)
+  handleAction('cart')
+}
+
 const buyNow = () => {
+  if (!product.value || !canBuy.value) return
+  addProductToCart(product.value, quantity.value)
   handleAction('buy')
   router.push('/cart')
 }
@@ -121,6 +207,7 @@ const handleImageError = (event: Event) => {
 watch(() => route.params.id, fetchProduct)
 
 onMounted(() => {
+  favoriteIds.value = readFavoriteIds()
   fetchProduct()
 })
 </script>
@@ -136,11 +223,21 @@ onMounted(() => {
       <section class="product-shell">
         <div class="gallery-panel">
           <div class="main-image">
-            <img :src="product.imageUrl || undefined" :alt="product.name" @error="handleImageError" />
+            <img
+              :src="product.imageUrls[mainImageIndex] || product.imageUrls[0]"
+              :alt="product.name"
+              @error="handleImageError"
+            />
           </div>
-          <div class="thumb-row">
-            <button v-for="index in 4" :key="index" type="button" class="thumb-button">
-              <img :src="product.imageUrl || undefined" :alt="`${product.name} 图 ${index}`" @error="handleImageError" />
+          <div v-if="product.imageUrls.length > 1" class="thumb-row">
+            <button
+              v-for="(img, index) in product.imageUrls"
+              :key="index"
+              type="button"
+              :class="['thumb-button', { active: mainImageIndex === index }]"
+              @click="mainImageIndex = index"
+            >
+              <img :src="img" :alt="`${product.name} 图 ${index + 1}`" @error="handleImageError" />
             </button>
           </div>
         </div>
@@ -154,14 +251,15 @@ onMounted(() => {
 
           <div class="price-box">
             <span>平台价</span>
-            <strong>¥{{ product.price }}</strong>
+            <strong>¥{{ currentPrice }}</strong>
+            <small v-if="selectedSku">已选：{{ selectedSku.name }}</small>
             <small>累计评价 {{ reviews.length * 128 }}+</small>
           </div>
 
           <div class="meta-grid">
             <div>
               <span>库存</span>
-              <strong>{{ product.stock }}</strong>
+              <strong>{{ currentStock }}</strong>
             </div>
             <div>
               <span>销量</span>
@@ -173,17 +271,25 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="option-block">
-            <span class="option-label">规格</span>
+          <div
+            v-for="group in skuGroups"
+            :key="group.label"
+            class="option-block"
+          >
+            <span class="option-label">{{ group.label }}</span>
             <div class="spec-row">
               <button
-                v-for="spec in specs"
-                :key="spec"
+                v-for="option in group.values"
+                :key="option.value"
                 type="button"
-                :class="{ active: spec === selectedSpec }"
-                @click="selectedSpec = spec"
+                :class="{
+                  active: selectedSku?.attributes[group.label] === option.value,
+                  disabled: !option.available
+                }"
+                :disabled="!option.available"
+                @click="selectSkuAttribute(group.label, option.value)"
               >
-                {{ spec }}
+                {{ option.value }}
               </button>
             </div>
           </div>
@@ -207,8 +313,15 @@ onMounted(() => {
           </div>
 
           <div class="action-buttons">
-            <button type="button" class="ghost-button" :disabled="!canBuy" @click="handleAction('favorite')">收藏</button>
-            <button type="button" class="cart-button" :disabled="!canBuy" @click="handleAction('cart')">加入购物车</button>
+            <button
+              type="button"
+              :class="['ghost-button', { active: isFavorite }]"
+              :disabled="!canBuy"
+              @click="toggleFavorite"
+            >
+              {{ isFavorite ? '已收藏' : '收藏' }}
+            </button>
+            <button type="button" class="cart-button" :disabled="!canBuy" @click="addToCart">加入购物车</button>
             <button type="button" class="buy-button" :disabled="!canBuy" @click="buyNow">立即购买</button>
           </div>
         </section>
@@ -226,8 +339,8 @@ onMounted(() => {
           <p>{{ product.description }}</p>
           <div class="detail-grid">
             <span>分类：{{ product.category || '精选' }}</span>
-            <span>规格：{{ selectedSpec }}</span>
-            <span>库存：{{ product.stock }}</span>
+            <span>规格：{{ selectedSku?.name || '默认' }}</span>
+            <span>库存：{{ currentStock }}</span>
             <span>状态：{{ product.status === 'active' ? '在售' : '下架' }}</span>
           </div>
         </div>
@@ -247,7 +360,7 @@ onMounted(() => {
             class="related-card"
             @click="openRelatedProduct(item)"
           >
-            <img :src="item.imageUrl || undefined" :alt="item.name" @error="handleImageError" />
+            <img :src="item.imageUrls[0]" :alt="item.name" @error="handleImageError" />
             <div>
               <span>{{ item.category || '精选' }}</span>
               <h3>{{ item.name }}</h3>
@@ -334,7 +447,7 @@ onMounted(() => {
   cursor: pointer;
 }
 
-.thumb-button:first-child {
+.thumb-button.active {
   border-color: #fe2c55;
 }
 
@@ -456,6 +569,13 @@ onMounted(() => {
   color: #fe2c55;
 }
 
+.spec-row button.disabled {
+  border-color: #f1f2f4;
+  color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .delivery-text {
   margin: 0;
   color: #555;
@@ -522,6 +642,12 @@ onMounted(() => {
   border: 1px solid #e5e7eb;
   background: #fff;
   color: #333;
+}
+
+.ghost-button.active {
+  border-color: #fe2c55;
+  background: #fff1f2;
+  color: #fe2c55;
 }
 
 .cart-button {

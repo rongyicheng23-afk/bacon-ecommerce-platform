@@ -17,14 +17,14 @@ const createUser = (data: {
   const now = new Date().toISOString()
 
   return {
-    user_id: Date.now(),
+    userId: Date.now(),
     username: data.username,
     email: data.email,
     phone: data.phone || '',
     password: data.password,
     status: 'active',
-    created_at: now,
-    updated_at: now
+    createdAt: now,
+    updatedAt: now
   }
 }
 
@@ -82,7 +82,7 @@ export const useUserStore = defineStore('user', {
         }
 
         const { password, ...publicUser } = user
-        const token = `mock-token-${user.user_id}`
+        const token = `mock-token-${user.userId}`
 
         this.token = token
         this.currentUser = publicUser
@@ -107,7 +107,7 @@ export const useUserStore = defineStore('user', {
 
         const user = createUser(data)
         const { password, ...publicUser } = user
-        const token = `mock-token-${user.user_id}`
+        const token = `mock-token-${user.userId}`
 
         localStorage.setItem(userStorageKey, JSON.stringify([user, ...users]))
         this.token = token

@@ -3,8 +3,11 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProductStore } from '../stores/productStore'
 import type { Product } from '../types'
+import { addProductToCart } from '@/utils/cart'
+import { readFavoriteIds, toggleFavoriteId } from '@/utils/favorites'
+import { getPersonalizedProducts, getRecommendationSummary } from '@/utils/recommendation'
 
-type BehaviorAction = 'view' | 'favorite' | 'cart' | 'buy'
+type BehaviorAction = 'view' | 'favorite' | 'unfavorite' | 'cart' | 'buy'
 
 const router = useRouter()
 const productStore = useProductStore()
@@ -12,13 +15,15 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const actionMessage = ref('')
 const activeSlide = ref(0)
+const favoriteIds = ref<number[]>([])
 let slideTimer: number | undefined
 
 const products = computed(() => productStore.products)
 const bannerProducts = computed(() => products.value.slice(0, 3))
 const promoProducts = computed(() => products.value.slice(3, 5))
 const hotProducts = computed(() => products.value.slice(8, 16))
-const feedProducts = computed(() => products.value.slice(16, 56))
+const feedProducts = computed(() => getPersonalizedProducts(products.value, 40))
+const recommendationSummary = computed(() => getRecommendationSummary())
 const channelCards: Array<{ title: string; subtitle: string; query: Record<string, string> }> = [
   { title: '今日特价', subtitle: '限时好价', query: { sort: 'price-asc' } },
   { title: '热卖榜单', subtitle: '高关注商品', query: { sort: 'stock-desc' } },
@@ -43,6 +48,7 @@ const categoryLinks = computed(() => {
 const actionText: Record<BehaviorAction, string> = {
   view: '浏览',
   favorite: '收藏',
+  unfavorite: '取消收藏',
   cart: '加购',
   buy: '购买'
 }
@@ -73,6 +79,21 @@ const recordProductAction = (product: Product, action: Exclude<BehaviorAction, '
   actionMessage.value = `已${actionText[action]}《${product.name}》`
 }
 
+const isFavorite = (productId: number) => {
+  return favoriteIds.value.includes(productId)
+}
+
+const toggleFavorite = (product: Product) => {
+  const wasFavorite = isFavorite(product.productId)
+  favoriteIds.value = toggleFavoriteId(product.productId)
+  recordProductAction(product, wasFavorite ? 'unfavorite' : 'favorite')
+}
+
+const addToCart = (product: Product) => {
+  addProductToCart(product)
+  recordProductAction(product, 'cart')
+}
+
 const navigateToDetail = (product: Product) => {
   recordBehavior(product, 'view')
   router.push(`/product/${product.productId}`)
@@ -96,12 +117,62 @@ const browseCategory = (category: string) => {
   })
 }
 
+const getProductTags = (product: Product): Array<{ text: string; type: string }> => {
+  const tags: Array<{ text: string; type: string }> = []
+  if (product.stock < 50) tags.push({ text: '热卖', type: 'hot' })
+  if (product.price < 100) tags.push({ text: '超值', type: 'value' })
+  if (product.price >= 200) tags.push({ text: '满199减20', type: 'discount' })
+  if (product.stock < 20) tags.push({ text: '库存紧张', type: 'urgent' })
+  if (product.productId % 7 === 0) tags.push({ text: '新品', type: 'new' })
+  return tags.slice(0, 2)
+}
+
+interface FlashProduct extends Product {
+  flashPrice: number
+  soldPercent: number
+}
+
+const flashSaleProducts = computed<FlashProduct[]>(() => {
+  return products.value
+    .filter((p) => p.price >= 80 && p.price <= 250)
+    .slice(0, 4)
+    .map((p, index) => ({
+      ...p,
+      flashPrice: Math.round(p.price * [0.65, 0.72, 0.78, 0.68][index]),
+      soldPercent: [72, 88, 55, 91][index],
+    }))
+})
+
+const flashCountdown = ref({ hours: 3, minutes: 27, seconds: 44 })
+let countdownTimer: number | undefined
+
+const startCountdown = () => {
+  countdownTimer = window.setInterval(() => {
+    if (flashCountdown.value.seconds > 0) {
+      flashCountdown.value.seconds--
+    } else if (flashCountdown.value.minutes > 0) {
+      flashCountdown.value.minutes--
+      flashCountdown.value.seconds = 59
+    } else if (flashCountdown.value.hours > 0) {
+      flashCountdown.value.hours--
+      flashCountdown.value.minutes = 59
+      flashCountdown.value.seconds = 59
+    } else {
+      flashCountdown.value = { hours: 23, minutes: 59, seconds: 59 }
+    }
+  }, 1000)
+}
+
+const padTime = (v: number) => String(v).padStart(2, '0')
+
 const handleImageError = (event: Event) => {
   const img = event.target as HTMLImageElement
   img.src = 'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=900&q=85'
 }
 
 onMounted(async () => {
+  favoriteIds.value = readFavoriteIds()
+
   try {
     await productStore.fetchProducts()
   } catch (err) {
@@ -114,11 +185,16 @@ onMounted(async () => {
     if (bannerProducts.value.length === 0) return
     activeSlide.value = (activeSlide.value + 1) % bannerProducts.value.length
   }, 4200)
+
+  startCountdown()
 })
 
 onUnmounted(() => {
   if (slideTimer) {
     window.clearInterval(slideTimer)
+  }
+  if (countdownTimer) {
+    window.clearInterval(countdownTimer)
   }
 })
 </script>
@@ -156,7 +232,7 @@ onUnmounted(() => {
             :class="['hero-slide', { active: index === activeSlide }]"
             @click="navigateToDetail(product)"
           >
-            <img :src="product.imageUrl || undefined" :alt="product.name" @error="handleImageError" />
+            <img :src="product.imageUrls[0]" :alt="product.name" @error="handleImageError" />
             <div class="hero-content">
               <span>{{ product.category || '精选' }} · 今日热卖</span>
               <h1>{{ product.name }}</h1>
@@ -187,7 +263,7 @@ onUnmounted(() => {
             class="promo-card"
             @click="navigateToDetail(product)"
           >
-            <img :src="product.imageUrl || undefined" :alt="product.name" @error="handleImageError" />
+            <img :src="product.imageUrls[0]" :alt="product.name" @error="handleImageError" />
             <div>
               <span>{{ product.category || '精选' }}</span>
               <strong>{{ product.name }}</strong>
@@ -208,6 +284,52 @@ onUnmounted(() => {
           <strong>{{ channel.title }}</strong>
           <span>{{ channel.subtitle }}</span>
         </button>
+      </section>
+
+      <section v-if="flashSaleProducts.length" class="flash-section" aria-labelledby="flash-title">
+        <div class="flash-header">
+          <div class="flash-title-row">
+            <span class="flash-badge">限时秒杀</span>
+            <h2 id="flash-title">品牌闪购</h2>
+            <div class="flash-countdown">
+              <span>{{ padTime(flashCountdown.hours) }}</span>
+              <em>:</em>
+              <span>{{ padTime(flashCountdown.minutes) }}</span>
+              <em>:</em>
+              <span>{{ padTime(flashCountdown.seconds) }}</span>
+            </div>
+          </div>
+          <button type="button" class="more-link" @click="router.push('/products?sort=price-asc')">
+            查看更多闪购
+          </button>
+        </div>
+
+        <div class="flash-row">
+          <article
+            v-for="product in flashSaleProducts"
+            :key="`flash-${product.productId}`"
+            class="flash-card"
+            @click="navigateToDetail(product)"
+          >
+            <div class="flash-image">
+              <img :src="product.imageUrls[0]" :alt="product.name" @error="handleImageError" />
+              <span class="flash-discount-tag">{{ Math.round(((product.price - product.flashPrice) / product.price) * 100) }}% OFF</span>
+            </div>
+            <div class="flash-info">
+              <div class="flash-price-row">
+                <strong>¥{{ product.flashPrice }}</strong>
+                <del>¥{{ product.price }}</del>
+              </div>
+              <p>{{ product.name }}</p>
+              <div class="flash-progress">
+                <div class="flash-bar">
+                  <i :style="{ width: `${product.soldPercent}%` }"></i>
+                </div>
+                <small>已抢 {{ product.soldPercent }}%</small>
+              </div>
+            </div>
+          </article>
+        </div>
       </section>
 
       <section class="service-strip" aria-label="平台服务">
@@ -255,7 +377,14 @@ onUnmounted(() => {
             @click="navigateToDetail(product)"
           >
             <div class="hot-image">
-              <img :src="product.imageUrl || undefined" :alt="product.name" @error="handleImageError" />
+              <img :src="product.imageUrls[0]" :alt="product.name" @error="handleImageError" />
+              <div v-if="getProductTags(product).length" class="card-tags">
+                <span
+                  v-for="tag in getProductTags(product)"
+                  :key="tag.text"
+                  :class="['card-tag', `tag-${tag.type}`]"
+                >{{ tag.text }}</span>
+              </div>
             </div>
             <div class="hot-info">
               <span>{{ product.category || '精选' }}</span>
@@ -271,6 +400,10 @@ onUnmounted(() => {
           <div>
             <span class="section-kicker">For you</span>
             <h2 id="feed-title">为你精选</h2>
+            <p v-if="recommendationSummary.length" class="recommendation-hint">
+              最近偏好：
+              <span v-for="item in recommendationSummary" :key="item.category">{{ item.category }}</span>
+            </p>
           </div>
           <button type="button" class="more-link" @click="router.push('/products')">查看更多</button>
         </div>
@@ -283,7 +416,14 @@ onUnmounted(() => {
             @click="navigateToDetail(product)"
           >
             <div class="feed-image">
-              <img :src="product.imageUrl || undefined" :alt="product.name" @error="handleImageError" />
+              <img :src="product.imageUrls[0]" :alt="product.name" @error="handleImageError" />
+              <div v-if="getProductTags(product).length" class="card-tags">
+                <span
+                  v-for="tag in getProductTags(product)"
+                  :key="tag.text"
+                  :class="['card-tag', `tag-${tag.type}`]"
+                >{{ tag.text }}</span>
+              </div>
             </div>
             <div class="feed-info">
               <span class="category">{{ product.category || '精选' }}</span>
@@ -292,8 +432,14 @@ onUnmounted(() => {
               <div class="feed-footer">
                 <strong>¥{{ product.price }}</strong>
                 <div class="feed-actions" @click.stop>
-                  <button type="button" @click="recordProductAction(product, 'favorite')">收藏</button>
-                  <button type="button" @click="recordProductAction(product, 'cart')">加购</button>
+                  <button
+                    type="button"
+                    :class="{ active: isFavorite(product.productId) }"
+                    @click="toggleFavorite(product)"
+                  >
+                    {{ isFavorite(product.productId) ? '已收藏' : '收藏' }}
+                  </button>
+                  <button type="button" @click="addToCart(product)">加购</button>
                 </div>
               </div>
             </div>
@@ -614,6 +760,177 @@ onUnmounted(() => {
   font-size: 0.84rem;
 }
 
+.flash-section {
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  border: 1px solid rgba(17, 24, 39, 0.06);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fff5f5, #fff);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.flash-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.flash-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.flash-badge {
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #fe2c55, #ff4757);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.flash-title-row h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #111827;
+}
+
+.flash-countdown {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 0.5rem;
+}
+
+.flash-countdown span {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 4px;
+  background: #111827;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.flash-countdown em {
+  color: #111827;
+  font-style: normal;
+  font-weight: 900;
+  margin: 0 1px;
+}
+
+.flash-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.flash-card {
+  overflow: hidden;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.flash-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+}
+
+.flash-image {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #f7f8fa;
+}
+
+.flash-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.flash-discount-tag {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(254, 44, 85, 0.92);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.flash-info {
+  padding: 0.75rem;
+}
+
+.flash-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.flash-price-row strong {
+  color: #fe2c55;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.flash-price-row del {
+  color: #9ca3af;
+  font-size: 0.82rem;
+}
+
+.flash-info > p {
+  display: -webkit-box;
+  margin: 0 0 0.5rem;
+  overflow: hidden;
+  color: #111827;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.flash-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.flash-bar {
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f1f2f4;
+}
+
+.flash-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #fe2c55, #ff6b81);
+}
+
+.flash-progress small {
+  flex: 0 0 auto;
+  color: #fe2c55;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
 .service-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -683,6 +1000,25 @@ onUnmounted(() => {
 .section-kicker {
   display: block;
   margin-bottom: 0.15rem;
+}
+
+.recommendation-hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  margin: 0.35rem 0 0;
+  color: #6b7280;
+  font-size: 0.82rem;
+}
+
+.recommendation-hint span {
+  display: inline-flex;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  background: #fff1f2;
+  color: #fe2c55;
+  font-weight: 800;
 }
 
 .category-section,
@@ -791,6 +1127,36 @@ onUnmounted(() => {
   box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+
+.hot-image,
+.feed-image {
+  position: relative;
+}
+
+.card-tags {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 2;
+}
+
+.card-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.6;
+}
+
+.tag-hot { background: #fe2c55; color: #fff; }
+.tag-value { background: #ff6b35; color: #fff; }
+.tag-discount { background: linear-gradient(135deg, #ff4757, #ff6b81); color: #fff; }
+.tag-urgent { background: #ff6348; color: #fff; }
+.tag-new { background: #2ed573; color: #fff; }
 
 .hot-image {
   aspect-ratio: 1;
@@ -912,6 +1278,12 @@ onUnmounted(() => {
 
 .feed-actions button:hover {
   border-color: #fe2c55;
+  color: #fe2c55;
+}
+
+.feed-actions button.active {
+  border-color: #fe2c55;
+  background: #fff1f2;
   color: #fe2c55;
 }
 

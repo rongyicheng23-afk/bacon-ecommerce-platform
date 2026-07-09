@@ -1,15 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { storeToRefs } from 'pinia'
-import { useCartStore } from '@/stores/cartStore'
 import { useUserStore } from '@/stores/userStore'
+import { cartUpdatedEvent, getCartItemCount } from '@/utils/cart'
 
 const router = useRouter()
 const userStore = useUserStore()
-const cartStore = useCartStore()
-const { itemCount } = storeToRefs(cartStore)
 const keyword = ref('')
+const cartItemCount = ref(0)
 
 const submitSearch = () => {
   router.push({
@@ -28,6 +26,21 @@ const handleLogout = async () => {
     console.error('退出登录失败:', error)
   }
 }
+
+const refreshCartCount = () => {
+  cartItemCount.value = getCartItemCount()
+}
+
+onMounted(() => {
+  refreshCartCount()
+  window.addEventListener(cartUpdatedEvent, refreshCartCount)
+  window.addEventListener('storage', refreshCartCount)
+})
+
+onUnmounted(() => {
+  window.removeEventListener(cartUpdatedEvent, refreshCartCount)
+  window.removeEventListener('storage', refreshCartCount)
+})
 </script>
 
 <template>
@@ -38,6 +51,7 @@ const handleLogout = async () => {
           {{ userStore.isAuthenticated ? `欢迎回来，${userStore.currentUser?.username}` : '欢迎来到 Bacon Mall' }}
         </span>
         <div class="top-links">
+          <RouterLink to="/profile" v-if="userStore.isAuthenticated">个人中心</RouterLink>
           <RouterLink to="/orders">我的订单</RouterLink>
           <RouterLink to="/cart">购物车</RouterLink>
           <RouterLink to="/login" v-if="!userStore.isAuthenticated">登录</RouterLink>
@@ -63,7 +77,7 @@ const handleLogout = async () => {
 
       <RouterLink to="/cart" class="cart-entry">
         <span>购物车</span>
-        <strong>{{ itemCount }}</strong>
+        <strong>{{ cartItemCount }}</strong>
       </RouterLink>
     </div>
 
@@ -75,6 +89,7 @@ const handleLogout = async () => {
         <RouterLink to="/products?category=服饰">服饰穿搭</RouterLink>
         <RouterLink to="/products?category=家居">家居生活</RouterLink>
         <RouterLink to="/orders">我的订单</RouterLink>
+        <RouterLink to="/profile">个人中心</RouterLink>
       </div>
     </nav>
   </header>
