@@ -178,7 +178,10 @@ const handleLogout = async () => {
 
 .header-search {
   display: flex;
+  box-sizing: border-box;
+  width: 100%;
   min-height: 46px;
+  overflow: hidden;
   padding: 0.25rem;
   border: 2px solid var(--primary-color);
   border-radius: 999px;
@@ -189,6 +192,7 @@ const handleLogout = async () => {
   flex: 1;
   min-width: 0;
   padding: 0 1rem;
+  border-radius: 999px 0 0 999px;
   border: 0;
   outline: none;
   color: #111827;
@@ -277,6 +281,10 @@ const handleLogout = async () => {
   .main-header {
     grid-template-columns: 1fr;
     gap: 0.8rem;
+  }
+
+  .header-search {
+    justify-self: stretch;
   }
 
   .cart-entry {
