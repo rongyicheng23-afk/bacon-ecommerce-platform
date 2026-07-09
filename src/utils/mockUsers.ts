@@ -74,6 +74,8 @@ export const getMockUsers = (): MockUser[] => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
     return merged
   } catch {
+    // localStorage 数据损坏时，修复并返回 demo 用户
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(DEMO_USERS))
     return [...DEMO_USERS]
   }
 }

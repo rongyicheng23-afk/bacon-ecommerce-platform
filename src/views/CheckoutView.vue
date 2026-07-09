@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { removeCartLineIds } from '@/utils/cart'
+import { readAddresses } from '@/utils/addresses'
 
 interface CheckoutItem {
   id: number
@@ -27,37 +28,15 @@ interface CheckoutDraft {
   createdAt: string
 }
 
-interface Address {
-  id: number
-  name: string
-  phone: string
-  detail: string
-  isDefault?: boolean
-}
-
 const router = useRouter()
 const draft = ref<CheckoutDraft | null>(null)
-const selectedAddressId = ref(1)
+const selectedAddressId = ref(0)
 const deliveryType = ref('standard')
 const paymentType = ref('alipay')
 const remark = ref('')
 const actionMessage = ref('')
 
-const addresses: Address[] = [
-  {
-    id: 1,
-    name: '荣同学',
-    phone: '138****2026',
-    detail: '广东省广州市 天河区 默认收货地址',
-    isDefault: true
-  },
-  {
-    id: 2,
-    name: '实习项目测试用户',
-    phone: '139****0709',
-    detail: '广东省深圳市 南山区 电商平台测试地址'
-  }
-]
+const addresses = ref(readAddresses())
 
 const deliveryOptions = [
   { id: 'standard', name: '普通配送', desc: '预计 48 小时内发货', fee: 0 },
@@ -104,7 +83,7 @@ const submitOrder = () => {
   if (!draft.value) return
 
   const orderId = Date.now()
-  const selectedAddress = addresses.find((item) => item.id === selectedAddressId.value)
+  const selectedAddress = addresses.value.find((item) => item.id === selectedAddressId.value)
   const order = {
     orderId,
     status: 'pending_payment',
@@ -139,6 +118,8 @@ const handleImageError = (event: Event) => {
 
 onMounted(() => {
   readCheckoutDraft()
+  const defaultAddr = addresses.value.find((a) => a.isDefault)
+  selectedAddressId.value = defaultAddr?.id ?? addresses.value[0]?.id ?? 0
 })
 </script>
 

@@ -24,7 +24,7 @@ const saveCurrentUser = (user: User, token: string) => {
 
 /** 判断 redirect 路径是否与用户角色兼容 */
 const isRedirectCompatible = (user: User, path: string): boolean => {
-  const buyerOnly = ['/cart', '/checkout', '/orders', '/profile', '/payment']
+  const buyerOnly = ['/cart', '/checkout', '/orders', '/order/', '/profile', '/payment', '/payment-success']
   const sellerOnly = ['/seller']
   if (user.role === 'buyer' && sellerOnly.some((p) => path.startsWith(p))) return false
   if (user.role === 'seller' && buyerOnly.some((p) => path.startsWith(p))) return false

@@ -1,21 +1,53 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/userStore'
+import { useProductStore } from '@/stores/productStore'
 import { cartUpdatedEvent, getCartItemCount } from '@/utils/cart'
 
 const router = useRouter()
 const userStore = useUserStore()
+const productStore = useProductStore()
 const keyword = ref('')
 const cartItemCount = ref(0)
+const showSuggestions = ref(false)
+let blurTimer: number | undefined
+
+const hotSearches = ['耳机', '机械键盘', '背包', '台灯', '加湿器', '鼠标', '充电宝', 'T恤']
+
+const suggestionList = computed(() => {
+  const kw = keyword.value.trim().toLowerCase()
+  if (!kw) return hotSearches.map((t) => ({ text: t, hot: true }))
+  const names = productStore.products
+    .filter((p) => p.name.toLowerCase().includes(kw))
+    .slice(0, 6)
+    .map((p) => ({ text: p.name, hot: false }))
+  return names.length > 0 ? names : [{ text: `搜索 "${kw}"`, hot: false }]
+})
+
+const navigateToSuggestion = (text: string) => {
+  keyword.value = text
+  showSuggestions.value = false
+  router.push({ path: '/products', query: { q: text } })
+}
 
 const submitSearch = () => {
+  showSuggestions.value = false
   router.push({
     path: '/products',
-    query: {
-      q: keyword.value.trim() || undefined
-    }
+    query: { q: keyword.value.trim() || undefined }
   })
+}
+
+const onSearchFocus = () => {
+  if (blurTimer) clearTimeout(blurTimer)
+  showSuggestions.value = true
+}
+
+const onSearchBlur = () => {
+  blurTimer = window.setTimeout(() => {
+    showSuggestions.value = false
+  }, 180)
 }
 
 const handleLogout = async () => {
@@ -31,10 +63,13 @@ const refreshCartCount = () => {
   cartItemCount.value = getCartItemCount()
 }
 
-onMounted(() => {
+onMounted(async () => {
   refreshCartCount()
   window.addEventListener(cartUpdatedEvent, refreshCartCount)
   window.addEventListener('storage', refreshCartCount)
+  if (productStore.products.length === 0) {
+    await productStore.fetchProducts()
+  }
 })
 
 onUnmounted(() => {
@@ -76,7 +111,26 @@ onUnmounted(() => {
       </RouterLink>
 
       <form class="header-search" @submit.prevent="submitSearch">
-        <input v-model="keyword" type="search" placeholder="搜索商品、分类、关键词" />
+        <div class="search-wrapper">
+          <input
+            v-model="keyword"
+            type="search"
+            placeholder="搜索商品、分类、关键词"
+            @focus="onSearchFocus"
+            @blur="onSearchBlur"
+          />
+          <div v-if="showSuggestions && suggestionList.length" class="search-dropdown" @mousedown.prevent>
+            <button
+              v-for="item in suggestionList"
+              :key="item.text"
+              type="button"
+              @click="navigateToSuggestion(item.text)"
+            >
+              <span v-if="item.hot" class="hot-mark">热</span>
+              {{ item.text }}
+            </button>
+          </div>
+        </div>
         <button type="submit">搜索</button>
       </form>
 
@@ -208,25 +262,77 @@ onUnmounted(() => {
   box-sizing: border-box;
   width: 100%;
   min-height: 46px;
-  overflow: hidden;
+  overflow: visible;
   padding: 0.25rem;
   border: 2px solid var(--primary-color);
   border-radius: 999px;
   background: #fff;
 }
 
-.header-search input {
+.search-wrapper {
+  position: relative;
   flex: 1;
   min-width: 0;
+}
+
+.header-search input {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
   padding: 0 1rem;
-  border-radius: 999px 0 0 999px;
   border: 0;
+  border-radius: 999px;
   outline: none;
   color: #111827;
   font-size: 0.95rem;
 }
 
-.header-search button {
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  padding: 6px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(17, 24, 39, 0.16);
+  z-index: 50;
+}
+
+.search-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #111827;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.search-dropdown button:hover {
+  background: #f7f8fa;
+}
+
+.hot-mark {
+  display: inline-grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 4px;
+  background: #fe2c55;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.header-search > button {
   min-width: 86px;
   border: 0;
   border-radius: 999px;

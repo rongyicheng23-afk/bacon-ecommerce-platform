@@ -4,10 +4,16 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/userStore'
 import { useProductStore } from '@/stores/productStore'
 
+interface SellerOrderItem {
+  category?: string
+  [key: string]: unknown
+}
+
 interface SellerOrder {
   orderId: number
   status: 'pending_payment' | 'paid' | 'shipped' | 'completed' | 'cancelled'
   payableAmount: number
+  items?: SellerOrderItem[]
   createdAt: string
 }
 
@@ -19,17 +25,26 @@ const orders = ref<SellerOrder[]>([])
 const sellerName = computed(() => userStore.currentUser?.shopName || userStore.currentUser?.username || 'Bacon 商家')
 const mainCategory = computed(() => userStore.currentUser?.mainCategory || '综合类目')
 
-const paidOrders = computed(() => orders.value.filter((order) => order.status === 'paid'))
-const shippedOrders = computed(() => orders.value.filter((order) => order.status === 'shipped'))
-const completedOrders = computed(() => orders.value.filter((order) => order.status === 'completed'))
+/** 过滤出属于该商家类目的订单 */
+const sellerOrders = computed(() => {
+  const cat = userStore.currentUser?.mainCategory
+  if (!cat) return orders.value
+  return orders.value.filter((order) => {
+    if (!order.items || order.items.length === 0) return true // 无商品信息不过滤
+    return order.items.some((item) => item.category === cat)
+  })
+})
+
+const paidOrders = computed(() => sellerOrders.value.filter((order) => order.status === 'paid'))
+const shippedOrders = computed(() => sellerOrders.value.filter((order) => order.status === 'shipped'))
+const completedOrders = computed(() => sellerOrders.value.filter((order) => order.status === 'completed'))
 const totalSales = computed(() => {
-  return orders.value
+  return sellerOrders.value
     .filter((order) => order.status !== 'pending_payment' && order.status !== 'cancelled')
     .reduce((sum, order) => sum + order.payableAmount, 0)
 })
 
 const sellerProducts = computed(() => {
-  // 按商家的 mainCategory 过滤（如需精确 sellerId 过滤，等后端接好再加）
   const cat = userStore.currentUser?.mainCategory
   if (!cat) return productStore.products
   return productStore.products.filter((p) => p.category === cat)
@@ -42,7 +57,7 @@ const lowStockProducts = computed(() => {
 })
 
 const recentOrders = computed(() => {
-  return [...orders.value]
+  return [...sellerOrders.value]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5)
 })
@@ -118,7 +133,7 @@ onMounted(async () => {
             <span>Orders</span>
             <h2>近期订单</h2>
           </div>
-          <button type="button" @click="router.push('/orders')">查看订单</button>
+          <button type="button" disabled>商家订单即将开放</button>
         </div>
 
         <div v-if="recentOrders.length === 0" class="seller-empty">
@@ -155,9 +170,9 @@ onMounted(async () => {
     </section>
 
     <section class="seller-actions">
-      <button type="button">商品管理即将开放</button>
-      <button type="button">商家订单即将开放</button>
-      <button type="button">经营分析即将开放</button>
+      <button type="button" disabled>商品管理即将开放</button>
+      <button type="button" disabled>商家订单即将开放</button>
+      <button type="button" disabled>经营分析即将开放</button>
     </section>
   </main>
 </template>
@@ -214,6 +229,13 @@ onMounted(async () => {
 .seller-hero button {
   color: #111827;
   background: #fff;
+}
+
+.card-head button:disabled,
+.seller-actions button:disabled {
+  color: #9ca3af;
+  background: #f5f6f8;
+  cursor: not-allowed;
 }
 
 .seller-stats {

@@ -208,6 +208,26 @@ const openRelatedProduct = (target: Product) => {
   router.push(`/product/${target.productId}`)
 }
 
+// ---- 主图悬停放大 ----
+const mainImageRef = ref<HTMLImageElement | null>(null)
+const imageZoomStyle = ref('')
+const isZooming = ref(false)
+
+const onImageHover = (e: MouseEvent) => {
+  const img = mainImageRef.value
+  if (!img) return
+  const rect = img.getBoundingClientRect()
+  const x = ((e.clientX - rect.left) / rect.width) * 100
+  const y = ((e.clientY - rect.top) / rect.height) * 100
+  isZooming.value = true
+  imageZoomStyle.value = `transform-origin: ${x}% ${y}%; transform: scale(2); cursor: zoom-out;`
+}
+
+const onImageLeave = () => {
+  isZooming.value = false
+  imageZoomStyle.value = ''
+}
+
 const handleImageError = (event: Event) => {
   const img = event.target as HTMLImageElement
   img.src = 'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=900&q=85'
@@ -231,10 +251,16 @@ onMounted(() => {
     <template v-else-if="product">
       <section class="product-shell">
         <div class="gallery-panel">
-          <div class="main-image">
+          <div
+            class="main-image"
+            @mousemove="onImageHover"
+            @mouseleave="onImageLeave"
+          >
             <img
+              ref="mainImageRef"
               :src="product.imageUrls[mainImageIndex] || product.imageUrls[0]"
               :alt="product.name"
+              :style="imageZoomStyle"
               @error="handleImageError"
             />
           </div>
@@ -431,7 +457,14 @@ onMounted(() => {
   background: #f5f6f8;
 }
 
-.main-image img,
+.main-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.15s ease-out;
+  cursor: zoom-in;
+}
+
 .thumb-button img,
 .related-card img {
   width: 100%;
