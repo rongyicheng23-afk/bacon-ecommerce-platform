@@ -12,6 +12,7 @@ import ProfileView from '@/views/ProfileView.vue'
 import PaymentPage from '@/components/PaymentPage.vue'
 import PaymentSuccess from '@/views/PaymentSuccess.vue'
 import SellerDashboard from '@/views/SellerDashboard.vue'
+import BrowsingHistory from '@/views/BrowsingHistory.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -63,6 +64,12 @@ const router = createRouter({
       path: '/profile',
       name: 'profile',
       component: ProfileView,
+      meta: { requiresAuth: true, role: 'buyer' }
+    },
+    {
+      path: '/history',
+      name: 'browsing-history',
+      component: BrowsingHistory,
       meta: { requiresAuth: true, role: 'buyer' }
     },
     {

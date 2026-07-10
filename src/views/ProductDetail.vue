@@ -8,7 +8,7 @@ import { addProductToCart } from '@/utils/cart'
 import { readFavoriteIds, toggleFavoriteId } from '@/utils/favorites'
 
 type BehaviorAction = 'view' | 'favorite' | 'unfavorite' | 'cart' | 'buy' | 'view_recommendation'
-type DetailTab = 'detail' | 'reviews' | 'recommend'
+type DetailTab = 'detail' | 'reviews' | 'recommend' | 'qa'
 
 const route = useRoute()
 const router = useRouter()
@@ -24,11 +24,97 @@ const actionMessage = ref('')
 const favoriteIds = ref<number[]>([])
 
 const serviceItems = ['正品保障', '极速配送', '7天无理由', '售后无忧']
-const reviews = [
-  { user: '用户 A', rating: 5, content: '商品质感不错，物流也很快，整体符合预期。' },
-  { user: '用户 B', rating: 5, content: '包装完整，价格合适，日常使用很方便。' },
-  { user: '用户 C', rating: 4, content: '功能比较实用，后续还会继续关注同类商品。' }
+
+/** ---- 评价系统 ---- */
+interface ReviewItem { user: string; rating: number; content: string; date: string; sku: string }
+const allReviews: ReviewItem[] = [
+  { user: '数码控小王', rating: 5, date: '2026-06-28', sku: '深空灰 · Pro 版', content: '质感超棒，做工精细，超出预期！物流隔天就到，包装也非常严实。' },
+  { user: '居家达人', rating: 5, date: '2026-06-25', sku: '珍珠白 · 标准版', content: '包装完整，价格合适，日常使用很方便。卖家还送了小赠品，很贴心。' },
+  { user: '学生党小张', rating: 4, date: '2026-06-22', sku: '午夜蓝 · 旗舰版', content: '功能比较实用，性价比很高。用了一周没什么问题，后续还会继续关注。' },
+  { user: '办公族老李', rating: 5, date: '2026-06-20', sku: '深空灰 · 标准版', content: '买来办公用，同事们都说好看。手感舒适，推荐购买。' },
+  { user: '跑步爱好者', rating: 4, date: '2026-06-18', sku: '珍珠白 · Pro 版', content: '整体满意，细节还有提升空间。不过就这个价位来说已经非常值了。' },
+  { user: '程序猿阿明', rating: 5, date: '2026-06-15', sku: '午夜蓝 · Pro 版', content: '第二次回购了，送朋友的生日礼物，朋友非常喜欢！颜值在线。' },
+  { user: '美妆博主CC', rating: 3, date: '2026-06-12', sku: '珍珠白 · 标准版', content: '中规中矩吧，没有宣传的那么好，但也不差。物流有点慢，等了一周才到。' },
+  { user: '大学生小王', rating: 5, date: '2026-06-10', sku: '深空灰 · 旗舰版', content: '攒了很久的钱一次性买了旗舰版，果然没让我失望！各方面都很优秀。' },
+  { user: '退休老教师', rating: 4, date: '2026-06-08', sku: '午夜蓝 · 标准版', content: '女儿帮我网购的，操作简单易上手。做工不错，希望能用得久一点。' },
+  { user: '摄影爱好者', rating: 5, date: '2026-06-05', sku: '深空灰 · Pro 版', content: '拍了几张照片发朋友圈，好多人问链接。颜值和实用性都很棒！' },
+  { user: '宝妈小芳', rating: 4, date: '2026-06-02', sku: '珍珠白 · Pro 版', content: '带娃没时间去店里逛，网上买到的意外惊喜。颜色很正，没色差。' },
+  { user: '健身教练阿强', rating: 5, date: '2026-05-30', sku: '午夜蓝 · 旗舰版', content: '第三次在这个店铺买东西了，一如既往的好品质。客服回复也很快。' },
+  { user: '设计师Lisa', rating: 4, date: '2026-05-28', sku: '珍珠白 · 旗舰版', content: '外观设计很有品味，放在桌上就是一道风景。功能也完全够用。' },
+  { user: '外卖小哥', rating: 3, date: '2026-05-25', sku: '深空灰 · 标准版', content: '还行吧，对得起这个价格。就是说明书有点简略，一开始不太会用。' },
+  { user: '高三学生', rating: 5, date: '2026-05-22', sku: '午夜蓝 · 标准版', content: '高考完奖励自己的，超级满意！比同学买的同类产品好太多了。' },
+  { user: '自由职业者', rating: 4, date: '2026-05-20', sku: '深空灰 · Pro 版', content: '在家办公的好帮手。用了一个月没什么问题，充电也很快。' },
+  { user: '旅行达人', rating: 5, date: '2026-05-18', sku: '珍珠白 · 标准版', content: '出门旅行带着很方便，小巧不占地方。续航也够用，好评！' },
+  { user: '游戏玩家', rating: 5, date: '2026-05-15', sku: '午夜蓝 · Pro 版', content: 'RGB灯效很酷，手感也很好。打游戏时延迟很低，竞技利器。' },
+  { user: '考研党', rating: 4, date: '2026-05-12', sku: '深空灰 · 标准版', content: '图书馆自习用，很安静不会打扰别人。希望能陪我度过考研时光。' },
+  { user: '美食博主', rating: 5, date: '2026-05-10', sku: '珍珠白 · Pro 版', content: '拍美食视频时用这个当道具，画面质感瞬间提升。功能颜值都在线。' },
+  { user: 'IT男小李', rating: 2, date: '2026-05-08', sku: '午夜蓝 · 标准版', content: '收到时盒子有点压坏了，虽然东西没坏但体验不太好。包装可以再加固。' },
+  { user: '音乐老师', rating: 5, date: '2026-05-05', sku: '深空灰 · 旗舰版', content: '音质出乎意料的好，上课用来放音乐很清晰。同事也跟着买了同款。' },
+  { user: '健身新手', rating: 4, date: '2026-05-02', sku: '珍珠白 · 标准版', content: '朋友推荐的，果然好用。刚开始健身，这个帮我记录了很多数据。' },
+  { user: '律师张先生', rating: 5, date: '2026-04-28', sku: '午夜蓝 · 旗舰版', content: '商务场合使用很有档次，客户都夸好看。稳定性和续航都很满意。' },
+  { user: '插画师小林', rating: 4, date: '2026-04-25', sku: '珍珠白 · Pro 版', content: '用来画画手感很好，压感灵敏。如果能再多几个快捷键就更完美了。' },
+  { user: '退休工程师', rating: 5, date: '2026-04-22', sku: '深空灰 · Pro 版', content: '做工扎实，用料讲究，一看就是好产品。操作逻辑也很清晰，上手快。' },
+  { user: '大学老师', rating: 3, date: '2026-04-20', sku: '午夜蓝 · 标准版', content: '功能还可以，但是价格波动有点大，买完没几天就降价了，有点心疼。' },
+  { user: '自媒体运营', rating: 5, date: '2026-04-18', sku: '珍珠白 · 旗舰版', content: '工作效率提升明显！剪视频和处理图片都很流畅，强烈推荐给同行。' },
+  { user: '初中生小明', rating: 4, date: '2026-04-15', sku: '深空灰 · 标准版', content: '爸妈给买的生日礼物，很喜欢！同学们都很羡慕，嘿嘿。' },
+  { user: '咖啡店老板', rating: 5, date: '2026-04-12', sku: '午夜蓝 · Pro 版', content: '放在店里做背景音乐播放器，客人经常问在哪买的。颜值和音质都在线。' },
+  { user: '医生赵姐', rating: 4, date: '2026-04-10', sku: '珍珠白 · 标准版', content: '夜班时用着很方便，光线柔和不会打扰同事休息。推荐给医护人员。' },
+  { user: '快递员小刘', rating: 5, date: '2026-04-08', sku: '深空灰 · 旗舰版', content: '每天配送路上用，信号稳定续航长，工作好帮手。摔了一次也没坏。' },
 ]
+
+const REVIEWS_PER_PAGE = 5
+const reviewPage = ref(1)
+const reviewFilter = ref(0) // 0=all, 5=5星, 4=4星, etc.
+
+const filteredReviews = computed(() => {
+  let list = allReviews
+  if (reviewFilter.value > 0) list = list.filter(r => r.rating === reviewFilter.value)
+  return list
+})
+
+const pagedReviews = computed(() => {
+  const start = (reviewPage.value - 1) * REVIEWS_PER_PAGE
+  return filteredReviews.value.slice(start, start + REVIEWS_PER_PAGE)
+})
+
+const reviewTotalPages = computed(() => Math.ceil(filteredReviews.value.length / REVIEWS_PER_PAGE))
+
+const ratingDistribution = computed(() => {
+  const dist: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+  allReviews.forEach(r => { dist[r.rating]++ })
+  return dist
+})
+
+const avgRating = computed(() => {
+  const total = allReviews.reduce((s, r) => s + r.rating, 0)
+  return (total / allReviews.length).toFixed(1)
+})
+
+const setReviewFilter = (rating: number) => {
+  reviewFilter.value = rating
+  reviewPage.value = 1
+}
+
+/** ---- Q&A 问答系统 ---- */
+interface QAItem { id: number; question: string; answer: string | null; user: string; date: string }
+const qaList = ref<QAItem[]>([
+  { id: 1, user: '新用户小王', question: '请问这款商品支持7天无理由退货吗？', answer: '支持！本店所有商品均支持7天无理由退货，请放心购买。', date: '2026-06-20' },
+  { id: 2, user: '学生党', question: '学生有优惠吗？可以分期付款吗？', answer: '目前暂不支持分期，但经常有限时折扣活动，关注店铺首页即可获取最新优惠信息。', date: '2026-06-15' },
+  { id: 3, user: '数码控', question: 'Pro版和旗舰版的主要区别是什么？', answer: 'Pro版在标准版基础上升级了核心配置，旗舰版则额外增加了高端材质和更长的续航，具体可查看规格参数对比。', date: '2026-06-10' },
+  { id: 4, user: '宝妈小李', question: '这款商品安全吗？有没有什么有害物质？', answer: '产品通过了3C认证和RoHS检测，不含任何有害物质，请放心使用。', date: '2026-06-05' },
+  { id: 5, user: '户外爱好者', question: '防水性能怎么样？下雨天能正常使用吗？', answer: '日常防泼溅是没有问题的，但不建议长时间浸泡在水中。雨天正常使用请放心。', date: '2026-05-28' },
+])
+const newQuestion = ref('')
+const qaSubmitMsg = ref('')
+
+const submitQuestion = () => {
+  const q = newQuestion.value.trim()
+  if (!q) return
+  qaList.value.unshift({ id: Date.now(), user: '我', question: q, answer: null, date: new Date().toISOString().slice(0, 10) })
+  newQuestion.value = ''
+  qaSubmitMsg.value = '问题已提交，客服将在24小时内回复'
+  setTimeout(() => { qaSubmitMsg.value = '' }, 3000)
+}
 
 /** 当前选中的 SKU */
 const selectedSku = computed<ProductSku | null>(() => {
@@ -288,7 +374,7 @@ onMounted(() => {
             <span>平台价</span>
             <strong>¥{{ currentPrice }}</strong>
             <small v-if="selectedSku">已选：{{ selectedSku.name }}</small>
-            <small>累计评价 {{ reviews.length * 128 }}+</small>
+            <small>累计评价 {{ allReviews.length * 128 }}+</small>
           </div>
 
           <div class="meta-grid">
@@ -365,8 +451,9 @@ onMounted(() => {
       <section class="detail-tabs">
         <div class="tab-header">
           <button type="button" :class="{ active: activeTab === 'detail' }" @click="activeTab = 'detail'">商品详情</button>
-          <button type="button" :class="{ active: activeTab === 'reviews' }" @click="activeTab = 'reviews'">用户评价</button>
+          <button type="button" :class="{ active: activeTab === 'reviews' }" @click="activeTab = 'reviews'">用户评价 ({{ allReviews.length }})</button>
           <button type="button" :class="{ active: activeTab === 'recommend' }" @click="activeTab = 'recommend'">相关推荐</button>
+          <button type="button" :class="{ active: activeTab === 'qa' }" @click="activeTab = 'qa'">商品问答 ({{ qaList.length }})</button>
         </div>
 
         <div v-if="activeTab === 'detail'" class="tab-body detail-copy">
@@ -380,12 +467,70 @@ onMounted(() => {
           </div>
         </div>
 
-        <div v-else-if="activeTab === 'reviews'" class="tab-body review-list">
-          <article v-for="review in reviews" :key="review.user" class="review-card">
-            <strong>{{ review.user }}</strong>
-            <span>{{ '★'.repeat(review.rating) }}</span>
+        <div v-else-if="activeTab === 'reviews'" class="tab-body">
+          <!-- 评分概览 -->
+          <div class="review-summary">
+            <div class="review-score">
+              <strong>{{ avgRating }}</strong>
+              <span>{{ '★'.repeat(Math.round(Number(avgRating))) }}</span>
+              <small>共 {{ allReviews.length }} 条评价</small>
+            </div>
+            <div class="review-bars">
+              <button v-for="r in [5,4,3,2,1]" :key="r" type="button"
+                :class="['review-filter-btn', { active: reviewFilter === r }]"
+                @click="setReviewFilter(r === reviewFilter ? 0 : r)">
+                <span>{{ r }} 星</span>
+                <span class="bar-track"><span class="bar-fill" :style="{ width: (ratingDistribution[r] / allReviews.length * 100) + '%' }"></span></span>
+                <span>{{ ratingDistribution[r] }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div v-if="pagedReviews.length === 0" class="review-empty">暂无该星级评价</div>
+          <article v-for="review in pagedReviews" :key="review.user + review.date" class="review-card">
+            <div class="review-card-head">
+              <strong>{{ review.user }}</strong>
+              <span>{{ '★'.repeat(review.rating) }}{{ '☆'.repeat(5 - review.rating) }}</span>
+              <time>{{ review.date }}</time>
+            </div>
+            <small class="review-sku">{{ review.sku }}</small>
             <p>{{ review.content }}</p>
           </article>
+
+          <div v-if="reviewTotalPages > 1" class="review-pagination">
+            <button type="button" :disabled="reviewPage <= 1" @click="reviewPage--">上一页</button>
+            <span v-for="p in reviewTotalPages" :key="p"
+              :class="{ active: reviewPage === p }"
+              @click="reviewPage = p">{{ p }}</span>
+            <button type="button" :disabled="reviewPage >= reviewTotalPages" @click="reviewPage++">下一页</button>
+          </div>
+        </div>
+
+        <div v-else-if="activeTab === 'qa'" class="tab-body">
+          <p v-if="qaSubmitMsg" class="qa-toast">{{ qaSubmitMsg }}</p>
+          <div class="qa-input-row">
+            <input v-model="newQuestion" type="text" placeholder="有什么问题想问？输入后按回车提交..." @keyup.enter="submitQuestion" />
+            <button type="button" @click="submitQuestion">提问</button>
+          </div>
+          <div class="qa-list">
+            <article v-for="qa in qaList" :key="qa.id" :class="['qa-card', { answered: qa.answer }]">
+              <div class="qa-q">
+                <span class="qa-badge">问</span>
+                <div>
+                  <strong>{{ qa.question }}</strong>
+                  <small>{{ qa.user }} · {{ qa.date }}</small>
+                </div>
+              </div>
+              <div v-if="qa.answer" class="qa-a">
+                <span class="qa-badge answer">答</span>
+                <div>
+                  <p>{{ qa.answer }}</p>
+                  <small>商家客服</small>
+                </div>
+              </div>
+              <div v-else class="qa-pending">客服处理中，请耐心等待...</div>
+            </article>
+          </div>
         </div>
 
         <div v-else class="tab-body related-grid">
@@ -769,6 +914,87 @@ onMounted(() => {
   gap: 0.75rem;
 }
 
+.review-summary {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 24px;
+  margin-bottom: 20px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.review-score {
+  text-align: center;
+}
+
+.review-score strong {
+  display: block;
+  color: #fe2c55;
+  font-size: 42px;
+  line-height: 1;
+}
+
+.review-score span {
+  display: block;
+  margin: 4px 0;
+  color: #fe2c55;
+  font-size: 18px;
+}
+
+.review-score small {
+  color: #999;
+  font-size: 13px;
+}
+
+.review-bars {
+  display: grid;
+  gap: 6px;
+}
+
+.review-filter-btn {
+  display: grid;
+  grid-template-columns: 36px 1fr 24px;
+  gap: 10px;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: #666;
+  font-size: 13px;
+  text-align: left;
+}
+
+.review-filter-btn:hover,
+.review-filter-btn.active {
+  background: #fff1f2;
+  color: #fe2c55;
+}
+
+.bar-track {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: #fe2c55;
+  transition: width 0.3s;
+}
+
+.review-empty {
+  padding: 24px;
+  text-align: center;
+  color: #999;
+}
+
 .review-card {
   padding: 1rem;
   border-radius: 12px;
@@ -779,13 +1005,176 @@ onMounted(() => {
   margin-right: 0.75rem;
 }
 
-.review-card span {
-  color: #fe2c55;
+.review-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 4px;
+}
+
+.review-card-head time {
+  margin-left: auto;
+  color: #999;
+  font-size: 0.82rem;
+}
+
+.review-sku {
+  display: block;
+  margin-bottom: 6px;
+  color: #999;
+  font-size: 0.78rem;
 }
 
 .review-card p {
   margin: 0.5rem 0 0;
   color: #666;
+}
+
+.review-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.review-pagination button,
+.review-pagination span {
+  min-width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.review-pagination span.active {
+  border-color: #fe2c55;
+  background: #fff1f2;
+  color: #fe2c55;
+  font-weight: 900;
+}
+
+.review-pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Q&A */
+.qa-toast {
+  margin: 0 0 12px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 13px;
+}
+
+.qa-input-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.qa-input-row input {
+  flex: 1;
+  min-height: 42px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0 14px;
+  outline: none;
+  font-size: 14px;
+}
+
+.qa-input-row input:focus {
+  border-color: #fe2c55;
+}
+
+.qa-input-row button {
+  min-width: 72px;
+  border: 0;
+  border-radius: 10px;
+  background: #fe2c55;
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.qa-list {
+  display: grid;
+  gap: 10px;
+}
+
+.qa-card {
+  padding: 14px;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.qa-q,
+.qa-a {
+  display: flex;
+  gap: 10px;
+}
+
+.qa-q strong {
+  color: #111827;
+  font-size: 14px;
+}
+
+.qa-q small {
+  display: block;
+  margin-top: 4px;
+  color: #999;
+  font-size: 12px;
+}
+
+.qa-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fe2c55;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.qa-badge.answer {
+  background: #0ea5e9;
+}
+
+.qa-a {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.qa-a p {
+  margin: 0;
+  color: #555;
+  font-size: 14px;
+}
+
+.qa-a small {
+  display: block;
+  margin-top: 4px;
+  color: #0ea5e9;
+  font-size: 12px;
+}
+
+.qa-pending {
+  margin-top: 8px;
+  color: #f59e0b;
+  font-size: 13px;
 }
 
 .related-grid {

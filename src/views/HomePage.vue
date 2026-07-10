@@ -103,6 +103,16 @@ const switchSlide = (index: number) => {
   activeSlide.value = index
 }
 
+const prevSlide = () => {
+  if (bannerProducts.value.length === 0) return
+  activeSlide.value = (activeSlide.value - 1 + bannerProducts.value.length) % bannerProducts.value.length
+}
+
+const nextSlide = () => {
+  if (bannerProducts.value.length === 0) return
+  activeSlide.value = (activeSlide.value + 1) % bannerProducts.value.length
+}
+
 const browseChannel = (query: Record<string, string>) => {
   router.push({
     path: '/products',
@@ -208,23 +218,6 @@ onUnmounted(() => {
 
     <template v-else>
       <section class="home-hero-grid">
-        <aside class="category-rail" aria-label="商品分类">
-          <div class="rail-title">全部分类</div>
-          <button
-            v-for="category in categoryLinks"
-            :key="category.name"
-            type="button"
-            class="rail-item"
-            @click="browseCategory(category.name)"
-          >
-            <span :class="['rail-mark', category.tone]">{{ category.name.slice(0, 1) }}</span>
-            <span>
-              <strong>{{ category.name }}</strong>
-              <small>{{ category.count }} 件好物</small>
-            </span>
-          </button>
-        </aside>
-
         <section v-if="bannerProducts.length" class="hero-carousel" aria-label="热门活动">
           <article
             v-for="(product, index) in bannerProducts"
@@ -243,6 +236,27 @@ onUnmounted(() => {
               </div>
             </div>
           </article>
+
+          <button
+            type="button"
+            class="hero-arrow hero-arrow-left"
+            aria-label="上一张"
+            @click.stop="prevSlide"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="hero-arrow hero-arrow-right"
+            aria-label="下一张"
+            @click.stop="nextSlide"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
 
           <div class="hero-dots" aria-label="切换活动">
             <button
@@ -472,13 +486,12 @@ onUnmounted(() => {
 
 .home-hero-grid {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr) 220px;
+  grid-template-columns: minmax(0, 1fr) 220px;
   gap: 1rem;
   align-items: stretch;
   margin-bottom: 1.25rem;
 }
 
-.category-rail,
 .promo-stack,
 .channel-section,
 .service-strip {
@@ -486,62 +499,6 @@ onUnmounted(() => {
   border-radius: 16px;
   background: #fff;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-}
-
-.category-rail {
-  min-height: 360px;
-  padding: 0.85rem;
-}
-
-.rail-title {
-  margin-bottom: 0.6rem;
-  color: #111827;
-  font-size: 1rem;
-  font-weight: 900;
-}
-
-.rail-item {
-  display: flex;
-  width: 100%;
-  gap: 0.65rem;
-  align-items: center;
-  min-height: 48px;
-  padding: 0.45rem;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: #111827;
-  cursor: pointer;
-  text-align: left;
-}
-
-.rail-item:hover {
-  background: #fff2f5;
-}
-
-.rail-item strong,
-.rail-item small {
-  display: block;
-}
-
-.rail-item strong {
-  font-size: 0.92rem;
-}
-
-.rail-item small {
-  color: #6b7280;
-  font-size: 0.76rem;
-}
-
-.rail-mark {
-  display: grid;
-  flex: 0 0 auto;
-  width: 32px;
-  height: 32px;
-  place-items: center;
-  border-radius: 10px;
-  color: #fff;
-  font-weight: 900;
 }
 
 .hero-carousel {
@@ -657,6 +614,41 @@ onUnmounted(() => {
 
 .hero-dots button.active {
   background: #fff;
+}
+
+.hero-arrow {
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity 0.3s ease, background 0.2s ease;
+}
+
+.hero-arrow:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.hero-arrow svg {
+  width: 22px;
+  height: 22px;
+}
+
+.hero-arrow-left { left: 1rem; }
+.hero-arrow-right { right: 1rem; }
+
+.hero-carousel:hover .hero-arrow {
+  opacity: 1;
 }
 
 .promo-stack {
@@ -1064,37 +1056,10 @@ onUnmounted(() => {
   font-weight: 900;
 }
 
-.tone-0 .category-mark {
-  background: #fe2c55;
-}
-
-.tone-0.rail-mark {
-  background: #fe2c55;
-}
-
-.tone-1 .category-mark {
-  background: #1677ff;
-}
-
-.tone-1.rail-mark {
-  background: #1677ff;
-}
-
-.tone-2 .category-mark {
-  background: #16a34a;
-}
-
-.tone-2.rail-mark {
-  background: #16a34a;
-}
-
-.tone-3 .category-mark {
-  background: #7c3aed;
-}
-
-.tone-3.rail-mark {
-  background: #7c3aed;
-}
+.tone-0 .category-mark { background: #ff2f68; }
+.tone-1 .category-mark { background: #1677ff; }
+.tone-2 .category-mark { background: #16a34a; }
+.tone-3 .category-mark { background: #7c3aed; }
 
 .category-tile strong,
 .category-tile small {
@@ -1308,12 +1273,8 @@ onUnmounted(() => {
     grid-template-columns: 1fr;
   }
 
-  .category-rail,
   .promo-stack {
     min-height: auto;
-  }
-
-  .promo-stack {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1343,7 +1304,7 @@ onUnmounted(() => {
 
 @media (min-width: 768px) and (max-width: 1100px) {
   .home-hero-grid {
-    grid-template-columns: 190px minmax(0, 1fr);
+    grid-template-columns: 1fr;
   }
 
   .promo-stack {

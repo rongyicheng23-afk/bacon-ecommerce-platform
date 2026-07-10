@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useProductStore } from '@/stores/productStore'
 import type { Product } from '@/types'
 import { readCartItems, saveCartItems, type CartLine } from '@/utils/cart'
+import { computeBestDiscount, claimCoupon, allCoupons, readClaimedCoupons, type Coupon } from '@/utils/coupons'
 
 type BehaviorAction = 'cart_update' | 'cart_remove' | 'checkout' | 'view_recommendation'
 
@@ -12,6 +13,7 @@ const productStore = useProductStore()
 const loading = ref(true)
 const actionMessage = ref('')
 const cartItems = ref<CartLine[]>([])
+const showCouponPanel = ref(false)
 
 const recommendedProducts = computed(() => {
   const cartProductIds = new Set(cartItems.value.map((item) => item.productId))
@@ -26,7 +28,31 @@ const selectedItems = computed(() => cartItems.value.filter((item) => item.selec
 const allSelected = computed(() => cartItems.value.length > 0 && selectedItems.value.length === cartItems.value.length)
 const totalQuantity = computed(() => selectedItems.value.reduce((sum, item) => sum + item.quantity, 0))
 const totalAmount = computed(() => selectedItems.value.reduce((sum, item) => sum + item.price * item.quantity, 0))
-const totalSavings = computed(() => Math.round(totalAmount.value * 0.08))
+const dominantCategory = computed(() => {
+  if (selectedItems.value.length === 0) return undefined
+  const counts: Record<string, number> = {}
+  selectedItems.value.forEach(i => { counts[i.category] = (counts[i.category] || 0) + 1 })
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0]
+})
+const claimedIds = ref<number[]>(readClaimedCoupons())
+const availableCoupons = computed(() =>
+  allCoupons.filter(
+    (c) => !claimedIds.value.includes(c.id) && new Date(c.expireAt) > new Date()
+  )
+)
+const claimedCoupons = computed(() =>
+  allCoupons.filter((c) => claimedIds.value.includes(c.id))
+)
+const bestCoupon = computed(() => computeBestDiscount(totalAmount.value, dominantCategory.value))
+const couponDiscount = computed(() => bestCoupon.value.discountAmount)
+const totalSavings = computed(() => Math.round(totalAmount.value * 0.08) + couponDiscount.value)
+
+const handleClaim = (couponId: number) => {
+  if (claimCoupon(couponId)) {
+    claimedIds.value = readClaimedCoupons()
+    actionMessage.value = '优惠券已领取'
+  }
+}
 
 const saveCart = () => {
   saveCartItems(cartItems.value)
@@ -87,6 +113,8 @@ const checkout = () => {
       totalQuantity: totalQuantity.value,
       totalAmount: totalAmount.value,
       totalSavings: totalSavings.value,
+      couponDiscount: couponDiscount.value,
+      couponName: bestCoupon.value.coupon?.name || '',
       payableAmount: totalAmount.value - totalSavings.value,
       createdAt: new Date().toISOString()
     })
@@ -204,15 +232,81 @@ onMounted(async () => {
             <strong>¥{{ totalAmount }}</strong>
           </div>
           <div class="summary-row">
-            <span>预计优惠</span>
+            <span>平台优惠</span>
+            <strong>-¥{{ Math.round(totalAmount * 0.08) }}</strong>
+          </div>
+          <div v-if="couponDiscount > 0" class="summary-row coupon-row">
+            <span>优惠券「{{ bestCoupon.coupon?.name }}」</span>
+            <strong>-¥{{ couponDiscount }}</strong>
+          </div>
+          <div class="summary-row">
+            <span>合计优惠</span>
             <strong>-¥{{ totalSavings }}</strong>
           </div>
           <div class="summary-total">
             <span>应付金额</span>
             <strong>¥{{ totalAmount - totalSavings }}</strong>
           </div>
+
+          <!-- 可用券 -->
+          <div v-if="claimedCoupons.length || availableCoupons.length" class="coupon-mini">
+            <div v-if="claimedCoupons.length" class="coupon-mini-title">已领 {{ claimedCoupons.length }} 张券</div>
+            <div v-if="bestCoupon.coupon" class="coupon-best">
+              🎫 最优：{{ bestCoupon.coupon.name }}（省 ¥{{ couponDiscount }}）
+            </div>
+            <div v-if="availableCoupons.length" class="coupon-claim-row">
+              <span>可领 {{ availableCoupons.length }} 张</span>
+              <button type="button" class="claim-toggle" @click="showCouponPanel = !showCouponPanel">
+                {{ showCouponPanel ? '收起' : '领券' }}
+              </button>
+            </div>
+          </div>
+
           <button type="button" class="checkout-button" @click="checkout">去结算</button>
         </aside>
+      </section>
+
+      <!-- 领券面板 -->
+      <section v-if="showCouponPanel" class="coupon-section">
+        <div class="section-title">
+          <h2>领券中心</h2>
+          <button type="button" class="more-link" @click="showCouponPanel = false">收起</button>
+        </div>
+
+        <div v-if="claimedCoupons.length" class="coupon-sub">
+          <span>已领取</span>
+          <div class="coupon-grid">
+            <div v-for="c in claimedCoupons" :key="c.id" class="coupon-card owned">
+              <div class="coupon-left">
+                <strong>{{ c.type === 'percentage' ? c.discount + '%' : '¥' + c.discount }}</strong>
+                <small>满 ¥{{ c.threshold }} 可用</small>
+              </div>
+              <div class="coupon-right">
+                <span>{{ c.name }}</span>
+                <small>{{ c.description }}</small>
+                <time>有效期至 {{ new Date(c.expireAt).toLocaleDateString('zh-CN') }}</time>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="availableCoupons.length" class="coupon-sub">
+          <span>可领取（{{ availableCoupons.length }} 张）</span>
+          <div class="coupon-grid">
+            <div v-for="c in availableCoupons" :key="c.id" class="coupon-card">
+              <div class="coupon-left">
+                <strong>{{ c.type === 'percentage' ? c.discount + '%' : '¥' + c.discount }}</strong>
+                <small>满 ¥{{ c.threshold }} 可用</small>
+              </div>
+              <div class="coupon-right">
+                <span>{{ c.name }}</span>
+                <small>{{ c.description }}</small>
+                <time>有效期至 {{ new Date(c.expireAt).toLocaleDateString('zh-CN') }}</time>
+              </div>
+              <button type="button" class="claim-btn" @click="handleClaim(c.id)">立即领取</button>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="recommend-section">
@@ -500,6 +594,158 @@ onMounted(async () => {
 .checkout-button {
   width: 100%;
   min-height: 46px;
+  margin-top: 0.75rem;
+}
+
+.coupon-mini {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 12px;
+  background: #fff8f0;
+  font-size: 0.82rem;
+}
+
+.coupon-mini-title {
+  color: #111827;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.coupon-best {
+  color: #fe2c55;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.coupon-claim-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #6b7280;
+}
+
+.claim-toggle {
+  border: 0;
+  background: #fe2c55;
+  color: #fff;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* 领券面板 */
+.coupon-section {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid rgba(17, 24, 39, 0.06);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.coupon-sub {
+  margin-bottom: 0.75rem;
+}
+
+.coupon-sub > span {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #6b7280;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.coupon-grid {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.coupon-card {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid #fee2e2;
+  background: #fff;
+}
+
+.coupon-card.owned {
+  border-color: #d1d5db;
+  opacity: 0.7;
+}
+
+.coupon-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 88px;
+  padding: 0.75rem;
+  background: #fff1f2;
+  color: #fe2c55;
+  flex-shrink: 0;
+}
+
+.coupon-card.owned .coupon-left {
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+.coupon-left strong {
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
+.coupon-left small {
+  font-size: 0.7rem;
+  margin-top: 2px;
+}
+
+.coupon-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0.75rem;
+  min-width: 0;
+}
+
+.coupon-right span {
+  color: #111827;
+  font-weight: 900;
+  font-size: 0.88rem;
+}
+
+.coupon-right small {
+  color: #6b7280;
+  font-size: 0.76rem;
+  margin: 2px 0;
+}
+
+.coupon-right time {
+  color: #9ca3af;
+  font-size: 0.7rem;
+}
+
+.claim-btn {
+  align-self: center;
+  margin-right: 0.75rem;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #fe2c55;
+  color: #fff;
+  font-weight: 900;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.claim-btn:hover {
+  opacity: 0.9;
 }
 
 .recommend-section {

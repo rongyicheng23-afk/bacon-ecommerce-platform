@@ -3,9 +3,15 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/userStore'
 import { useProductStore } from '@/stores/productStore'
+import type { Product } from '@/types'
 
 interface SellerOrderItem {
   category?: string
+  productId?: number
+  name?: string
+  price?: number
+  quantity?: number
+  skuName?: string
   [key: string]: unknown
 }
 
@@ -22,6 +28,63 @@ const userStore = useUserStore()
 const productStore = useProductStore()
 const orders = ref<SellerOrder[]>([])
 
+/** ---- 管理面板 ---- */
+type ManageTab = 'products' | 'orders' | 'analytics'
+const manageTab = ref<ManageTab>('products')
+const showManage = ref(false)
+const manageMsg = ref('')
+
+// 商品管理
+const editingProduct = ref<Product | null>(null)
+const editStock = ref(0)
+const editPrice = ref(0)
+
+const openProductEdit = (p: Product) => {
+  editingProduct.value = { ...p }
+  editStock.value = p.stock
+  editPrice.value = p.price
+}
+
+const saveProduct = () => {
+  if (!editingProduct.value) return
+  const idx = productStore.products.findIndex(p => p.productId === editingProduct.value!.productId)
+  if (idx >= 0) {
+    productStore.products[idx] = { ...productStore.products[idx], stock: editStock.value, price: editPrice.value }
+    manageMsg.value = `已更新「${editingProduct.value.name}」`
+    editingProduct.value = null
+    setTimeout(() => { manageMsg.value = '' }, 2000)
+  }
+}
+
+// 订单管理
+const allSellerOrders = computed(() => {
+  return [...orders.value].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+})
+
+const shipOrder = (orderId: number) => {
+  const order = orders.value.find(o => o.orderId === orderId)
+  if (order && order.status === 'paid') {
+    order.status = 'shipped'
+    syncOrdersToStorage()
+    manageMsg.value = `订单 ${orderId} 已发货`
+    setTimeout(() => { manageMsg.value = '' }, 2000)
+  }
+}
+
+const completeOrder = (orderId: number) => {
+  const order = orders.value.find(o => o.orderId === orderId)
+  if (order && order.status === 'shipped') {
+    order.status = 'completed'
+    syncOrdersToStorage()
+    manageMsg.value = `订单 ${orderId} 已完成`
+    setTimeout(() => { manageMsg.value = '' }, 2000)
+  }
+}
+
+const syncOrdersToStorage = () => {
+  localStorage.setItem('mockOrders', JSON.stringify(orders.value))
+}
+
 const sellerName = computed(() => userStore.currentUser?.shopName || userStore.currentUser?.username || 'Bacon 商家')
 const mainCategory = computed(() => userStore.currentUser?.mainCategory || '综合类目')
 
@@ -30,7 +93,7 @@ const sellerOrders = computed(() => {
   const cat = userStore.currentUser?.mainCategory
   if (!cat) return orders.value
   return orders.value.filter((order) => {
-    if (!order.items || order.items.length === 0) return true // 无商品信息不过滤
+    if (!order.items || order.items.length === 0) return true
     return order.items.some((item) => item.category === cat)
   })
 })
@@ -133,7 +196,7 @@ onMounted(async () => {
             <span>Orders</span>
             <h2>近期订单</h2>
           </div>
-          <button type="button" disabled>商家订单即将开放</button>
+          <button type="button" @click="showManage = true; manageTab = 'orders'">查看全部</button>
         </div>
 
         <div v-if="recentOrders.length === 0" class="seller-empty">
@@ -170,10 +233,104 @@ onMounted(async () => {
     </section>
 
     <section class="seller-actions">
-      <button type="button" disabled>商品管理即将开放</button>
-      <button type="button" disabled>商家订单即将开放</button>
-      <button type="button" disabled>经营分析即将开放</button>
+      <button type="button" @click="showManage = true; manageTab = 'products'">商品管理</button>
+      <button type="button" @click="showManage = true; manageTab = 'orders'">订单管理</button>
+      <button type="button" @click="showManage = true; manageTab = 'analytics'">经营分析</button>
     </section>
+
+    <!-- 管理面板弹窗 -->
+    <div v-if="showManage" class="manage-overlay" @click.self="showManage = false">
+      <div class="manage-modal">
+        <div class="manage-header">
+          <div class="manage-tabs">
+            <button :class="{ active: manageTab === 'products' }" @click="manageTab = 'products'">商品管理</button>
+            <button :class="{ active: manageTab === 'orders' }" @click="manageTab = 'orders'">订单管理</button>
+            <button :class="{ active: manageTab === 'analytics' }" @click="manageTab = 'analytics'">经营分析</button>
+          </div>
+          <button class="manage-close" @click="showManage = false">✕</button>
+        </div>
+
+        <p v-if="manageMsg" class="manage-toast">{{ manageMsg }}</p>
+
+        <!-- 商品管理 -->
+        <div v-if="manageTab === 'products'" class="manage-body">
+          <div v-if="editingProduct" class="edit-panel">
+            <h3>编辑商品：{{ editingProduct.name }}</h3>
+            <label><span>库存</span><input v-model.number="editStock" type="number" min="0" /></label>
+            <label><span>价格 ¥</span><input v-model.number="editPrice" type="number" min="0" step="0.01" /></label>
+            <div class="edit-actions">
+              <button class="btn-save" @click="saveProduct">保存</button>
+              <button class="btn-cancel" @click="editingProduct = null">取消</button>
+            </div>
+          </div>
+          <table v-if="sellerProducts.length" class="manage-table">
+            <thead><tr><th>ID</th><th>商品</th><th>价格</th><th>库存</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr v-for="p in sellerProducts" :key="p.productId">
+                <td>{{ p.productId }}</td>
+                <td class="product-cell">
+                  <img :src="p.imageUrls[0]" :alt="p.name" @error="(e: Event) => (e.target as HTMLImageElement).src='https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=100&q=85'" />
+                  {{ p.name }}
+                </td>
+                <td>¥{{ p.price }}</td>
+                <td :class="{ low: p.stock < 30 }">{{ p.stock }}</td>
+                <td>{{ p.status === 'active' ? '在售' : '下架' }}</td>
+                <td><button class="btn-edit" @click="openProductEdit(p)">编辑</button></td>
+              </tr>
+            </tbody>
+          </table>
+          <p v-else class="manage-empty">暂无商品数据</p>
+        </div>
+
+        <!-- 订单管理 -->
+        <div v-if="manageTab === 'orders'" class="manage-body">
+          <table v-if="allSellerOrders.length" class="manage-table">
+            <thead><tr><th>订单ID</th><th>金额</th><th>状态</th><th>商品</th><th>时间</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr v-for="o in allSellerOrders" :key="o.orderId">
+                <td>#{{ o.orderId }}</td>
+                <td>¥{{ o.payableAmount.toFixed(2) }}</td>
+                <td><span :class="'status-tag status-' + o.status">{{ statusText[o.status] }}</span></td>
+                <td class="order-items-cell">{{ (o.items || []).map((i: SellerOrderItem) => i.name || i.skuName || '').join('、') || '—' }}</td>
+                <td>{{ formatDate(o.createdAt) }}</td>
+                <td class="action-cell">
+                  <button v-if="o.status === 'paid'" class="btn-ship" @click="shipOrder(o.orderId)">发货</button>
+                  <button v-else-if="o.status === 'shipped'" class="btn-done" @click="completeOrder(o.orderId)">完成</button>
+                  <span v-else>—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p v-else class="manage-empty">暂无订单</p>
+        </div>
+
+        <!-- 经营分析 -->
+        <div v-if="manageTab === 'analytics'" class="manage-body">
+          <div class="analytics-grid">
+            <div class="analytic-card">
+              <span>总销售额</span>
+              <strong>¥{{ totalSales.toFixed(2) }}</strong>
+            </div>
+            <div class="analytic-card">
+              <span>有效订单</span>
+              <strong>{{ completedOrders.length + shippedOrders.length + paidOrders.length }}</strong>
+            </div>
+            <div class="analytic-card">
+              <span>待发货</span>
+              <strong>{{ paidOrders.length }}</strong>
+            </div>
+            <div class="analytic-card">
+              <span>已完成</span>
+              <strong>{{ completedOrders.length }}</strong>
+            </div>
+          </div>
+          <div class="category-breakdown">
+            <h3>类目销售占比</h3>
+            <p>主营类目：{{ mainCategory }}，商品 {{ sellerProductCount }} 件，其中低库存（&lt;30）{{ lowStockProducts.length }} 件</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 </template>
 
@@ -359,6 +516,286 @@ onMounted(async () => {
   margin-top: 16px;
 }
 
+/* 管理面板弹窗 */
+.manage-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(17, 24, 39, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.manage-modal {
+  width: min(960px, calc(100vw - 40px));
+  max-height: 85vh;
+  overflow-y: auto;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(17, 24, 39, 0.2);
+}
+
+.manage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f2f4;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  z-index: 1;
+}
+
+.manage-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.manage-tabs button {
+  padding: 8px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: #f5f6f8;
+  color: #555;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.manage-tabs button.active {
+  background: #0ea5e9;
+  color: #fff;
+}
+
+.manage-close {
+  border: 0;
+  background: transparent;
+  color: #999;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.manage-close:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.manage-toast {
+  margin: 0;
+  padding: 10px 20px;
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.manage-body {
+  padding: 20px;
+}
+
+.manage-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: #999;
+}
+
+.edit-panel {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid #0ea5e9;
+  border-radius: 12px;
+  background: #f0f9ff;
+}
+
+.edit-panel h3 {
+  margin: 0 0 12px;
+  color: #111827;
+  font-size: 16px;
+}
+
+.edit-panel label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  color: #555;
+  font-size: 14px;
+}
+
+.edit-panel input {
+  width: 120px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  outline: none;
+}
+
+.edit-panel input:focus {
+  border-color: #0ea5e9;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-save,
+.btn-ship {
+  border: 0;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: #0ea5e9;
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.btn-cancel {
+  border: 1px solid #e5e7eb;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: #fff;
+  color: #555;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.btn-edit {
+  border: 0;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: #f0f9ff;
+  color: #0ea5e9;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn-done {
+  border: 0;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: #059669;
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.manage-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.manage-table th {
+  padding: 10px 8px;
+  border-bottom: 2px solid #f1f2f4;
+  color: #999;
+  font-weight: 800;
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.manage-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #f5f5f5;
+  color: #333;
+}
+
+.manage-table td.low {
+  color: #fe2c55;
+  font-weight: 900;
+}
+
+.product-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.product-cell img {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.order-items-cell {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.action-cell {
+  white-space: nowrap;
+}
+
+.status-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.status-pending_payment { background: #fef3c7; color: #d97706; }
+.status-paid { background: #dbeafe; color: #2563eb; }
+.status-shipped { background: #e0e7ff; color: #4f46e5; }
+.status-completed { background: #d1fae5; color: #059669; }
+.status-cancelled { background: #f3f4f6; color: #9ca3af; }
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.analytic-card {
+  padding: 18px;
+  border: 1px solid #f1f2f4;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.analytic-card span {
+  color: #999;
+  font-size: 13px;
+}
+
+.analytic-card strong {
+  display: block;
+  margin-top: 6px;
+  color: #111827;
+  font-size: 24px;
+}
+
+.category-breakdown {
+  padding: 16px;
+  border: 1px solid #f1f2f4;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.category-breakdown h3 {
+  margin: 0 0 8px;
+  color: #111827;
+  font-size: 16px;
+}
+
+.category-breakdown p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
 @media (max-width: 860px) {
   .seller-page {
     padding: 16px 12px 40px;
@@ -370,12 +807,18 @@ onMounted(async () => {
   }
 
   .seller-stats,
-  .seller-grid {
+  .seller-grid,
+  .analytics-grid {
     grid-template-columns: 1fr;
   }
 
   .seller-order-list div {
     grid-template-columns: 1fr;
+  }
+
+  .manage-modal {
+    width: calc(100vw - 20px);
+    max-height: 90vh;
   }
 }
 </style>
