@@ -2,7 +2,7 @@
 from typing import Annotated
 from fastapi import APIRouter, Header, HTTPException
 from app.schemas.common import ApiResponse
-from app.schemas.cart import CartItemAdd, CartItemUpdate
+from app.schemas.cart import AddressCreate, AddressUpdate, CartItemAdd, CartItemUpdate
 from app.services.auth import get_current_user
 from app.db.database import get_connection
 from app.services.order import (
@@ -42,13 +42,19 @@ def cart_add(payload: CartItemAdd, authorization: AUTH = None) -> ApiResponse:
             row = conn.execute("SELECT sku_id FROM product_skus WHERE product_id = ? ORDER BY sku_id LIMIT 1", (payload.productId,)).fetchone()
             if not row: raise HTTPException(400, "商品无可用SKU")
             sku_id = row["sku_id"]
-    return ApiResponse(data=add_cart_item(u["userId"], payload.productId, sku_id, payload.quantity))
+    try:
+        return ApiResponse(data=add_cart_item(u["userId"], payload.productId, sku_id, payload.quantity))
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 
 @router.put("/cart/items/{item_id}", response_model=ApiResponse)
 def cart_update(item_id: int, payload: CartItemUpdate, authorization: AUTH = None) -> ApiResponse:
     u = _require_buyer(authorization)
-    return ApiResponse(data=update_cart_item(u["userId"], item_id, payload.quantity))
+    try:
+        return ApiResponse(data=update_cart_item(u["userId"], item_id, payload.quantity))
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 
 @router.delete("/cart/items/{item_id}", response_model=ApiResponse)
@@ -67,7 +73,10 @@ def favorites_list(authorization: AUTH = None) -> ApiResponse:
 @router.post("/favorites/{product_id}", response_model=ApiResponse)
 def favorites_add(product_id: int, authorization: AUTH = None) -> ApiResponse:
     u = _require_buyer(authorization)
-    add_favorite(u["userId"], product_id)
+    try:
+        add_favorite(u["userId"], product_id)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
     return ApiResponse(data=list_favorites(u["userId"]))
 
 
@@ -86,17 +95,15 @@ def addresses_list(authorization: AUTH = None) -> ApiResponse:
 
 
 @router.post("/addresses", response_model=ApiResponse)
-def addresses_create(payload: dict, authorization: AUTH = None) -> ApiResponse:
+def addresses_create(payload: AddressCreate, authorization: AUTH = None) -> ApiResponse:
     u = _require_buyer(authorization)
-    if not payload.get("name") or not payload.get("phone") or not payload.get("detail"):
-        raise HTTPException(400, "收件人、手机号、详细地址不能为空")
-    return ApiResponse(data=create_address(u["userId"], payload))
+    return ApiResponse(data=create_address(u["userId"], payload.model_dump()))
 
 
 @router.put("/addresses/{address_id}", response_model=ApiResponse)
-def addresses_update(address_id: int, payload: dict, authorization: AUTH = None) -> ApiResponse:
+def addresses_update(address_id: int, payload: AddressUpdate, authorization: AUTH = None) -> ApiResponse:
     u = _require_buyer(authorization)
-    r = update_address(u["userId"], address_id, payload)
+    r = update_address(u["userId"], address_id, payload.model_dump(exclude_none=True))
     if not r:
         raise HTTPException(404, "地址不存在")
     return ApiResponse(data=r)

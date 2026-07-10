@@ -1,8 +1,13 @@
 """认证业务逻辑"""
 import sqlite3
+from datetime import datetime, timedelta
 
 from app.core.security import generate_token, hash_password, verify_password
 from app.db.database import get_connection, now_iso
+
+
+def _session_expiry() -> str:
+    return (datetime.now() + timedelta(days=7)).isoformat(timespec="seconds")
 
 
 def row_to_user(row) -> dict:
@@ -21,8 +26,12 @@ def get_current_user(token: str | None) -> dict | None:
     token = token.removeprefix("Bearer ").strip()
     with get_connection() as conn:
         row = conn.execute(
-            "SELECT u.* FROM sessions s JOIN users u ON u.user_id = s.user_id WHERE s.token = ?",
-            (token,),
+            """SELECT u.* FROM sessions s
+               JOIN users u ON u.user_id = s.user_id
+               WHERE s.token = ?
+                 AND u.status = 'active'
+                 AND (s.expires_at IS NULL OR s.expires_at > ?)""",
+            (token, now_iso()),
         ).fetchone()
         return row_to_user(row) if row else None
 
@@ -41,7 +50,10 @@ def register_user(data: dict) -> dict:
         )
         user = conn.execute("SELECT * FROM users WHERE user_id = ?", (cur.lastrowid,)).fetchone()
         token = generate_token()
-        conn.execute("INSERT INTO sessions (token, user_id, created_at) VALUES (?,?,?)", (token, user["user_id"], ts))
+        conn.execute(
+            "INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?,?,?,?)",
+            (token, user["user_id"], ts, _session_expiry()),
+        )
     return {"token": token, "user": row_to_user(user)}
 
 
@@ -52,7 +64,10 @@ def login_user(email: str, password: str) -> dict:
         if not user or not verify_password(password, user["password_hash"]):
             raise ValueError("邮箱或密码不正确")
         token = generate_token()
-        conn.execute("INSERT INTO sessions (token, user_id, created_at) VALUES (?,?,?)", (token, user["user_id"], ts))
+        conn.execute(
+            "INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?,?,?,?)",
+            (token, user["user_id"], ts, _session_expiry()),
+        )
     return {"token": token, "user": row_to_user(user)}
 
 

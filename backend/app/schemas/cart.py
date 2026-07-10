@@ -1,14 +1,28 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CartItemAdd(BaseModel):
     productId: int
     skuId: int | None = None
-    quantity: int = 1
+    quantity: int = Field(default=1, ge=1, le=99)
 
 
 class CartItemUpdate(BaseModel):
-    quantity: int
+    quantity: int = Field(ge=1, le=99)
+
+
+class AddressCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=50)
+    phone: str = Field(min_length=6, max_length=30)
+    detail: str = Field(min_length=1, max_length=300)
+    isDefault: bool = False
+
+
+class AddressUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=50)
+    phone: str | None = Field(default=None, min_length=6, max_length=30)
+    detail: str | None = Field(default=None, min_length=1, max_length=300)
+    isDefault: bool | None = None
 
 
 class CartItemOut(BaseModel):

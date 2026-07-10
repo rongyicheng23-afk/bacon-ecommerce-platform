@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ProductSkuOut(BaseModel):
@@ -21,7 +21,7 @@ class ProductOut(BaseModel):
     status: str
     imageUrls: list[str]
     category: str
-    skus: list[ProductSkuOut] = []
+    skus: list[ProductSkuOut] = Field(default_factory=list)
     createdAt: str
     updatedAt: str
 
@@ -45,6 +45,6 @@ class SellerProductCreate(BaseModel):
 class SellerProductUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
-    price: float | None = None
-    stock: int | None = None
+    price: float | None = Field(default=None, ge=0)
+    stock: int | None = Field(default=None, ge=0)
     category: str | None = None

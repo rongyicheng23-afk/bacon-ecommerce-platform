@@ -80,10 +80,42 @@ def seller_update_product(product_id: int, seller_id: int, data: dict) -> dict |
             return None
         conn.execute(
             """UPDATE products SET name=COALESCE(?,name), description=COALESCE(?,description),
-               price=COALESCE(?,price), stock=COALESCE(?,stock), category=COALESCE(?,category),
-               updated_at=? WHERE product_id=?""",
-            (data.get("name"), data.get("description"), data.get("price"),
-             data.get("stock"), data.get("category"), ts, product_id),
+               category=COALESCE(?,category), updated_at=? WHERE product_id=?""",
+            (data.get("name"), data.get("description"), data.get("category"), ts, product_id),
+        )
+
+        sku_rows = conn.execute(
+            "SELECT sku_id, price FROM product_skus WHERE product_id = ? ORDER BY sku_id",
+            (product_id,),
+        ).fetchall()
+        if "price" in data and sku_rows:
+            price_delta = data["price"] - row["price"]
+            for sku in sku_rows:
+                conn.execute(
+                    "UPDATE product_skus SET price = ? WHERE sku_id = ?",
+                    (max(0, sku["price"] + price_delta), sku["sku_id"]),
+                )
+
+        if "stock" in data and sku_rows:
+            base_stock, remainder = divmod(data["stock"], len(sku_rows))
+            for index, sku in enumerate(sku_rows):
+                conn.execute(
+                    "UPDATE product_skus SET stock = ? WHERE sku_id = ?",
+                    (base_stock + (1 if index < remainder else 0), sku["sku_id"]),
+                )
+
+        aggregate = conn.execute(
+            "SELECT MIN(price) AS min_price, SUM(stock) AS total_stock FROM product_skus WHERE product_id = ?",
+            (product_id,),
+        ).fetchone()
+        conn.execute(
+            "UPDATE products SET price = ?, stock = ?, updated_at = ? WHERE product_id = ?",
+            (
+                aggregate["min_price"] if aggregate["min_price"] is not None else data.get("price", row["price"]),
+                aggregate["total_stock"] if aggregate["total_stock"] is not None else data.get("stock", row["stock"]),
+                ts,
+                product_id,
+            ),
         )
         row = conn.execute("SELECT * FROM products WHERE product_id = ?", (product_id,)).fetchone()
         return row_to_product(row, _load_skus(conn, product_id))

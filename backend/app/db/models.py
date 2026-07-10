@@ -2,6 +2,20 @@
 import sqlite3
 
 
+def _column_names(conn: sqlite3.Connection, table: str) -> set[str]:
+    return {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+
+
+def _add_column_if_missing(
+    conn: sqlite3.Connection,
+    table: str,
+    column: str,
+    definition: str,
+) -> None:
+    if column not in _column_names(conn, table):
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
 def create_tables(conn: sqlite3.Connection) -> None:
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS users (
@@ -14,6 +28,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
             main_category TEXT,
             password_hash TEXT    NOT NULL,
             status        TEXT    NOT NULL DEFAULT 'active',
+            history_cleared_at TEXT,
             created_at    TEXT    NOT NULL,
             updated_at    TEXT    NOT NULL
         );
@@ -22,6 +37,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
             token       TEXT PRIMARY KEY,
             user_id     INTEGER NOT NULL,
             created_at  TEXT    NOT NULL,
+            expires_at  TEXT,
             FOREIGN KEY (user_id) REFERENCES users(user_id)
         );
 
@@ -66,7 +82,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
             user_id      INTEGER NOT NULL,
             sku_id       INTEGER NOT NULL,
             product_id   INTEGER NOT NULL,
-            quantity     INTEGER NOT NULL DEFAULT 1,
+            quantity     INTEGER NOT NULL DEFAULT 1 CHECK(quantity > 0),
             selected     INTEGER NOT NULL DEFAULT 1,
             created_at   TEXT    NOT NULL,
             updated_at   TEXT    NOT NULL,
@@ -119,7 +135,9 @@ def create_tables(conn: sqlite3.Connection) -> None:
 
         CREATE TABLE IF NOT EXISTS behavior_logs (
             log_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id     TEXT UNIQUE,
             user_id      INTEGER,
+            session_id   TEXT,
             product_id   INTEGER,
             product_name TEXT,
             action       TEXT    NOT NULL,
@@ -130,6 +148,8 @@ def create_tables(conn: sqlite3.Connection) -> None:
             order_id     INTEGER,
             amount       REAL,
             item_count   INTEGER,
+            source       TEXT,
+            exported_at  TEXT,
             created_at   TEXT    NOT NULL
         );
 
@@ -142,3 +162,21 @@ def create_tables(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_cart_user
             ON cart_items(user_id);
     """)
+
+    # 兼容已经存在的 SQLite 数据库。CREATE TABLE IF NOT EXISTS 不会自动补新列。
+    _add_column_if_missing(conn, "users", "history_cleared_at", "TEXT")
+    _add_column_if_missing(conn, "sessions", "expires_at", "TEXT")
+    _add_column_if_missing(conn, "behavior_logs", "event_id", "TEXT")
+    _add_column_if_missing(conn, "behavior_logs", "session_id", "TEXT")
+    _add_column_if_missing(conn, "behavior_logs", "source", "TEXT")
+    _add_column_if_missing(conn, "behavior_logs", "exported_at", "TEXT")
+
+    conn.execute(
+        "UPDATE behavior_logs SET event_id = 'legacy-' || log_id WHERE event_id IS NULL"
+    )
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_behavior_event_id ON behavior_logs(event_id)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_behavior_exported ON behavior_logs(exported_at, created_at)"
+    )

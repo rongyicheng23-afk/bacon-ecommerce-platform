@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class OrderItemOut(BaseModel):
@@ -26,7 +26,7 @@ class OrderOut(BaseModel):
     paidAt: str | None = None
     createdAt: str
     updatedAt: str
-    items: list[OrderItemOut] = []
+    items: list[OrderItemOut] = Field(default_factory=list)
 
 
 class CreateOrderRequest(BaseModel):

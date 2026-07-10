@@ -1,4 +1,6 @@
 """商品路由"""
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException, Query
 from app.schemas.common import ApiResponse
 from app.services.product import list_products, get_product, list_categories
@@ -8,8 +10,11 @@ router = APIRouter(prefix="/api", tags=["商品"])
 
 @router.get("/product/list", response_model=ApiResponse)
 def product_list(
-    category: str | None = None, keyword: str | None = None,
-    sort: str | None = None, page: int = 1, pageSize: int = 20,
+    category: str | None = None,
+    keyword: str | None = None,
+    sort: Literal["price-asc", "price-desc", "stock-desc"] | None = None,
+    page: int = Query(1, ge=1),
+    pageSize: int = Query(20, ge=1, le=100),
 ) -> ApiResponse:
     result = list_products(category=category, keyword=keyword, sort=sort, page=page, page_size=pageSize)
     return ApiResponse(data=result)
@@ -25,8 +30,11 @@ def product_get(productId: int = Query(...)) -> ApiResponse:
 
 @router.get("/products", response_model=ApiResponse)
 def products_all(
-    category: str | None = None, keyword: str | None = None,
-    sort: str | None = None, page: int = 1, pageSize: int = 20,
+    category: str | None = None,
+    keyword: str | None = None,
+    sort: Literal["price-asc", "price-desc", "stock-desc"] | None = None,
+    page: int = Query(1, ge=1),
+    pageSize: int = Query(20, ge=1, le=100),
 ) -> ApiResponse:
     result = list_products(category=category, keyword=keyword, sort=sort, page=page, page_size=pageSize)
     return ApiResponse(data=result)

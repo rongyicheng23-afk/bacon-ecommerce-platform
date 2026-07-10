@@ -2,6 +2,7 @@
 from typing import Annotated
 from fastapi import APIRouter, Header, HTTPException
 from app.schemas.common import ApiResponse
+from app.schemas.product import SellerProductUpdate
 from app.services.auth import get_current_user
 from app.services.product import seller_update_product
 from app.services.order import seller_ship_order, seller_list_orders
@@ -33,8 +34,12 @@ def seller_ship(order_id: int, authorization: AUTH = None) -> ApiResponse:
 
 
 @router.put("/products/{product_id}", response_model=ApiResponse)
-def seller_update(product_id: int, payload: dict, authorization: AUTH = None) -> ApiResponse:
+def seller_update(product_id: int, payload: SellerProductUpdate, authorization: AUTH = None) -> ApiResponse:
     u = _require_seller(authorization)
-    p = seller_update_product(product_id, u["userId"], payload)
+    p = seller_update_product(
+        product_id,
+        u["userId"],
+        payload.model_dump(exclude_none=True),
+    )
     if not p: raise HTTPException(404, "商品不存在或非本人商品")
     return ApiResponse(data=p)
