@@ -413,7 +413,7 @@ onMounted(() => {
 }
 
 .timeline-node.done::before {
-  background: #fe2c55;
+  background: #ff2f68;
 }
 
 .timeline-node.cancelled::before {
@@ -437,12 +437,12 @@ onMounted(() => {
 }
 
 .timeline-node.done .timeline-dot {
-  background: #fe2c55;
+  background: #ff2f68;
   color: #fff;
 }
 
 .timeline-node.active .timeline-dot {
-  background: #fe2c55;
+  background: #ff2f68;
   color: #fff;
   box-shadow: 0 0 0 6px rgba(254, 44, 85, 0.2);
   animation: dot-pulse 2s ease-in-out infinite;
@@ -468,11 +468,11 @@ onMounted(() => {
 
 .timeline-node.done .timeline-body strong,
 .timeline-node.active .timeline-body strong {
-  color: #111827;
+  color: #0f172a;
 }
 
 .timeline-node.active .timeline-body strong {
-  color: #fe2c55;
+  color: #ff2f68;
 }
 
 .timeline-node.cancelled .timeline-body strong {
@@ -489,7 +489,7 @@ onMounted(() => {
 
 .timeline-node.done .timeline-body p,
 .timeline-node.active .timeline-body p {
-  color: #6b7280;
+  color: #64748b;
 }
 
 .timeline-body time {
@@ -552,7 +552,7 @@ onMounted(() => {
 
 .detail-actions button.primary,
 .order-missing button {
-  color: #111827;
+  color: #0f172a;
   background: #fff;
 }
 
@@ -578,7 +578,7 @@ onMounted(() => {
 
 .detail-card h2 {
   margin: 0 0 16px;
-  color: #111827;
+  color: #0f172a;
   font-size: 20px;
 }
 
@@ -589,11 +589,11 @@ onMounted(() => {
 }
 
 .detail-card strong {
-  color: #111827;
+  color: #0f172a;
 }
 
 .detail-card span {
-  color: #6b7280;
+  color: #64748b;
 }
 
 .detail-card dl {
@@ -609,12 +609,12 @@ onMounted(() => {
 }
 
 .detail-card dt {
-  color: #6b7280;
+  color: #64748b;
 }
 
 .detail-card dd {
   margin: 0;
-  color: #111827;
+  color: #0f172a;
   font-weight: 800;
 }
 
@@ -647,19 +647,19 @@ onMounted(() => {
 
 .detail-item h3 {
   margin: 0 0 7px;
-  color: #111827;
+  color: #0f172a;
   font-size: 16px;
 }
 
 .detail-item p {
   margin: 0;
-  color: #6b7280;
+  color: #64748b;
   font-size: 13px;
 }
 
 .detail-item span,
 .detail-item strong {
-  color: #111827;
+  color: #0f172a;
   font-weight: 900;
 }
 
@@ -674,7 +674,7 @@ onMounted(() => {
 }
 
 .price-card .payable dd {
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 24px;
 }
 

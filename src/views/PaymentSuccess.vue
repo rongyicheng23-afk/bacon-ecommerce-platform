@@ -162,24 +162,24 @@ onMounted(async () => {
 }
 
 .label {
-  color: #6b7280;
+  color: #64748b;
   font-weight: 800;
 }
 
 .value {
-  color: #111827;
+  color: #0f172a;
   font-weight: 700;
 }
 
 .amount {
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 1.25rem;
   font-weight: 900;
 }
 
 .loading-state {
   padding: 20px;
-  color: #6b7280;
+  color: #64748b;
 }
 
 .action-buttons {
@@ -201,7 +201,7 @@ onMounted(async () => {
 }
 
 .primary-button {
-  background: #fe2c55;
+  background: #ff2f68;
   color: #fff;
 }
 

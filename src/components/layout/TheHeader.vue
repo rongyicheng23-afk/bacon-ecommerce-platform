@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/userStore'
 import { cartUpdatedEvent, getCartItemCount } from '@/utils/cart'
 
+const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const keyword = ref('')
@@ -51,12 +52,11 @@ onUnmounted(() => {
           {{ userStore.isAuthenticated ? `欢迎回来，${userStore.currentUser?.username}` : '欢迎来到 Bacon Mall' }}
         </span>
         <div class="top-links">
+          <RouterLink to="/orders" v-if="userStore.isAuthenticated">我的订单</RouterLink>
           <RouterLink to="/profile" v-if="userStore.isAuthenticated">个人中心</RouterLink>
-          <RouterLink to="/orders">我的订单</RouterLink>
-          <RouterLink to="/cart">购物车</RouterLink>
           <RouterLink to="/login" v-if="!userStore.isAuthenticated">登录</RouterLink>
           <RouterLink to="/register" v-if="!userStore.isAuthenticated">注册</RouterLink>
-          <button v-else type="button" @click="handleLogout">退出登录</button>
+          <button v-if="userStore.isAuthenticated" type="button" @click="handleLogout">退出登录</button>
         </div>
       </div>
     </div>
@@ -75,7 +75,7 @@ onUnmounted(() => {
         <button type="submit">搜索</button>
       </form>
 
-      <RouterLink to="/cart" class="cart-entry">
+      <RouterLink v-if="userStore.isAuthenticated" to="/cart" class="cart-entry">
         <span>购物车</span>
         <strong>{{ cartItemCount }}</strong>
       </RouterLink>
@@ -83,13 +83,10 @@ onUnmounted(() => {
 
     <nav class="channel-nav" aria-label="主导航">
       <div class="channel-inner">
-        <RouterLink to="/">首页</RouterLink>
-        <RouterLink to="/products">全部商品</RouterLink>
-        <RouterLink to="/products?category=数码">数码家电</RouterLink>
-        <RouterLink to="/products?category=服饰">服饰穿搭</RouterLink>
-        <RouterLink to="/products?category=家居">家居生活</RouterLink>
-        <RouterLink to="/orders">我的订单</RouterLink>
-        <RouterLink to="/profile">个人中心</RouterLink>
+        <RouterLink to="/" exact-active-class="" :class="{ active: route.path === '/' }">首页</RouterLink>
+        <RouterLink to="/products?category=数码" exact-active-class="" :class="{ active: route.query.category === '数码' }">数码家电</RouterLink>
+        <RouterLink to="/products?category=服饰" exact-active-class="" :class="{ active: route.query.category === '服饰' }">服饰穿搭</RouterLink>
+        <RouterLink to="/products?category=家居" exact-active-class="" :class="{ active: route.query.category === '家居' }">家居生活</RouterLink>
       </div>
     </nav>
   </header>
@@ -107,16 +104,16 @@ onUnmounted(() => {
 }
 
 .top-bar {
-  background: #f7f8fa;
+  background: #f1f5f9;
   border-bottom: 1px solid #eee;
-  color: #666;
+  color: #64748b;
   font-size: 0.8rem;
 }
 
 .top-inner,
 .main-header,
 .channel-inner {
-  width: min(1400px, calc(100vw - 48px));
+  width: min(1400px, calc(100vw - 80px));
   margin: 0 auto;
 }
 
@@ -138,7 +135,7 @@ onUnmounted(() => {
 .top-links button {
   border: 0;
   background: transparent;
-  color: #666;
+  color: #64748b;
   cursor: pointer;
   font: inherit;
   text-decoration: none;
@@ -151,7 +148,7 @@ onUnmounted(() => {
 
 .main-header {
   display: grid;
-  grid-template-columns: 240px minmax(320px, 1fr) 130px;
+  grid-template-columns: 240px minmax(320px, 1fr) auto;
   gap: 1.5rem;
   align-items: center;
   padding: 1.1rem 0;
@@ -161,7 +158,7 @@ onUnmounted(() => {
   display: inline-flex;
   gap: 0.75rem;
   align-items: center;
-  color: #111827;
+  color: #0f172a;
   text-decoration: none;
 }
 
@@ -171,7 +168,7 @@ onUnmounted(() => {
   height: 44px;
   place-items: center;
   border-radius: 12px;
-  background: linear-gradient(135deg, #fe2c55, #111827);
+  background: linear-gradient(135deg, #ff2f68, #0f172a);
   color: #fff;
   font-size: 1.4rem;
   font-weight: 900;
@@ -212,7 +209,7 @@ onUnmounted(() => {
   border-radius: 999px 0 0 999px;
   border: 0;
   outline: none;
-  color: #111827;
+  color: #0f172a;
   font-size: 0.95rem;
 }
 
@@ -232,12 +229,18 @@ onUnmounted(() => {
   gap: 0.5rem;
   align-items: center;
   min-height: 44px;
-  border: 1px solid #eee;
+  padding: 0 1rem;
+  border: 2px solid #e5e7eb;
   border-radius: 999px;
   background: #fff;
-  color: #111827;
+  color: #0f172a;
   text-decoration: none;
   font-weight: 700;
+  white-space: nowrap;
+}
+
+.cart-entry:hover {
+  border-color: var(--primary-color);
 }
 
 .cart-entry strong {
@@ -254,6 +257,17 @@ onUnmounted(() => {
 
 .channel-nav {
   border-top: 1px solid #f1f1f1;
+  position: relative;
+}
+
+.channel-nav::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #ff2f68, #6366f1, #2563eb, #a855f7, #16a34a);
 }
 
 .channel-inner {
@@ -261,23 +275,23 @@ onUnmounted(() => {
   gap: 2rem;
   align-items: center;
   min-height: 42px;
-  overflow-x: auto;
+  overflow: hidden;
 }
 
 .channel-inner a {
   position: relative;
   flex: 0 0 auto;
-  color: #333;
+  color: #0f172a;
   text-decoration: none;
   font-weight: 700;
 }
 
 .channel-inner a:hover,
-.channel-inner a.router-link-active {
+.channel-inner a.active {
   color: var(--primary-color);
 }
 
-.channel-inner a.router-link-active::after {
+.channel-inner a.active::after {
   position: absolute;
   right: 0;
   bottom: -10px;
@@ -292,7 +306,7 @@ onUnmounted(() => {
   .top-inner,
   .main-header,
   .channel-inner {
-    width: min(100% - 24px, 1400px);
+    width: min(100% - 32px, 1400px);
   }
 
   .main-header {
@@ -304,10 +318,6 @@ onUnmounted(() => {
     justify-self: stretch;
   }
 
-  .cart-entry {
-    justify-self: start;
-    padding: 0 1rem;
-  }
 }
 
 @media (max-width: 640px) {

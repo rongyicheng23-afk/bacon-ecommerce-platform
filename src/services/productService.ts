@@ -10,6 +10,7 @@ interface SeedProduct {
   price: number
   imageUrls: string[]
   category: string
+  subcategory: string
 }
 
 const productSeeds: SeedProduct[] = [
@@ -23,7 +24,8 @@ const productSeeds: SeedProduct[] = [
       'https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=900&q=85',
       'https://images.unsplash.com/photo-1487215078519-e21cc028cb29?auto=format&fit=crop&w=900&q=85'
     ],
-    category: '数码'
+    category: '数码',
+    subcategory: '耳机'
   },
   {
     name: '轻薄机械键盘',
@@ -35,7 +37,8 @@ const productSeeds: SeedProduct[] = [
       'https://images.unsplash.com/photo-1595225476474-87563907a212?auto=format&fit=crop&w=900&q=85',
       'https://images.unsplash.com/photo-1541140532154-b024d1c0c78e?auto=format&fit=crop&w=900&q=85'
     ],
-    category: '数码'
+    category: '数码',
+    subcategory: '电脑配件'
   },
   {
     name: '保温咖啡杯',
@@ -47,7 +50,8 @@ const productSeeds: SeedProduct[] = [
       'https://images.unsplash.com/photo-1577937927133-6c9a5c1c5c9f?auto=format&fit=crop&w=900&q=85',
       'https://images.unsplash.com/photo-1563297320-b6a2c95cd396?auto=format&fit=crop&w=900&q=85'
     ],
-    category: '家居'
+    category: '家居',
+    subcategory: '厨房用具'
   },
   {
     name: '运动休闲背包',
@@ -59,7 +63,8 @@ const productSeeds: SeedProduct[] = [
       'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=900&q=85',
       'https://images.unsplash.com/photo-1575844264771-892081089af0?auto=format&fit=crop&w=900&q=85'
     ],
-    category: '服饰'
+    category: '服饰',
+    subcategory: '背包'
   },
   {
     name: '护眼台灯',
@@ -71,7 +76,8 @@ const productSeeds: SeedProduct[] = [
       'https://images.unsplash.com/photo-1507473885765-e6ed057ab6fe?auto=format&fit=crop&w=900&q=85',
       'https://images.unsplash.com/photo-1543248939-b5d49ce4dc6b?auto=format&fit=crop&w=900&q=85'
     ],
-    category: '家居'
+    category: '家居',
+    subcategory: '灯具'
   },
   {
     name: '便携移动电源',
@@ -83,7 +89,8 @@ const productSeeds: SeedProduct[] = [
       'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=900&q=85',
       'https://images.unsplash.com/photo-1565008447742-04327ac71d8e?auto=format&fit=crop&w=900&q=85'
     ],
-    category: '数码'
+    category: '数码',
+    subcategory: '充电设备'
   },
   {
     name: '无线充电底座',
@@ -95,7 +102,8 @@ const productSeeds: SeedProduct[] = [
       'https://images.unsplash.com/photo-1622045246592-7b3b8b3b3b3b?auto=format&fit=crop&w=900&q=85',
       'https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=900&q=85'
     ],
-    category: '数码'
+    category: '数码',
+    subcategory: '充电设备'
   },
   {
     name: '简约双肩包',
@@ -107,7 +115,8 @@ const productSeeds: SeedProduct[] = [
       'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=900&q=85',
       'https://images.unsplash.com/photo-1560105832-3544d4e5e8a0?auto=format&fit=crop&w=900&q=85'
     ],
-    category: '服饰'
+    category: '服饰',
+    subcategory: '背包'
   },
   {
     name: '人体工学鼠标',
@@ -119,7 +128,8 @@ const productSeeds: SeedProduct[] = [
       'https://images.unsplash.com/photo-1605773527852-c546a8584ea3?auto=format&fit=crop&w=900&q=85',
       'https://images.unsplash.com/photo-1541140532154-b024d1c0c78e?auto=format&fit=crop&w=900&q=85'
     ],
-    category: '数码'
+    category: '数码',
+    subcategory: '电脑配件'
   },
   {
     name: '香薰加湿器',
@@ -131,7 +141,8 @@ const productSeeds: SeedProduct[] = [
       'https://images.unsplash.com/photo-1515378791036-b8f1ee53c1a5?auto=format&fit=crop&w=900&q=85',
       'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=900&q=85'
     ],
-    category: '家居'
+    category: '家居',
+    subcategory: '生活电器'
   }
 ]
 
@@ -185,6 +196,7 @@ export const mockProducts: Product[] = productSeeds.map((seed, groupIndex) => {
     status: 'active' as const,
     imageUrls: seed.imageUrls,
     category: seed.category,
+    subcategory: seed.subcategory,
     skus,
     createdAt: now,
     updatedAt: now

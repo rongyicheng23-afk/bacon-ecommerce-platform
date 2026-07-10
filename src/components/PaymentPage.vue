@@ -246,7 +246,7 @@ onMounted(() => {
 .payment-hero button,
 .payment-empty button {
   border: 0;
-  color: #111827;
+  color: #0f172a;
   background: #fff;
   border-radius: 999px;
   padding: 10px 16px;
@@ -290,7 +290,7 @@ onMounted(() => {
 
 .payment-card-head span,
 .payment-meta span {
-  color: #6b7280;
+  color: #64748b;
   font-size: 13px;
 }
 
@@ -298,11 +298,11 @@ onMounted(() => {
 .payment-card-head h2,
 .payment-summary h2 {
   margin: 0;
-  color: #111827;
+  color: #0f172a;
 }
 
 .payment-card-head > strong {
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 28px;
 }
 
@@ -344,7 +344,7 @@ onMounted(() => {
 }
 
 .payment-method-list label.active {
-  border-color: #fe2c55;
+  border-color: #ff2f68;
   background: #fff1f2;
 }
 
@@ -355,7 +355,7 @@ onMounted(() => {
 
 .payment-method-list small,
 .payment-summary p {
-  color: #6b7280;
+  color: #64748b;
 }
 
 .payment-summary {
@@ -366,7 +366,7 @@ onMounted(() => {
 .payment-summary > strong {
   display: block;
   margin: 12px 0;
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 34px;
 }
 
@@ -382,7 +382,7 @@ onMounted(() => {
 .pay-button {
   border: 0;
   color: #fff;
-  background: #fe2c55;
+  background: #ff2f68;
 }
 
 .pay-button:disabled {
@@ -405,7 +405,7 @@ onMounted(() => {
 
 .payment-empty h2 {
   margin: 0 0 8px;
-  color: #111827;
+  color: #0f172a;
 }
 
 @media (max-width: 820px) {

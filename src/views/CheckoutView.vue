@@ -296,7 +296,7 @@ onMounted(() => {
   margin-bottom: 1.25rem;
   padding: 1.5rem;
   border-radius: 16px;
-  background: linear-gradient(135deg, #111827, #2d1b42);
+  background: linear-gradient(135deg, #0f172a, #2d1b42);
   color: #fff;
 }
 
@@ -323,7 +323,7 @@ onMounted(() => {
   padding: 0 1rem;
   border: 0;
   border-radius: 999px;
-  background: #fe2c55;
+  background: #ff2f68;
   color: #fff;
   cursor: pointer;
   font-weight: 900;
@@ -364,7 +364,7 @@ onMounted(() => {
 
 .section-title h2 {
   margin: 0;
-  color: #111827;
+  color: #0f172a;
 }
 
 .section-title span {
@@ -395,7 +395,7 @@ onMounted(() => {
 .address-card.active,
 .option-card.active,
 .payment-options label.active {
-  border-color: #fe2c55;
+  border-color: #ff2f68;
   background: #fff2f5;
 }
 
@@ -410,11 +410,11 @@ onMounted(() => {
 .address-card small,
 .option-card span {
   margin-top: 0.25rem;
-  color: #666;
+  color: #64748b;
 }
 
 .address-card em {
-  color: #fe2c55;
+  color: #ff2f68;
   font-style: normal;
   font-weight: 900;
 }
@@ -440,14 +440,14 @@ onMounted(() => {
 }
 
 .order-line span {
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 0.78rem;
   font-weight: 900;
 }
 
 .order-line h3 {
   margin: 0.25rem 0;
-  color: #111827;
+  color: #0f172a;
   font-size: 1rem;
 }
 
@@ -455,7 +455,7 @@ onMounted(() => {
   display: -webkit-box;
   margin: 0;
   overflow: hidden;
-  color: #666;
+  color: #64748b;
   font-size: 0.84rem;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
@@ -463,7 +463,7 @@ onMounted(() => {
 
 .order-line strong,
 .order-line b {
-  color: #fe2c55;
+  color: #ff2f68;
 }
 
 .payment-options {
@@ -488,7 +488,7 @@ onMounted(() => {
 
 .summary-panel h2 {
   margin: 0 0 1rem;
-  color: #111827;
+  color: #0f172a;
   font-size: 1.2rem;
 }
 
@@ -499,23 +499,23 @@ onMounted(() => {
   gap: 1rem;
   align-items: center;
   margin-bottom: 0.85rem;
-  color: #666;
+  color: #64748b;
 }
 
 .summary-row strong {
-  color: #111827;
+  color: #0f172a;
 }
 
 .summary-total {
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid #f1f2f4;
-  color: #111827;
+  color: #0f172a;
   font-weight: 900;
 }
 
 .summary-total strong {
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 1.5rem;
 }
 
@@ -526,13 +526,13 @@ onMounted(() => {
 
 .empty-state {
   padding: 3rem;
-  color: #666;
+  color: #64748b;
   text-align: center;
 }
 
 .empty-state h2 {
   margin: 0 0 0.5rem;
-  color: #111827;
+  color: #0f172a;
 }
 
 .empty-state p {

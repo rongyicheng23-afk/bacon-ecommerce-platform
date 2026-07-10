@@ -31,8 +31,7 @@
 .footer {
   margin-top: 4rem;
   padding: 3rem 0 1rem;
-  background-color: #fff;
-  border-top: 1px solid #eceff3;
+  background-color: #0f172a;
 }
 
 .footer-content {
@@ -52,30 +51,31 @@
 
 .footer-section h3 {
   margin: 0;
-  color: #111827;
+  color: #fff;
   font-size: 1.1rem;
 }
 
 .footer-section p,
 .footer-section a {
-  color: #666;
+  color: #cbd5e1;
   font-size: 0.92rem;
   line-height: 1.6;
 }
 
 .footer-section a {
   text-decoration: none;
+  transition: color 0.15s ease;
 }
 
 .footer-section a:hover {
-  color: var(--primary-color);
+  color: #ff2f68;
 }
 
 .footer-bottom {
   margin-top: 2rem;
   padding-top: 1.5rem;
-  border-top: 1px solid #eceff3;
-  color: #999;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: #64748b;
   text-align: center;
 }
 

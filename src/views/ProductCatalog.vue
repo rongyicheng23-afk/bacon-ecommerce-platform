@@ -16,6 +16,7 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const keyword = ref('')
 const selectedCategory = ref('全部')
+const selectedSubcategory = ref('全部')
 const sortType = ref<SortType>('default')
 const minPrice = ref('')
 const maxPrice = ref('')
@@ -24,7 +25,24 @@ const actionMessage = ref('')
 const favoriteIds = ref<number[]>([])
 
 const products = computed(() => productStore.products)
-const categories = computed(() => ['全部', ...new Set(products.value.map((product) => product.category || '精选'))])
+
+const mainCategories = computed(() => ['全部', ...new Set(products.value.map((product) => product.category || '精选'))])
+
+const subcategories = computed(() => {
+  if (selectedCategory.value === '全部') return []
+  return ['全部', ...new Set(
+    products.value
+      .filter((p) => (p.category || '精选') === selectedCategory.value && p.subcategory)
+      .map((p) => p.subcategory!)
+  )]
+})
+
+const categories = computed(() => {
+  if (selectedCategory.value !== '全部' && subcategories.value.length > 1) {
+    return subcategories.value
+  }
+  return mainCategories.value
+})
 const priceRange = computed(() => {
   if (products.value.length === 0) return { min: 0, max: 0 }
   const prices = products.value.map((product) => product.price)
@@ -36,7 +54,8 @@ const priceRange = computed(() => {
 
 const activeFilters = computed(() => {
   const filters = []
-  if (selectedCategory.value !== '全部') filters.push(`分类：${selectedCategory.value}`)
+  if (selectedCategory.value !== '全部' && selectedSubcategory.value === '全部') filters.push(`分类：${selectedCategory.value}`)
+  if (selectedSubcategory.value !== '全部') filters.push(`分类：${selectedCategory.value} · ${selectedSubcategory.value}`)
   if (keyword.value.trim()) filters.push(`搜索：${keyword.value.trim()}`)
   if (minPrice.value || maxPrice.value) {
     filters.push(`价格：${minPrice.value || priceRange.value.min} - ${maxPrice.value || priceRange.value.max}`)
@@ -51,6 +70,7 @@ const filteredProducts = computed(() => {
   const max = Number(maxPrice.value)
   const list = products.value.filter((product) => {
     const matchedCategory = selectedCategory.value === '全部' || (product.category || '精选') === selectedCategory.value
+    const matchedSubcategory = selectedSubcategory.value === '全部' || product.subcategory === selectedSubcategory.value
     const matchedKeyword =
       !normalizedKeyword ||
       product.name.toLowerCase().includes(normalizedKeyword) ||
@@ -59,7 +79,7 @@ const filteredProducts = computed(() => {
     const matchedMaxPrice = !maxPrice.value || product.price <= max
     const matchedStock = !stockOnly.value || product.stock > 0
 
-    return matchedCategory && matchedKeyword && matchedMinPrice && matchedMaxPrice && matchedStock
+    return matchedCategory && matchedSubcategory && matchedKeyword && matchedMinPrice && matchedMaxPrice && matchedStock
   })
 
   return [...list].sort((a, b) => {
@@ -73,6 +93,7 @@ const filteredProducts = computed(() => {
 const syncQuery = () => {
   keyword.value = typeof route.query.q === 'string' ? route.query.q : ''
   selectedCategory.value = typeof route.query.category === 'string' ? route.query.category : '全部'
+  selectedSubcategory.value = typeof route.query.subcategory === 'string' ? route.query.subcategory : '全部'
   sortType.value = isSortType(route.query.sort) ? route.query.sort : 'default'
   minPrice.value = typeof route.query.minPrice === 'string' ? route.query.minPrice : ''
   maxPrice.value = typeof route.query.maxPrice === 'string' ? route.query.maxPrice : ''
@@ -134,6 +155,7 @@ const submitSearch = () => {
     query: {
       q: keyword.value.trim() || undefined,
       category: selectedCategory.value === '全部' ? undefined : selectedCategory.value,
+      subcategory: selectedSubcategory.value === '全部' ? undefined : selectedSubcategory.value,
       sort: sortType.value === 'default' ? undefined : sortType.value,
       minPrice: minPrice.value || undefined,
       maxPrice: maxPrice.value || undefined,
@@ -142,14 +164,30 @@ const submitSearch = () => {
   })
 }
 
+const isMainCategory = (value: string) => {
+  return mainCategories.value.includes(value)
+}
+
 const selectCategory = (category: string) => {
-  selectedCategory.value = category
+  if (category === '全部') {
+    if (selectedSubcategory.value !== '全部') {
+      selectedSubcategory.value = '全部'
+    } else {
+      selectedCategory.value = '全部'
+    }
+  } else if (isMainCategory(category)) {
+    selectedCategory.value = category
+    selectedSubcategory.value = '全部'
+  } else {
+    selectedSubcategory.value = category
+  }
   submitSearch()
 }
 
 const resetFilters = () => {
   keyword.value = ''
   selectedCategory.value = '全部'
+  selectedSubcategory.value = '全部'
   sortType.value = 'default'
   minPrice.value = ''
   maxPrice.value = ''
@@ -198,13 +236,8 @@ onMounted(async () => {
       <div>
         <span>Product discovery</span>
         <h1>发现好物</h1>
-        <p>搜索、分类、价格区间和排序集中在这里，完整商品库由这个页面承载。</p>
+        <p>分类、价格区间和排序集中在这里，完整商品库由这个页面承载。</p>
       </div>
-
-      <form class="search-box" @submit.prevent="submitSearch">
-        <input v-model="keyword" type="search" placeholder="搜索耳机、背包、台灯..." />
-        <button type="submit">搜索</button>
-      </form>
     </section>
 
     <div v-if="loading" class="state">加载中...</div>
@@ -325,19 +358,15 @@ onMounted(async () => {
 }
 
 .catalog-hero {
-  display: grid;
-  grid-template-columns: 1fr minmax(360px, 520px);
-  gap: 2rem;
-  align-items: end;
   margin-bottom: 1.5rem;
   padding: 2rem;
   border-radius: 18px;
-  background: linear-gradient(135deg, #111827, #2d1b42);
+  background: linear-gradient(135deg, #0f172a, #1e293b);
   color: #fff;
 }
 
 .catalog-hero span {
-  color: #ffd7df;
+  color: #93c5fd;
   font-size: 0.875rem;
   font-weight: 800;
 }
@@ -351,33 +380,6 @@ onMounted(async () => {
   max-width: 520px;
   margin: 0;
   color: rgba(255, 255, 255, 0.78);
-}
-
-.search-box {
-  display: flex;
-  min-height: 48px;
-  padding: 0.3rem;
-  border-radius: 999px;
-  background: #fff;
-}
-
-.search-box input {
-  flex: 1;
-  min-width: 0;
-  padding: 0 1rem;
-  border: 0;
-  outline: none;
-  font-size: 1rem;
-}
-
-.search-box button {
-  min-width: 88px;
-  border: 0;
-  border-radius: 999px;
-  background: #fe2c55;
-  color: #fff;
-  cursor: pointer;
-  font-weight: 800;
 }
 
 .filter-panel {
@@ -402,7 +404,7 @@ onMounted(async () => {
 }
 
 .filter-label {
-  color: #111827;
+  color: #0f172a;
   font-weight: 900;
 }
 
@@ -424,9 +426,9 @@ onMounted(async () => {
 }
 
 .category-tabs button.active {
-  border-color: #fe2c55;
+  border-color: #ff2f68;
   background: #fff2f5;
-  color: #fe2c55;
+  color: #ff2f68;
 }
 
 .price-filter {
@@ -446,7 +448,7 @@ onMounted(async () => {
 }
 
 .price-filter input[type='number']:focus {
-  border-color: #fe2c55;
+  border-color: #ff2f68;
 }
 
 .stock-check {
@@ -466,7 +468,7 @@ onMounted(async () => {
   padding: 0 0.9rem;
   border: 0;
   border-radius: 999px;
-  background: #fe2c55;
+  background: #ff2f68;
   color: #fff;
   cursor: pointer;
   font-weight: 800;
@@ -495,7 +497,7 @@ onMounted(async () => {
 }
 
 .result-summary strong {
-  color: #111827;
+  color: #0f172a;
 }
 
 .result-summary span {
@@ -558,11 +560,11 @@ onMounted(async () => {
   line-height: 1.6;
 }
 
-.tag-hot { background: #fe2c55; color: #fff; }
-.tag-value { background: #ff6b35; color: #fff; }
-.tag-discount { background: linear-gradient(135deg, #ff4757, #ff6b81); color: #fff; }
-.tag-urgent { background: #ff6348; color: #fff; }
-.tag-new { background: #2ed573; color: #fff; }
+.tag-hot { background: #ff2f68; color: #fff; }
+.tag-value { background: #6366f1; color: #fff; }
+.tag-discount { background: linear-gradient(135deg, #ff2f68, #ff6b81); color: #fff; }
+.tag-urgent { background: #f97316; color: #fff; }
+.tag-new { background: #22c55e; color: #fff; }
 
 .product-image img {
   width: 100%;
@@ -583,7 +585,7 @@ onMounted(async () => {
 }
 
 .product-info span {
-  color: #fe2c55;
+  color: #6366f1;
   font-size: 0.78rem;
   font-weight: 800;
 }
@@ -593,7 +595,7 @@ onMounted(async () => {
   min-height: 2.7rem;
   margin: 0.35rem 0 0.5rem;
   overflow: hidden;
-  color: #111827;
+  color: #0f172a;
   font-size: 0.95rem;
   line-height: 1.4;
   -webkit-box-orient: vertical;
@@ -605,7 +607,7 @@ onMounted(async () => {
   min-height: 2.4rem;
   margin: 0 0 0.75rem;
   overflow: hidden;
-  color: #6b7280;
+  color: #64748b;
   font-size: 0.8rem;
   line-height: 1.5;
   -webkit-box-orient: vertical;
@@ -621,7 +623,7 @@ onMounted(async () => {
 }
 
 .product-footer strong {
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 1.05rem;
 }
 
@@ -642,32 +644,32 @@ onMounted(async () => {
   border: 1px solid #f1f1f1;
   border-radius: 999px;
   background: #fafafa;
-  color: #111827;
+  color: #0f172a;
   cursor: pointer;
   font-size: 0.75rem;
   font-weight: 700;
 }
 
 .product-actions button:hover {
-  border-color: #fe2c55;
-  color: #fe2c55;
+  border-color: #ff2f68;
+  color: #ff2f68;
 }
 
 .product-actions button.active {
-  border-color: #fe2c55;
+  border-color: #ff2f68;
   background: #fff1f2;
-  color: #fe2c55;
+  color: #ff2f68;
 }
 
 .product-actions .buy-button {
-  border-color: #fe2c55;
-  background: #fe2c55;
+  border-color: #ff2f68;
+  background: #ff2f68;
   color: #fff;
 }
 
 .state {
   padding: 3rem;
-  color: #6b7280;
+  color: #64748b;
   text-align: center;
 }
 
@@ -686,7 +688,7 @@ onMounted(async () => {
 
 .empty-state h2 {
   margin: 0 0 0.5rem;
-  color: #111827;
+  color: #0f172a;
 }
 
 .empty-state p {
@@ -700,10 +702,6 @@ onMounted(async () => {
 }
 
 @media (min-width: 768px) and (max-width: 1100px) {
-  .catalog-hero {
-    grid-template-columns: 1fr;
-  }
-
   .product-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -711,7 +709,6 @@ onMounted(async () => {
 
 @media (max-width: 767px) {
   .catalog-hero {
-    grid-template-columns: 1fr;
     padding: 1.25rem;
   }
 

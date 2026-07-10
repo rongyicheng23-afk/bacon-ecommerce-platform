@@ -344,7 +344,7 @@ onMounted(() => {
 .orders-hero button,
 .empty-orders button {
   border: 0;
-  color: #111827;
+  color: #0f172a;
   background: #fff;
   border-radius: 999px;
   padding: 11px 18px;
@@ -373,14 +373,14 @@ onMounted(() => {
 
 .orders-overview span {
   display: block;
-  color: #6b7280;
+  color: #64748b;
   font-size: 14px;
 }
 
 .orders-overview strong {
   display: block;
   margin-top: 8px;
-  color: #111827;
+  color: #0f172a;
   font-size: 26px;
   line-height: 1.1;
 }
@@ -413,7 +413,7 @@ onMounted(() => {
 
 .order-tabs button.active {
   color: #fff;
-  background: #fe2c55;
+  background: #ff2f68;
 }
 
 .order-tabs span {
@@ -428,18 +428,18 @@ onMounted(() => {
 
 .empty-orders h2 {
   margin: 0;
-  color: #111827;
+  color: #0f172a;
   font-size: 24px;
 }
 
 .empty-orders p {
   margin: 10px 0 22px;
-  color: #6b7280;
+  color: #64748b;
 }
 
 .empty-orders button {
   color: #fff;
-  background: #111827;
+  background: #0f172a;
 }
 
 .order-list {
@@ -473,12 +473,12 @@ onMounted(() => {
 }
 
 .order-card-head strong {
-  color: #111827;
+  color: #0f172a;
   font-size: 15px;
 }
 
 .order-card-head span {
-  color: #6b7280;
+  color: #64748b;
   font-size: 13px;
 }
 
@@ -489,7 +489,7 @@ onMounted(() => {
 }
 
 .status-pending_payment {
-  color: #fe2c55;
+  color: #ff2f68;
 }
 
 .status-paid,
@@ -533,14 +533,14 @@ onMounted(() => {
 
 .order-item h3 {
   margin: 2px 0 6px;
-  color: #111827;
+  color: #0f172a;
   font-size: 16px;
   line-height: 1.35;
 }
 
 .order-item p {
   margin: 0 0 8px;
-  color: #6b7280;
+  color: #64748b;
   font-size: 13px;
 }
 
@@ -563,12 +563,12 @@ onMounted(() => {
   justify-content: space-between;
   gap: 12px;
   margin: 0;
-  color: #6b7280;
+  color: #64748b;
   font-size: 13px;
 }
 
 .order-summary strong {
-  color: #111827;
+  color: #0f172a;
   text-align: right;
 }
 
@@ -578,7 +578,7 @@ onMounted(() => {
 }
 
 .order-summary .payable strong {
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 20px;
 }
 
@@ -599,8 +599,8 @@ onMounted(() => {
 
 .order-actions button.primary {
   color: #fff;
-  border-color: #fe2c55;
-  background: #fe2c55;
+  border-color: #ff2f68;
+  background: #ff2f68;
 }
 
 @media (max-width: 820px) {

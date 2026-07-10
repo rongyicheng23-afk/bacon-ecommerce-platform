@@ -268,7 +268,7 @@ onMounted(async () => {
   margin-bottom: 1.25rem;
   padding: 1.5rem;
   border-radius: 16px;
-  background: linear-gradient(135deg, #111827, #2d1b42);
+  background: linear-gradient(135deg, #0f172a, #2d1b42);
   color: #fff;
 }
 
@@ -295,7 +295,7 @@ onMounted(async () => {
   padding: 0 1rem;
   border: 0;
   border-radius: 999px;
-  background: #fe2c55;
+  background: #ff2f68;
   color: #fff;
   cursor: pointer;
   font-weight: 900;
@@ -325,14 +325,14 @@ onMounted(async () => {
   align-items: center;
   padding: 1rem;
   border-bottom: 1px solid #f1f2f4;
-  color: #666;
+  color: #64748b;
 }
 
 .cart-toolbar label {
   display: inline-flex;
   gap: 0.4rem;
   align-items: center;
-  color: #111827;
+  color: #0f172a;
   font-weight: 900;
 }
 
@@ -340,14 +340,14 @@ onMounted(async () => {
 .remove-button {
   border: 0;
   background: transparent;
-  color: #666;
+  color: #64748b;
   cursor: pointer;
   font-weight: 800;
 }
 
 .cart-toolbar button:hover,
 .remove-button:hover {
-  color: #fe2c55;
+  color: #ff2f68;
 }
 
 .cart-line {
@@ -387,7 +387,7 @@ onMounted(async () => {
 
 .line-info span,
 .recommend-card span {
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 0.78rem;
   font-weight: 900;
 }
@@ -396,7 +396,7 @@ onMounted(async () => {
   display: -webkit-box;
   margin: 0.25rem 0;
   overflow: hidden;
-  color: #111827;
+  color: #0f172a;
   font-size: 1rem;
   line-height: 1.4;
   cursor: pointer;
@@ -408,7 +408,7 @@ onMounted(async () => {
   display: -webkit-box;
   margin: 0 0 0.25rem;
   overflow: hidden;
-  color: #666;
+  color: #64748b;
   font-size: 0.84rem;
   line-height: 1.5;
   -webkit-box-orient: vertical;
@@ -421,7 +421,7 @@ onMounted(async () => {
 
 .line-price,
 .line-total {
-  color: #fe2c55;
+  color: #ff2f68;
   font-weight: 900;
 }
 
@@ -466,7 +466,7 @@ onMounted(async () => {
 
 .summary-panel h2 {
   margin: 0 0 1rem;
-  color: #111827;
+  color: #0f172a;
   font-size: 1.2rem;
 }
 
@@ -477,23 +477,23 @@ onMounted(async () => {
   gap: 1rem;
   align-items: center;
   margin-bottom: 0.85rem;
-  color: #666;
+  color: #64748b;
 }
 
 .summary-row strong {
-  color: #111827;
+  color: #0f172a;
 }
 
 .summary-total {
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid #f1f2f4;
-  color: #111827;
+  color: #0f172a;
   font-weight: 900;
 }
 
 .summary-total strong {
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 1.5rem;
 }
 
@@ -517,7 +517,7 @@ onMounted(async () => {
 
 .section-title h2 {
   margin: 0;
-  color: #111827;
+  color: #0f172a;
 }
 
 .section-title span {
@@ -552,7 +552,7 @@ onMounted(async () => {
   min-height: 2.5rem;
   margin: 0.25rem 0 0.4rem;
   overflow: hidden;
-  color: #111827;
+  color: #0f172a;
   font-size: 0.9rem;
   line-height: 1.4;
   -webkit-box-orient: vertical;
@@ -560,19 +560,19 @@ onMounted(async () => {
 }
 
 .recommend-card strong {
-  color: #fe2c55;
+  color: #ff2f68;
 }
 
 .state,
 .empty-state {
   padding: 3rem;
-  color: #666;
+  color: #64748b;
   text-align: center;
 }
 
 .empty-state h2 {
   margin: 0 0 0.5rem;
-  color: #111827;
+  color: #0f172a;
 }
 
 .empty-state p {

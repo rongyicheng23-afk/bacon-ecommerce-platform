@@ -31,20 +31,6 @@ const channelCards: Array<{ title: string; subtitle: string; query: Record<strin
   { title: '品质生活', subtitle: '家居优选', query: { category: '家居' } }
 ]
 const serviceCards = ['正品保障', '快速配送', '售后无忧', '安全支付']
-const categoryLinks = computed(() => {
-  const categoryMap = products.value.reduce<Record<string, number>>((map, product) => {
-    const category = product.category || '精选'
-    map[category] = (map[category] || 0) + 1
-    return map
-  }, {})
-
-  return Object.entries(categoryMap).slice(0, 6).map(([name, count], index) => ({
-    name,
-    count,
-    tone: `tone-${index % 4}`
-  }))
-})
-
 const actionText: Record<BehaviorAction, string> = {
   view: '浏览',
   favorite: '收藏',
@@ -103,17 +89,20 @@ const switchSlide = (index: number) => {
   activeSlide.value = index
 }
 
+const prevSlide = () => {
+  if (bannerProducts.value.length === 0) return
+  activeSlide.value = (activeSlide.value - 1 + bannerProducts.value.length) % bannerProducts.value.length
+}
+
+const nextSlide = () => {
+  if (bannerProducts.value.length === 0) return
+  activeSlide.value = (activeSlide.value + 1) % bannerProducts.value.length
+}
+
 const browseChannel = (query: Record<string, string>) => {
   router.push({
     path: '/products',
     query
-  })
-}
-
-const browseCategory = (category: string) => {
-  router.push({
-    path: '/products',
-    query: { category }
   })
 }
 
@@ -208,23 +197,6 @@ onUnmounted(() => {
 
     <template v-else>
       <section class="home-hero-grid">
-        <aside class="category-rail" aria-label="商品分类">
-          <div class="rail-title">全部分类</div>
-          <button
-            v-for="category in categoryLinks"
-            :key="category.name"
-            type="button"
-            class="rail-item"
-            @click="browseCategory(category.name)"
-          >
-            <span :class="['rail-mark', category.tone]">{{ category.name.slice(0, 1) }}</span>
-            <span>
-              <strong>{{ category.name }}</strong>
-              <small>{{ category.count }} 件好物</small>
-            </span>
-          </button>
-        </aside>
-
         <section v-if="bannerProducts.length" class="hero-carousel" aria-label="热门活动">
           <article
             v-for="(product, index) in bannerProducts"
@@ -243,6 +215,27 @@ onUnmounted(() => {
               </div>
             </div>
           </article>
+
+          <button
+            type="button"
+            class="hero-arrow hero-arrow-left"
+            aria-label="上一张"
+            @click.stop="prevSlide"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="hero-arrow hero-arrow-right"
+            aria-label="下一张"
+            @click.stop="nextSlide"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
 
           <div class="hero-dots" aria-label="切换活动">
             <button
@@ -336,30 +329,6 @@ onUnmounted(() => {
         <span v-for="service in serviceCards" :key="service">{{ service }}</span>
       </section>
 
-      <section class="category-section" aria-labelledby="category-title">
-        <div class="section-title">
-          <div>
-            <span class="section-kicker">Shop by category</span>
-            <h2 id="category-title">精选分类</h2>
-          </div>
-          <button type="button" class="more-link" @click="router.push('/products')">进入商品库</button>
-        </div>
-
-        <div class="category-grid">
-          <button
-            v-for="category in categoryLinks"
-            :key="category.name"
-            type="button"
-            :class="['category-tile', category.tone]"
-            @click="browseCategory(category.name)"
-          >
-            <span class="category-mark">{{ category.name.slice(0, 1) }}</span>
-            <strong>{{ category.name }}</strong>
-            <small>{{ category.count }} 件好物</small>
-          </button>
-        </div>
-      </section>
-
       <section class="hot-section" aria-labelledby="hot-title">
         <div class="section-title">
           <div>
@@ -447,6 +416,7 @@ onUnmounted(() => {
         </div>
       </section>
     </template>
+
   </main>
 </template>
 
@@ -472,13 +442,12 @@ onUnmounted(() => {
 
 .home-hero-grid {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr) 220px;
+  grid-template-columns: minmax(0, 1fr) 220px;
   gap: 1rem;
   align-items: stretch;
   margin-bottom: 1.25rem;
 }
 
-.category-rail,
 .promo-stack,
 .channel-section,
 .service-strip {
@@ -488,68 +457,12 @@ onUnmounted(() => {
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
 }
 
-.category-rail {
-  min-height: 360px;
-  padding: 0.85rem;
-}
-
-.rail-title {
-  margin-bottom: 0.6rem;
-  color: #111827;
-  font-size: 1rem;
-  font-weight: 900;
-}
-
-.rail-item {
-  display: flex;
-  width: 100%;
-  gap: 0.65rem;
-  align-items: center;
-  min-height: 48px;
-  padding: 0.45rem;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: #111827;
-  cursor: pointer;
-  text-align: left;
-}
-
-.rail-item:hover {
-  background: #fff2f5;
-}
-
-.rail-item strong,
-.rail-item small {
-  display: block;
-}
-
-.rail-item strong {
-  font-size: 0.92rem;
-}
-
-.rail-item small {
-  color: #6b7280;
-  font-size: 0.76rem;
-}
-
-.rail-mark {
-  display: grid;
-  flex: 0 0 auto;
-  width: 32px;
-  height: 32px;
-  place-items: center;
-  border-radius: 10px;
-  color: #fff;
-  font-weight: 900;
-}
-
 .hero-carousel {
   position: relative;
   min-height: 360px;
   overflow: hidden;
   border-radius: 18px;
-  background: #111827;
+  background: #0f172a;
   box-shadow: 0 24px 50px rgba(15, 23, 42, 0.18);
 }
 
@@ -631,7 +544,7 @@ onUnmounted(() => {
   border: 0;
   border-radius: 999px;
   background: #fff;
-  color: #111827;
+  color: #0f172a;
   cursor: pointer;
   font-weight: 800;
 }
@@ -659,6 +572,46 @@ onUnmounted(() => {
   background: #fff;
 }
 
+.hero-arrow {
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity 0.3s ease, background 0.2s ease;
+}
+
+.hero-arrow:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.hero-arrow svg {
+  width: 22px;
+  height: 22px;
+}
+
+.hero-arrow-left {
+  left: 1rem;
+}
+
+.hero-arrow-right {
+  right: 1rem;
+}
+
+.hero-carousel:hover .hero-arrow {
+  opacity: 1;
+}
+
 .promo-stack {
   display: grid;
   gap: 0.85rem;
@@ -671,7 +624,7 @@ onUnmounted(() => {
   overflow: hidden;
   min-height: 0;
   border-radius: 12px;
-  background: #111827;
+  background: #0f172a;
   cursor: pointer;
 }
 
@@ -736,7 +689,7 @@ onUnmounted(() => {
   border: 0;
   border-radius: 12px;
   background: linear-gradient(135deg, #fff7f9, #fff);
-  color: #111827;
+  color: #0f172a;
   cursor: pointer;
   text-align: left;
 }
@@ -756,7 +709,7 @@ onUnmounted(() => {
 }
 
 .channel-card span {
-  color: #6b7280;
+  color: #64748b;
   font-size: 0.84rem;
 }
 
@@ -786,7 +739,7 @@ onUnmounted(() => {
 .flash-badge {
   padding: 4px 12px;
   border-radius: 4px;
-  background: linear-gradient(135deg, #fe2c55, #ff4757);
+  background: linear-gradient(135deg, #ff2f68, #ff4757);
   color: #fff;
   font-size: 13px;
   font-weight: 900;
@@ -795,7 +748,7 @@ onUnmounted(() => {
 .flash-title-row h2 {
   margin: 0;
   font-size: 1.25rem;
-  color: #111827;
+  color: #0f172a;
 }
 
 .flash-countdown {
@@ -811,7 +764,7 @@ onUnmounted(() => {
   height: 28px;
   place-items: center;
   border-radius: 4px;
-  background: #111827;
+  background: #0f172a;
   color: #fff;
   font-size: 14px;
   font-weight: 900;
@@ -819,7 +772,7 @@ onUnmounted(() => {
 }
 
 .flash-countdown em {
-  color: #111827;
+  color: #0f172a;
   font-style: normal;
   font-weight: 900;
   margin: 0 1px;
@@ -882,7 +835,7 @@ onUnmounted(() => {
 }
 
 .flash-price-row strong {
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 1.25rem;
   font-weight: 900;
 }
@@ -896,7 +849,7 @@ onUnmounted(() => {
   display: -webkit-box;
   margin: 0 0 0.5rem;
   overflow: hidden;
-  color: #111827;
+  color: #0f172a;
   font-size: 0.88rem;
   line-height: 1.35;
   -webkit-box-orient: vertical;
@@ -921,12 +874,12 @@ onUnmounted(() => {
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #fe2c55, #ff6b81);
+  background: linear-gradient(90deg, #ff2f68, #ff6b81);
 }
 
 .flash-progress small {
   flex: 0 0 auto;
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 0.75rem;
   font-weight: 800;
 }
@@ -955,7 +908,7 @@ onUnmounted(() => {
   height: 18px;
   place-items: center;
   border-radius: 50%;
-  background: #fe2c55;
+  background: #ff2f68;
   color: #fff;
   content: '✓';
   font-size: 0.7rem;
@@ -971,13 +924,13 @@ onUnmounted(() => {
 
 .section-title h2 {
   margin: 0;
-  color: #111827;
+  color: #0f172a;
   font-size: 1.5rem;
 }
 
 .section-title > span,
 .section-kicker {
-  color: #6b7280;
+  color: #64748b;
   font-size: 0.875rem;
 }
 
@@ -987,14 +940,14 @@ onUnmounted(() => {
   border: 1px solid #e5e7eb;
   border-radius: 999px;
   background: #fff;
-  color: #111827;
+  color: #0f172a;
   cursor: pointer;
   font-weight: 700;
 }
 
 .more-link:hover {
-  border-color: #fe2c55;
-  color: #fe2c55;
+  border-color: #ff2f68;
+  color: #ff2f68;
 }
 
 .section-kicker {
@@ -1008,7 +961,7 @@ onUnmounted(() => {
   gap: 0.35rem;
   align-items: center;
   margin: 0.35rem 0 0;
-  color: #6b7280;
+  color: #64748b;
   font-size: 0.82rem;
 }
 
@@ -1017,97 +970,19 @@ onUnmounted(() => {
   padding: 0.12rem 0.45rem;
   border-radius: 999px;
   background: #fff1f2;
-  color: #fe2c55;
+  color: #ff2f68;
   font-weight: 800;
 }
 
-.category-section,
 .hot-section,
 .feed-section {
   margin-bottom: 2rem;
 }
 
-.category-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
-}
-
-.category-tile {
-  min-height: 104px;
-  padding: 1rem;
-  border: 1px solid rgba(17, 24, 39, 0.08);
-  border-radius: 14px;
-  background: #fff;
-  color: #111827;
-  text-align: left;
-  cursor: pointer;
-  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.06);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.category-tile:hover,
 .hot-card:hover,
 .feed-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
-}
-
-.category-mark {
-  display: grid;
-  width: 36px;
-  height: 36px;
-  margin-bottom: 0.75rem;
-  place-items: center;
-  border-radius: 50%;
-  color: #fff;
-  font-weight: 900;
-}
-
-.tone-0 .category-mark {
-  background: #fe2c55;
-}
-
-.tone-0.rail-mark {
-  background: #fe2c55;
-}
-
-.tone-1 .category-mark {
-  background: #1677ff;
-}
-
-.tone-1.rail-mark {
-  background: #1677ff;
-}
-
-.tone-2 .category-mark {
-  background: #16a34a;
-}
-
-.tone-2.rail-mark {
-  background: #16a34a;
-}
-
-.tone-3 .category-mark {
-  background: #7c3aed;
-}
-
-.tone-3.rail-mark {
-  background: #7c3aed;
-}
-
-.category-tile strong,
-.category-tile small {
-  display: block;
-}
-
-.category-tile strong {
-  font-size: 1.1rem;
-}
-
-.category-tile small {
-  margin-top: 0.25rem;
-  color: #6b7280;
 }
 
 .hot-row {
@@ -1152,11 +1027,11 @@ onUnmounted(() => {
   line-height: 1.6;
 }
 
-.tag-hot { background: #fe2c55; color: #fff; }
-.tag-value { background: #ff6b35; color: #fff; }
-.tag-discount { background: linear-gradient(135deg, #ff4757, #ff6b81); color: #fff; }
-.tag-urgent { background: #ff6348; color: #fff; }
-.tag-new { background: #2ed573; color: #fff; }
+.tag-hot { background: #ff2f68; color: #fff; }
+.tag-value { background: #6366f1; color: #fff; }
+.tag-discount { background: linear-gradient(135deg, #ff2f68, #ff6b81); color: #fff; }
+.tag-urgent { background: #f97316; color: #fff; }
+.tag-new { background: #22c55e; color: #fff; }
 
 .hot-image {
   aspect-ratio: 1;
@@ -1185,7 +1060,7 @@ onUnmounted(() => {
 
 .hot-info span,
 .category {
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 0.78rem;
   font-weight: 800;
 }
@@ -1196,7 +1071,7 @@ onUnmounted(() => {
   min-height: 2.7rem;
   margin: 0.35rem 0 0.5rem;
   overflow: hidden;
-  color: #111827;
+  color: #0f172a;
   font-size: 0.95rem;
   line-height: 1.4;
   -webkit-box-orient: vertical;
@@ -1206,7 +1081,7 @@ onUnmounted(() => {
 .hot-info strong,
 .feed-footer strong {
   margin-top: auto;
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 1.05rem;
 }
 
@@ -1244,7 +1119,7 @@ onUnmounted(() => {
   min-height: 2.4rem;
   margin: 0 0 0.75rem;
   overflow: hidden;
-  color: #6b7280;
+  color: #64748b;
   font-size: 0.8rem;
   line-height: 1.5;
   -webkit-box-orient: vertical;
@@ -1270,27 +1145,27 @@ onUnmounted(() => {
   border: 1px solid #f1f1f1;
   border-radius: 999px;
   background: #fafafa;
-  color: #111827;
+  color: #0f172a;
   cursor: pointer;
   font-size: 0.75rem;
   font-weight: 700;
 }
 
 .feed-actions button:hover {
-  border-color: #fe2c55;
-  color: #fe2c55;
+  border-color: #ff2f68;
+  color: #ff2f68;
 }
 
 .feed-actions button.active {
-  border-color: #fe2c55;
+  border-color: #ff2f68;
   background: #fff1f2;
-  color: #fe2c55;
+  color: #ff2f68;
 }
 
 .loading-state,
 .error-state {
   padding: 3rem;
-  color: #6b7280;
+  color: #64748b;
   text-align: center;
 }
 
@@ -1308,7 +1183,6 @@ onUnmounted(() => {
     grid-template-columns: 1fr;
   }
 
-  .category-rail,
   .promo-stack {
     min-height: auto;
   }

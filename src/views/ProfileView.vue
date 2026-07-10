@@ -324,7 +324,7 @@ onMounted(async () => {
   width: 78px;
   height: 78px;
   place-items: center;
-  color: #111827;
+  color: #0f172a;
   background: #fff;
   border-radius: 50%;
   font-size: 32px;
@@ -353,7 +353,7 @@ onMounted(async () => {
 .profile-hero button,
 .card-head button {
   border: 0;
-  color: #111827;
+  color: #0f172a;
   background: #fff;
   border-radius: 999px;
   padding: 10px 16px;
@@ -382,14 +382,14 @@ onMounted(async () => {
 
 .profile-stats span {
   display: block;
-  color: #6b7280;
+  color: #64748b;
   font-size: 14px;
 }
 
 .profile-stats strong {
   display: block;
   margin-top: 8px;
-  color: #111827;
+  color: #0f172a;
   font-size: 26px;
   line-height: 1.1;
 }
@@ -413,12 +413,12 @@ onMounted(async () => {
 }
 
 .card-head span {
-  color: #fe2c55;
+  color: #ff2f68;
 }
 
 .card-head h2 {
   margin: 0;
-  color: #111827;
+  color: #0f172a;
   font-size: 22px;
 }
 
@@ -467,13 +467,13 @@ onMounted(async () => {
 }
 
 .behavior-list li span {
-  color: #fe2c55;
+  color: #ff2f68;
   font-weight: 900;
 }
 
 .behavior-list li strong {
   overflow: hidden;
-  color: #111827;
+  color: #0f172a;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -496,11 +496,11 @@ onMounted(async () => {
 }
 
 .preference-item strong {
-  color: #111827;
+  color: #0f172a;
 }
 
 .preference-item span {
-  color: #6b7280;
+  color: #64748b;
   font-size: 13px;
 }
 
@@ -515,7 +515,7 @@ onMounted(async () => {
 .preference-item i {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, #fe2c55, #111827);
+  background: linear-gradient(90deg, #ff2f68, #0f172a);
   border-radius: inherit;
 }
 
@@ -554,26 +554,26 @@ onMounted(async () => {
 }
 
 .favorite-item span {
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 12px;
   font-weight: 900;
 }
 
 .favorite-item h3 {
   margin: 5px 0 8px;
-  color: #111827;
+  color: #0f172a;
   font-size: 16px;
   line-height: 1.35;
 }
 
 .favorite-item strong {
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 18px;
 }
 
 .profile-empty {
   padding: 28px 18px;
-  color: #6b7280;
+  color: #64748b;
   background: #fafafa;
   border-radius: 14px;
   text-align: center;
@@ -581,7 +581,7 @@ onMounted(async () => {
 
 .profile-empty h3 {
   margin: 0 0 8px;
-  color: #111827;
+  color: #0f172a;
 }
 
 .profile-empty p {

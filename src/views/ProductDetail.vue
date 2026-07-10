@@ -454,7 +454,7 @@ onMounted(() => {
 }
 
 .thumb-button.active {
-  border-color: #fe2c55;
+  border-color: #ff2f68;
 }
 
 .purchase-panel {
@@ -467,21 +467,21 @@ onMounted(() => {
 }
 
 .category {
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 0.82rem;
   font-weight: 900;
 }
 
 .title-row h1 {
   margin: 0.35rem 0 0.5rem;
-  color: #111827;
+  color: #0f172a;
   font-size: 1.7rem;
   line-height: 1.25;
 }
 
 .title-row p {
   margin: 0;
-  color: #666;
+  color: #64748b;
   line-height: 1.6;
 }
 
@@ -496,12 +496,12 @@ onMounted(() => {
 }
 
 .price-box span {
-  color: #666;
+  color: #64748b;
   font-size: 0.9rem;
 }
 
 .price-box strong {
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 2.2rem;
   line-height: 1;
 }
@@ -535,7 +535,7 @@ onMounted(() => {
 }
 
 .meta-grid strong {
-  color: #111827;
+  color: #0f172a;
   font-size: 1rem;
 }
 
@@ -548,7 +548,7 @@ onMounted(() => {
 }
 
 .option-label {
-  color: #666;
+  color: #64748b;
   font-weight: 800;
 }
 
@@ -570,9 +570,9 @@ onMounted(() => {
 }
 
 .spec-row button.active {
-  border-color: #fe2c55;
+  border-color: #ff2f68;
   background: #fff2f5;
-  color: #fe2c55;
+  color: #ff2f68;
 }
 
 .spec-row button.disabled {
@@ -620,13 +620,13 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 0.75rem;
   margin: 1.25rem 0;
-  color: #666;
+  color: #64748b;
   font-size: 0.88rem;
 }
 
 .service-row span::before {
   margin-right: 0.25rem;
-  color: #fe2c55;
+  color: #ff2f68;
   content: '✓';
   font-weight: 900;
 }
@@ -651,20 +651,20 @@ onMounted(() => {
 }
 
 .ghost-button.active {
-  border-color: #fe2c55;
+  border-color: #ff2f68;
   background: #fff1f2;
-  color: #fe2c55;
+  color: #ff2f68;
 }
 
 .cart-button {
-  border: 1px solid #fe2c55;
+  border: 1px solid #ff2f68;
   background: #fff2f5;
-  color: #fe2c55;
+  color: #ff2f68;
 }
 
 .buy-button {
-  border: 1px solid #fe2c55;
-  background: #fe2c55;
+  border: 1px solid #ff2f68;
+  background: #ff2f68;
   color: #fff;
 }
 
@@ -696,8 +696,8 @@ onMounted(() => {
 }
 
 .tab-header button.active {
-  color: #fe2c55;
-  box-shadow: inset 0 -3px 0 #fe2c55;
+  color: #ff2f68;
+  box-shadow: inset 0 -3px 0 #ff2f68;
 }
 
 .tab-body {
@@ -706,12 +706,12 @@ onMounted(() => {
 
 .detail-copy h2 {
   margin: 0 0 0.75rem;
-  color: #111827;
+  color: #0f172a;
 }
 
 .detail-copy p {
   margin: 0 0 1rem;
-  color: #666;
+  color: #64748b;
   line-height: 1.8;
 }
 
@@ -744,12 +744,12 @@ onMounted(() => {
 }
 
 .review-card span {
-  color: #fe2c55;
+  color: #ff2f68;
 }
 
 .review-card p {
   margin: 0.5rem 0 0;
-  color: #666;
+  color: #64748b;
 }
 
 .related-grid {
@@ -775,7 +775,7 @@ onMounted(() => {
 }
 
 .related-card span {
-  color: #fe2c55;
+  color: #ff2f68;
   font-size: 0.76rem;
   font-weight: 900;
 }
@@ -785,7 +785,7 @@ onMounted(() => {
   min-height: 2.5rem;
   margin: 0.25rem 0 0.4rem;
   overflow: hidden;
-  color: #111827;
+  color: #0f172a;
   font-size: 0.9rem;
   line-height: 1.4;
   -webkit-box-orient: vertical;
@@ -793,18 +793,18 @@ onMounted(() => {
 }
 
 .related-card strong {
-  color: #fe2c55;
+  color: #ff2f68;
 }
 
 .empty-related {
   grid-column: 1 / -1;
   margin: 0;
-  color: #666;
+  color: #64748b;
 }
 
 .state {
   padding: 3rem;
-  color: #666;
+  color: #64748b;
   text-align: center;
 }
 
