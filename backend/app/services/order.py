@@ -72,6 +72,7 @@ def get_cart(user_id: int) -> dict:
                 "description": r["description"],
                 "imageUrl": r["sku_image"] or json.loads(r["image_urls"])[0],
                 "category": r["category"], "selected": bool(r["selected"]),
+                "createdAt": r["created_at"], "updatedAt": r["updated_at"],
             })
         total_qty = sum(i["quantity"] for i in items if i["selected"])
         total_amt = sum(i["price"] * i["quantity"] for i in items if i["selected"])

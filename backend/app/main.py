@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import CORS_ORIGINS
 from app.db.database import init_db
-from app.routers import auth, products, carts, orders, sellers, behaviors
+from app.routers import auth, products, carts, orders, sellers, behaviors, frontend_compat
 
 
 @asynccontextmanager
@@ -31,6 +31,7 @@ app.include_router(carts.router)
 app.include_router(orders.router)
 app.include_router(sellers.router)
 app.include_router(behaviors.router)
+app.include_router(frontend_compat.router)
 
 
 @app.get("/api/health")
