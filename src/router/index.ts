@@ -103,8 +103,6 @@ const router = createRouter({
       name: 'seller-dashboard',
       component: SellerDashboard,
       meta: { requiresAuth: true, role: 'seller' }
-    }
-      meta: { requiresAuth: true }
     },
     {
       path: '/messages',
