@@ -409,8 +409,6 @@ onUnmounted(() => {
       <section class="service-strip" aria-label="平台服务">
         <span v-for="service in serviceCards" :key="service">{{ service }}</span>
       </section>
-
->>>>>>> origin/luna:src/views/ProductList.vue
       <section class="feed-section" aria-labelledby="feed-title">
         <div class="section-title">
           <div>
@@ -1608,8 +1606,6 @@ onUnmounted(() => {
   .home-hero-grid {
     grid-template-columns: 1fr;
   }
-
->>>>>>> origin/luna:src/views/ProductList.vue
   .hero-carousel {
     height: 380px;
     border-radius: 0;
