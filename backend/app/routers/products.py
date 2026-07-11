@@ -13,7 +13,10 @@ router = APIRouter(prefix="/api", tags=["商品"])
 def shop_profile_by_id(shop_id: int) -> ApiResponse:
     from app.db.database import get_connection
     with get_connection() as conn:
-        row = conn.execute("SELECT owner_user_id FROM shops WHERE shop_id = ?", (shop_id,)).fetchone()
+        row = conn.execute(
+            "SELECT owner_user_id FROM shops WHERE shop_id = ? AND status = 'active'",
+            (shop_id,),
+        ).fetchone()
     if not row:
         raise HTTPException(404, "店铺不存在")
     shop = get_shop_profile(row["owner_user_id"])

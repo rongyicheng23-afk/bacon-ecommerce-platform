@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ProductSkuOut(BaseModel):
@@ -53,3 +53,19 @@ class SellerProductUpdate(BaseModel):
 
 class ProductStatusUpdate(BaseModel):
     status: str  # active / inactive / draft
+
+
+class ShopUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    description: str | None = Field(default=None, max_length=1000)
+    logoUrl: str | None = Field(default=None, max_length=500)
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        if not value:
+            raise ValueError("店铺名称不能为空")
+        return value

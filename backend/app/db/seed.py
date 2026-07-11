@@ -238,9 +238,11 @@ def seed_demo_data(conn: sqlite3.Connection) -> None:
     ts = now_iso()
 
     # 种子分类
-    cat_count = conn.execute("SELECT COUNT(*) FROM categories").fetchone()[0]
-    if cat_count == 0:
-        for name, parent_id, sort_order in CATEGORY_SEEDS:
+    for name, parent_id, sort_order in CATEGORY_SEEDS:
+        category = conn.execute(
+            "SELECT 1 FROM categories WHERE name = ?", (name,)
+        ).fetchone()
+        if not category:
             conn.execute(
                 "INSERT INTO categories (name, parent_id, sort_order, status, created_at, updated_at) VALUES (?,?,?,?,?,?)",
                 (name, parent_id, sort_order, "active", ts, ts),
@@ -264,20 +266,39 @@ def seed_demo_data(conn: sqlite3.Connection) -> None:
             (seller_id, "Bacon 数码旗舰店", "专业的数码产品店铺，提供各类数码设备及配件。", "active", ts, ts),
         )
 
-    product_count = conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
-    if product_count > 0:
-        return
+    # 旧数据库可能已有用户但还没有 shops 表数据，启动时只补缺失店铺。
+    sellers = conn.execute(
+        "SELECT user_id, username, shop_name, main_category FROM users WHERE role = 'seller'"
+    ).fetchall()
+    for seller_row in sellers:
+        shop = conn.execute(
+            "SELECT 1 FROM shops WHERE owner_user_id = ?", (seller_row["user_id"],)
+        ).fetchone()
+        if not shop:
+            shop_name = seller_row["shop_name"] or f"{seller_row['username']}的店铺"
+            description = (
+                f"主营{seller_row['main_category']}商品。"
+                if seller_row["main_category"] else "欢迎来到本店。"
+            )
+            conn.execute(
+                "INSERT INTO shops (owner_user_id, name, description, status, created_at, updated_at) VALUES (?,?,?,?,?,?)",
+                (seller_row["user_id"], shop_name, description, "active", ts, ts),
+            )
 
     seller = conn.execute("SELECT user_id FROM users WHERE role = 'seller' LIMIT 1").fetchone()
     seller_id = seller["user_id"] if seller else None
 
     for idx, (name, desc, price, cat, imgs) in enumerate(PRODUCT_SEEDS):
         product_id = 1001 + idx
-        conn.execute(
-            """INSERT INTO products (product_id, seller_id, name, description, price, stock, status, image_urls, category, created_at, updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-            (product_id, seller_id, name, desc, price, 0, "active", json.dumps(imgs, ensure_ascii=False), cat, ts, ts),
-        )
+        product = conn.execute(
+            "SELECT product_id FROM products WHERE product_id = ?", (product_id,)
+        ).fetchone()
+        if not product:
+            conn.execute(
+                """INSERT INTO products (product_id, seller_id, name, description, price, stock, status, image_urls, category, created_at, updated_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                (product_id, seller_id, name, desc, price, 0, "active", json.dumps(imgs, ensure_ascii=False), cat, ts, ts),
+            )
         total_stock = 0
         total_price = float("inf")
         for ci, color in enumerate(COLORS):
@@ -287,12 +308,21 @@ def seed_demo_data(conn: sqlite3.Connection) -> None:
                 sku_stock = max(5, 40 - ci * 8 - sdelta)
                 total_stock += sku_stock
                 total_price = min(total_price, sku_price)
-                conn.execute(
-                    """INSERT INTO product_skus (product_id, name, price, stock, image_url, attributes)
-                       VALUES (?,?,?,?,?,?)""",
-                    (product_id, sku_name, sku_price, sku_stock, imgs[ci % len(imgs)], json.dumps({"颜色": color, "版本": vname}, ensure_ascii=False)),
-                )
+                existing_sku = conn.execute(
+                    "SELECT 1 FROM product_skus WHERE product_id = ? AND name = ?",
+                    (product_id, sku_name),
+                ).fetchone()
+                if not existing_sku:
+                    conn.execute(
+                        """INSERT INTO product_skus (product_id, name, price, stock, image_url, attributes)
+                           VALUES (?,?,?,?,?,?)""",
+                        (product_id, sku_name, sku_price, sku_stock, imgs[ci % len(imgs)], json.dumps({"颜色": color, "版本": vname}, ensure_ascii=False)),
+                    )
+        aggregate = conn.execute(
+            "SELECT MIN(price) AS min_price, SUM(stock) AS total_stock FROM product_skus WHERE product_id = ?",
+            (product_id,),
+        ).fetchone()
         conn.execute(
             "UPDATE products SET price = ?, stock = ? WHERE product_id = ?",
-            (total_price, total_stock, product_id),
+            (aggregate["min_price"] or total_price, aggregate["total_stock"] or total_stock, product_id),
         )

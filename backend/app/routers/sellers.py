@@ -2,7 +2,7 @@
 from typing import Annotated
 from fastapi import APIRouter, Header, HTTPException, Query
 from app.schemas.common import ApiResponse
-from app.schemas.product import SellerProductCreate, SellerProductUpdate, ProductStatusUpdate
+from app.schemas.product import SellerProductCreate, SellerProductUpdate, ProductStatusUpdate, ShopUpdate
 from app.services.auth import get_current_user
 from app.services.product import (
     seller_create_product, seller_update_product, seller_update_product_status,
@@ -33,18 +33,24 @@ def seller_product_list(authorization: AUTH = None) -> ApiResponse:
 @router.post("/products", response_model=ApiResponse)
 def seller_create(payload: SellerProductCreate, authorization: AUTH = None) -> ApiResponse:
     u = _require_seller(authorization)
-    p = seller_create_product(u["userId"], payload.model_dump())
+    try:
+        p = seller_create_product(u["userId"], payload.model_dump())
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
     return ApiResponse(data=p)
 
 
 @router.put("/products/{product_id}", response_model=ApiResponse)
 def seller_update(product_id: int, payload: SellerProductUpdate, authorization: AUTH = None) -> ApiResponse:
     u = _require_seller(authorization)
-    p = seller_update_product(
-        product_id,
-        u["userId"],
-        payload.model_dump(exclude_none=True),
-    )
+    try:
+        p = seller_update_product(
+            product_id,
+            u["userId"],
+            payload.model_dump(exclude_none=True),
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
     if not p: raise HTTPException(404, "商品不存在或非本人商品")
     return ApiResponse(data=p)
 
@@ -94,9 +100,13 @@ def seller_dashboard(authorization: AUTH = None) -> ApiResponse:
                    SUM(CASE WHEN o.status = 'paid' THEN 1 ELSE 0 END) AS pending_ship,
                    SUM(CASE WHEN o.status = 'completed' THEN o.payable_amount ELSE 0 END) AS revenue
             FROM orders o
-            JOIN order_items oi ON oi.order_id = o.order_id
-            JOIN products p ON p.product_id = oi.product_id
-            WHERE p.seller_id = ? AND o.status NOT IN ('cancelled')
+            WHERE o.status != 'cancelled'
+              AND EXISTS (
+                  SELECT 1
+                  FROM order_items oi
+                  JOIN products p ON p.product_id = oi.product_id
+                  WHERE oi.order_id = o.order_id AND p.seller_id = ?
+              )
         """, (sid,)).fetchone()
 
         recent = conn.execute("""
@@ -131,15 +141,21 @@ def my_shop(authorization: AUTH = None) -> ApiResponse:
 
 
 @router.put("/shop", response_model=ApiResponse)
-def update_my_shop(payload: dict, authorization: AUTH = None) -> ApiResponse:
+def update_my_shop(payload: ShopUpdate, authorization: AUTH = None) -> ApiResponse:
     u = _require_seller(authorization)
     ts = now_iso()
+    data = payload.model_dump(exclude_none=True)
     with get_connection() as conn:
         row = conn.execute("SELECT * FROM shops WHERE owner_user_id = ?", (u["userId"],)).fetchone()
         if not row: raise HTTPException(404, "店铺不存在")
         conn.execute(
             "UPDATE shops SET name=COALESCE(?,name), description=COALESCE(?,description), logo_url=COALESCE(?,logo_url), updated_at=? WHERE owner_user_id=?",
-            (payload.get("name"), payload.get("description"), payload.get("logoUrl"), ts, u["userId"]),
+            (data.get("name"), data.get("description"), data.get("logoUrl"), ts, u["userId"]),
         )
+        if "name" in data:
+            conn.execute(
+                "UPDATE users SET shop_name = ?, updated_at = ? WHERE user_id = ?",
+                (data["name"], ts, u["userId"]),
+            )
     shop = get_shop_profile(u["userId"])
     return ApiResponse(data=shop)

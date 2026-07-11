@@ -93,17 +93,36 @@ def get_category_tree() -> list[dict]:
             ).fetchall()
             return [{"categoryId": 0, "name": r["category"], "parentId": None, "children": []} for r in rows]
 
-        result = []
+        nodes = {}
         for c in cats:
-            result.append({
+            nodes[c["category_id"]] = {
                 "categoryId": c["category_id"],
                 "name": c["name"],
                 "parentId": c["parent_id"],
                 "sortOrder": c["sort_order"],
                 "icon": c["icon"],
                 "children": [],
-            })
-        return result
+            }
+
+        roots = []
+        for node in nodes.values():
+            parent = nodes.get(node["parentId"])
+            if parent:
+                parent["children"].append(node)
+            else:
+                roots.append(node)
+        return roots
+
+
+def _validate_category(conn: sqlite3.Connection, category: str) -> str:
+    category = category.strip()
+    row = conn.execute(
+        "SELECT 1 FROM categories WHERE name = ? AND status = 'active'",
+        (category,),
+    ).fetchone()
+    if not row:
+        raise ValueError("商品分类不存在或已停用")
+    return category
 
 
 def seller_create_product(seller_id: int, data: dict) -> dict:
@@ -115,11 +134,12 @@ def seller_create_product(seller_id: int, data: dict) -> dict:
         "https://images.unsplash.com/photo-1538688525198-9b88f6f53126?auto=format&fit=crop&w=900&q=85",
     ]
     with get_connection() as conn:
+        category = _validate_category(conn, data["category"])
         cur = conn.execute(
             """INSERT INTO products (seller_id, name, description, price, stock, status, image_urls, category, created_at, updated_at)
                VALUES (?,?,?,?,?,?,?,?,?,?)""",
             (seller_id, data["name"], data["description"], data["price"], data["stock"],
-             "active", json.dumps(imgs, ensure_ascii=False), data["category"], ts, ts),
+             "active", json.dumps(imgs, ensure_ascii=False), category, ts, ts),
         )
         product_id = cur.lastrowid
         # 创建默认 SKU
@@ -194,6 +214,8 @@ def seller_update_product(product_id: int, seller_id: int, data: dict) -> dict |
         row = conn.execute("SELECT * FROM products WHERE product_id = ? AND seller_id = ?", (product_id, seller_id)).fetchone()
         if not row:
             return None
+        if "category" in data:
+            data["category"] = _validate_category(conn, data["category"])
         conn.execute(
             """UPDATE products SET name=COALESCE(?,name), description=COALESCE(?,description),
                category=COALESCE(?,category), updated_at=? WHERE product_id=?""",
