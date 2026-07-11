@@ -157,29 +157,29 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   padding: 14px 16px;
-  background: #f7f8fa;
+  background: #F7F6FA;
   border-radius: 12px;
 }
 
 .label {
-  color: #64748b;
+  color: #756D7E;
   font-weight: 800;
 }
 
 .value {
-  color: #0f172a;
+  color: #241B2F;
   font-weight: 700;
 }
 
 .amount {
-  color: #ff2f68;
+  color: #980B32;
   font-size: 1.25rem;
   font-weight: 900;
 }
 
 .loading-state {
   padding: 20px;
-  color: #64748b;
+  color: #756D7E;
 }
 
 .action-buttons {
@@ -201,7 +201,7 @@ onMounted(async () => {
 }
 
 .primary-button {
-  background: #ff2f68;
+  background: #980B32;
   color: #fff;
 }
 
@@ -210,12 +210,12 @@ onMounted(async () => {
 }
 
 .secondary-button {
-  background: #f1f2f4;
+  background: #E9E4EE;
   color: #374151;
 }
 
 .secondary-button:hover {
-  background: #e5e7eb;
+  background: #948B9D;
 }
 
 @media (max-width: 520px) {

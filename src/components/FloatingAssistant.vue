@@ -306,10 +306,10 @@ const handleSuggestion = (suggestion: (typeof suggestions.value)[number]) => {
   place-items: center;
   border: 0;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ff2f68, #0f172a);
+  background: linear-gradient(135deg, #5A0B72 0%, #7B189F 55%, #9226B3 100%);
   color: #fff;
   cursor: grab;
-  box-shadow: 0 8px 28px rgba(254, 44, 85, 0.3);
+  box-shadow: 0 8px 28px rgba(90, 11, 114, 0.3);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
   touch-action: none;
 }
@@ -317,12 +317,12 @@ const handleSuggestion = (suggestion: (typeof suggestions.value)[number]) => {
 .floating-assistant.dragging .assistant-trigger {
   cursor: grabbing;
   transform: scale(1.12);
-  box-shadow: 0 14px 40px rgba(254, 44, 85, 0.45);
+  box-shadow: 0 14px 40px rgba(90, 11, 114, 0.45);
 }
 
 .assistant-trigger:hover {
   transform: scale(1.1);
-  box-shadow: 0 12px 36px rgba(254, 44, 85, 0.42);
+  box-shadow: 0 12px 36px rgba(90, 11, 114, 0.42);
 }
 
 .floating-assistant.dragging .assistant-trigger:hover {
@@ -338,9 +338,9 @@ const handleSuggestion = (suggestion: (typeof suggestions.value)[number]) => {
 
 .trigger-pulse {
   position: absolute;
-  inset: -4px;
+  inset: -6px;
   border-radius: 50%;
-  border: 2px solid rgba(254, 44, 85, 0.45);
+  background: linear-gradient(135deg, rgba(90, 11, 114, 0.18), rgba(123, 24, 159, 0.14));
   animation: assistant-pulse 2.4s ease-in-out infinite;
   pointer-events: none;
 }
@@ -387,24 +387,24 @@ const handleSuggestion = (suggestion: (typeof suggestions.value)[number]) => {
 .bubble {
   min-height: 36px;
   padding: 0 1rem;
-  border: 1px solid rgba(254, 44, 85, 0.18);
+  border: 1px solid rgba(90, 11, 114, 0.12);
   border-radius: 18px;
   background: #fff;
-  color: #333;
+  color: #241B2F;
   cursor: pointer;
   font-size: 0.84rem;
   font-weight: 700;
   white-space: nowrap;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1);
-  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   animation: bubble-in-left 0.35s ease both;
 }
 
 .bubble:hover {
   transform: translateX(6px);
-  background: #fff5f7;
-  border-color: #ff2f68;
-  color: #ff2f68;
+  background: #F4EFF7;
+  border-color: #980B32;
+  color: #980B32;
 }
 
 .mini-tooltip {

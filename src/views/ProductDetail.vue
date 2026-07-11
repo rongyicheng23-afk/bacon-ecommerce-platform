@@ -6,6 +6,7 @@ import { productService } from '@/services/productService'
 import { useProductStore } from '@/stores/productStore'
 import { addProductToCart } from '@/utils/cart'
 import { readFavoriteIds, toggleFavoriteId } from '@/utils/favorites'
+import MagnifiableImage from '@/components/MagnifiableImage.vue'
 
 type BehaviorAction = 'view' | 'favorite' | 'unfavorite' | 'cart' | 'buy' | 'view_recommendation'
 type DetailTab = 'detail' | 'reviews' | 'recommend'
@@ -229,10 +230,10 @@ onMounted(() => {
       <section class="product-shell">
         <div class="gallery-panel">
           <div class="main-image">
-            <img
+            <MagnifiableImage
               :src="product.imageUrls[mainImageIndex] || product.imageUrls[0]"
               :alt="product.name"
-              @error="handleImageError"
+              :zoom-scale="2.5"
             />
           </div>
           <div v-if="product.imageUrls.length > 1" class="thumb-row">
@@ -419,10 +420,11 @@ onMounted(() => {
 
 .gallery-panel {
   padding: 1rem;
+  overflow: visible;
 }
 
 .main-image {
-  overflow: hidden;
+  overflow: visible;
   aspect-ratio: 1;
   border-radius: 14px;
   background: #f5f6f8;
@@ -447,14 +449,14 @@ onMounted(() => {
   overflow: hidden;
   aspect-ratio: 1;
   padding: 0;
-  border: 2px solid #f1f2f4;
+  border: 2px solid #E9E4EE;
   border-radius: 10px;
   background: #fff;
   cursor: pointer;
 }
 
 .thumb-button.active {
-  border-color: #ff2f68;
+  border-color: #980B32;
 }
 
 .purchase-panel {
@@ -463,25 +465,25 @@ onMounted(() => {
 
 .title-row {
   padding-bottom: 1rem;
-  border-bottom: 1px solid #f1f2f4;
+  border-bottom: 1px solid #E9E4EE;
 }
 
 .category {
-  color: #ff2f68;
+  color: #980B32;
   font-size: 0.82rem;
   font-weight: 900;
 }
 
 .title-row h1 {
   margin: 0.35rem 0 0.5rem;
-  color: #0f172a;
+  color: #241B2F;
   font-size: 1.7rem;
   line-height: 1.25;
 }
 
 .title-row p {
   margin: 0;
-  color: #64748b;
+  color: #756D7E;
   line-height: 1.6;
 }
 
@@ -492,16 +494,16 @@ onMounted(() => {
   margin: 1rem 0;
   padding: 1rem;
   border-radius: 12px;
-  background: #fff2f5;
+  background: #F4EFF7;
 }
 
 .price-box span {
-  color: #64748b;
+  color: #756D7E;
   font-size: 0.9rem;
 }
 
 .price-box strong {
-  color: #ff2f68;
+  color: #980B32;
   font-size: 2.2rem;
   line-height: 1;
 }
@@ -521,7 +523,7 @@ onMounted(() => {
 .meta-grid div {
   padding: 0.75rem;
   border-radius: 10px;
-  background: #f7f8fa;
+  background: #F7F6FA;
 }
 
 .meta-grid span,
@@ -535,7 +537,7 @@ onMounted(() => {
 }
 
 .meta-grid strong {
-  color: #0f172a;
+  color: #241B2F;
   font-size: 1rem;
 }
 
@@ -548,7 +550,7 @@ onMounted(() => {
 }
 
 .option-label {
-  color: #64748b;
+  color: #756D7E;
   font-weight: 800;
 }
 
@@ -561,7 +563,7 @@ onMounted(() => {
 .spec-row button {
   min-height: 36px;
   padding: 0 0.9rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #948B9D;
   border-radius: 999px;
   background: #fff;
   color: #333;
@@ -570,13 +572,13 @@ onMounted(() => {
 }
 
 .spec-row button.active {
-  border-color: #ff2f68;
-  background: #fff2f5;
-  color: #ff2f68;
+  border-color: #980B32;
+  background: #F4EFF7;
+  color: #980B32;
 }
 
 .spec-row button.disabled {
-  border-color: #f1f2f4;
+  border-color: #E9E4EE;
   color: #ccc;
   cursor: not-allowed;
   opacity: 0.5;
@@ -592,7 +594,7 @@ onMounted(() => {
   grid-template-columns: 36px 56px 36px;
   overflow: hidden;
   width: max-content;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #948B9D;
   border-radius: 8px;
 }
 
@@ -610,8 +612,8 @@ onMounted(() => {
 }
 
 .quantity-stepper input {
-  border-right: 1px solid #e5e7eb;
-  border-left: 1px solid #e5e7eb;
+  border-right: 1px solid #948B9D;
+  border-left: 1px solid #948B9D;
   outline: none;
 }
 
@@ -620,13 +622,13 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 0.75rem;
   margin: 1.25rem 0;
-  color: #64748b;
+  color: #756D7E;
   font-size: 0.88rem;
 }
 
 .service-row span::before {
   margin-right: 0.25rem;
-  color: #ff2f68;
+  color: #980B32;
   content: '✓';
   font-weight: 900;
 }
@@ -645,26 +647,26 @@ onMounted(() => {
 }
 
 .ghost-button {
-  border: 1px solid #e5e7eb;
+  border: 1px solid #948B9D;
   background: #fff;
   color: #333;
 }
 
 .ghost-button.active {
-  border-color: #ff2f68;
-  background: #fff1f2;
-  color: #ff2f68;
+  border-color: #980B32;
+  background: #F4EFF7;
+  color: #980B32;
 }
 
 .cart-button {
-  border: 1px solid #ff2f68;
-  background: #fff2f5;
-  color: #ff2f68;
+  border: 1px solid #5A0B72;
+  background: #F4EFF7;
+  color: #980B32;
 }
 
 .buy-button {
-  border: 1px solid #ff2f68;
-  background: #ff2f68;
+  border: 1px solid #5A0B72;
+  background: #980B32;
   color: #fff;
 }
 
@@ -682,7 +684,7 @@ onMounted(() => {
 
 .tab-header {
   display: flex;
-  border-bottom: 1px solid #f1f2f4;
+  border-bottom: 1px solid #E9E4EE;
 }
 
 .tab-header button {
@@ -696,8 +698,8 @@ onMounted(() => {
 }
 
 .tab-header button.active {
-  color: #ff2f68;
-  box-shadow: inset 0 -3px 0 #ff2f68;
+  color: #980B32;
+  box-shadow: inset 0 -3px 0 #5A0B72;
 }
 
 .tab-body {
@@ -706,12 +708,12 @@ onMounted(() => {
 
 .detail-copy h2 {
   margin: 0 0 0.75rem;
-  color: #0f172a;
+  color: #241B2F;
 }
 
 .detail-copy p {
   margin: 0 0 1rem;
-  color: #64748b;
+  color: #756D7E;
   line-height: 1.8;
 }
 
@@ -724,7 +726,7 @@ onMounted(() => {
 .detail-grid span {
   padding: 0.75rem;
   border-radius: 10px;
-  background: #f7f8fa;
+  background: #F7F6FA;
   color: #555;
 }
 
@@ -736,7 +738,7 @@ onMounted(() => {
 .review-card {
   padding: 1rem;
   border-radius: 12px;
-  background: #f7f8fa;
+  background: #F7F6FA;
 }
 
 .review-card strong {
@@ -744,12 +746,12 @@ onMounted(() => {
 }
 
 .review-card span {
-  color: #ff2f68;
+  color: #980B32;
 }
 
 .review-card p {
   margin: 0.5rem 0 0;
-  color: #64748b;
+  color: #756D7E;
 }
 
 .related-grid {
@@ -760,7 +762,7 @@ onMounted(() => {
 
 .related-card {
   overflow: hidden;
-  border: 1px solid #f1f2f4;
+  border: 1px solid #E9E4EE;
   border-radius: 12px;
   background: #fff;
   cursor: pointer;
@@ -775,7 +777,7 @@ onMounted(() => {
 }
 
 .related-card span {
-  color: #ff2f68;
+  color: #980B32;
   font-size: 0.76rem;
   font-weight: 900;
 }
@@ -785,7 +787,7 @@ onMounted(() => {
   min-height: 2.5rem;
   margin: 0.25rem 0 0.4rem;
   overflow: hidden;
-  color: #0f172a;
+  color: #241B2F;
   font-size: 0.9rem;
   line-height: 1.4;
   -webkit-box-orient: vertical;
@@ -793,18 +795,18 @@ onMounted(() => {
 }
 
 .related-card strong {
-  color: #ff2f68;
+  color: #980B32;
 }
 
 .empty-related {
   grid-column: 1 / -1;
   margin: 0;
-  color: #64748b;
+  color: #756D7E;
 }
 
 .state {
   padding: 3rem;
-  color: #64748b;
+  color: #756D7E;
   text-align: center;
 }
 

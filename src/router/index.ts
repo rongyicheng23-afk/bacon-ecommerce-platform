@@ -11,9 +11,17 @@ import OrderDetail from '@/views/OrderDetail.vue'
 import ProfileView from '@/views/ProfileView.vue'
 import PaymentPage from '@/components/PaymentPage.vue'
 import PaymentSuccess from '@/views/PaymentSuccess.vue'
+import MessageCenter from '@/views/MessageCenter.vue'
+import CustomerService from '@/views/CustomerService.vue'
+import NewArrivals from '@/views/NewArrivals.vue'
+import HotSales from '@/views/HotSales.vue'
+import CategoryPage from '@/views/CategoryPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
+  scrollBehavior() {
+    return { top: 0 }
+  },
   routes: [
     {
       path: '/',
@@ -81,7 +89,28 @@ const router = createRouter({
       name: 'payment-success',
       component: PaymentSuccess,
       meta: { requiresAuth: true }
-    }
+    },
+    {
+      path: '/messages',
+      name: 'messages',
+      component: MessageCenter
+    },
+    {
+      path: '/customer-service',
+      name: 'customer-service',
+      component: CustomerService
+    },
+    {
+      path: '/new-arrivals',
+      name: 'new-arrivals',
+      component: NewArrivals
+    },
+    {
+      path: '/hot-sales',
+      name: 'hot-sales',
+      component: HotSales
+    },
+    { path: '/category/:category', name: 'category', component: CategoryPage },
   ]
 })
 

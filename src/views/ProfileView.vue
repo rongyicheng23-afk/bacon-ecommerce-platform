@@ -324,7 +324,7 @@ onMounted(async () => {
   width: 78px;
   height: 78px;
   place-items: center;
-  color: #0f172a;
+  color: #241B2F;
   background: #fff;
   border-radius: 50%;
   font-size: 32px;
@@ -353,7 +353,7 @@ onMounted(async () => {
 .profile-hero button,
 .card-head button {
   border: 0;
-  color: #0f172a;
+  color: #241B2F;
   background: #fff;
   border-radius: 999px;
   padding: 10px 16px;
@@ -382,14 +382,14 @@ onMounted(async () => {
 
 .profile-stats span {
   display: block;
-  color: #64748b;
+  color: #756D7E;
   font-size: 14px;
 }
 
 .profile-stats strong {
   display: block;
   margin-top: 8px;
-  color: #0f172a;
+  color: #241B2F;
   font-size: 26px;
   line-height: 1.1;
 }
@@ -413,12 +413,12 @@ onMounted(async () => {
 }
 
 .card-head span {
-  color: #ff2f68;
+  color: #980B32;
 }
 
 .card-head h2 {
   margin: 0;
-  color: #0f172a;
+  color: #241B2F;
   font-size: 22px;
 }
 
@@ -467,13 +467,13 @@ onMounted(async () => {
 }
 
 .behavior-list li span {
-  color: #ff2f68;
+  color: #980B32;
   font-weight: 900;
 }
 
 .behavior-list li strong {
   overflow: hidden;
-  color: #0f172a;
+  color: #241B2F;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -496,11 +496,11 @@ onMounted(async () => {
 }
 
 .preference-item strong {
-  color: #0f172a;
+  color: #241B2F;
 }
 
 .preference-item span {
-  color: #64748b;
+  color: #756D7E;
   font-size: 13px;
 }
 
@@ -508,14 +508,14 @@ onMounted(async () => {
   display: block;
   height: 10px;
   overflow: hidden;
-  background: #f1f2f4;
+  background: #E9E4EE;
   border-radius: 999px;
 }
 
 .preference-item i {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, #ff2f68, #0f172a);
+  background: linear-gradient(90deg, #5A0B72, #241B2F);
   border-radius: inherit;
 }
 
@@ -554,26 +554,26 @@ onMounted(async () => {
 }
 
 .favorite-item span {
-  color: #ff2f68;
+  color: #980B32;
   font-size: 12px;
   font-weight: 900;
 }
 
 .favorite-item h3 {
   margin: 5px 0 8px;
-  color: #0f172a;
+  color: #241B2F;
   font-size: 16px;
   line-height: 1.35;
 }
 
 .favorite-item strong {
-  color: #ff2f68;
+  color: #980B32;
   font-size: 18px;
 }
 
 .profile-empty {
   padding: 28px 18px;
-  color: #64748b;
+  color: #756D7E;
   background: #fafafa;
   border-radius: 14px;
   text-align: center;
@@ -581,7 +581,7 @@ onMounted(async () => {
 
 .profile-empty h3 {
   margin: 0 0 8px;
-  color: #0f172a;
+  color: #241B2F;
 }
 
 .profile-empty p {

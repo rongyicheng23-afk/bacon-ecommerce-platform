@@ -33,18 +33,18 @@ import RecommendationSidebar from './components/RecommendationSidebar.vue'
   width: 100%;
   max-width: 1440px;
   margin: 0 auto;
-  padding: 1.25rem 2rem 2rem;
+  padding: 1.25rem 1.5rem 2rem;
 }
 
 @media (min-width: 768px) {
   .content-wrapper {
-    padding: 1.5rem 3rem 2.5rem;
+    padding: 1.5rem 2rem 2.5rem;
   }
 }
 
 @media (max-width: 640px) {
   .content-wrapper {
-    padding: 1rem 1.25rem 1.5rem;
+    padding: 1rem 1rem 1.5rem;
   }
 }
 </style>

@@ -344,7 +344,7 @@ onMounted(() => {
 .orders-hero button,
 .empty-orders button {
   border: 0;
-  color: #0f172a;
+  color: #241B2F;
   background: #fff;
   border-radius: 999px;
   padding: 11px 18px;
@@ -373,14 +373,14 @@ onMounted(() => {
 
 .orders-overview span {
   display: block;
-  color: #64748b;
+  color: #756D7E;
   font-size: 14px;
 }
 
 .orders-overview strong {
   display: block;
   margin-top: 8px;
-  color: #0f172a;
+  color: #241B2F;
   font-size: 26px;
   line-height: 1.1;
 }
@@ -393,7 +393,7 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   padding: 14px;
-  border-bottom: 1px solid #f1f2f4;
+  border-bottom: 1px solid #E9E4EE;
   overflow-x: auto;
 }
 
@@ -413,7 +413,7 @@ onMounted(() => {
 
 .order-tabs button.active {
   color: #fff;
-  background: #ff2f68;
+  background: #980B32;
 }
 
 .order-tabs span {
@@ -428,18 +428,18 @@ onMounted(() => {
 
 .empty-orders h2 {
   margin: 0;
-  color: #0f172a;
+  color: #241B2F;
   font-size: 24px;
 }
 
 .empty-orders p {
   margin: 10px 0 22px;
-  color: #64748b;
+  color: #756D7E;
 }
 
 .empty-orders button {
   color: #fff;
-  background: #0f172a;
+  background: #241B2F;
 }
 
 .order-list {
@@ -473,12 +473,12 @@ onMounted(() => {
 }
 
 .order-card-head strong {
-  color: #0f172a;
+  color: #241B2F;
   font-size: 15px;
 }
 
 .order-card-head span {
-  color: #64748b;
+  color: #756D7E;
   font-size: 13px;
 }
 
@@ -489,12 +489,12 @@ onMounted(() => {
 }
 
 .status-pending_payment {
-  color: #ff2f68;
+  color: #980B32;
 }
 
 .status-paid,
 .status-shipped {
-  color: #2563eb;
+  color: #980B32;
 }
 
 .status-completed {
@@ -533,14 +533,14 @@ onMounted(() => {
 
 .order-item h3 {
   margin: 2px 0 6px;
-  color: #0f172a;
+  color: #241B2F;
   font-size: 16px;
   line-height: 1.35;
 }
 
 .order-item p {
   margin: 0 0 8px;
-  color: #64748b;
+  color: #756D7E;
   font-size: 13px;
 }
 
@@ -554,7 +554,7 @@ onMounted(() => {
   align-content: start;
   gap: 10px;
   padding-left: 18px;
-  border-left: 1px solid #f1f2f4;
+  border-left: 1px solid #E9E4EE;
 }
 
 .order-summary p {
@@ -563,32 +563,32 @@ onMounted(() => {
   justify-content: space-between;
   gap: 12px;
   margin: 0;
-  color: #64748b;
+  color: #756D7E;
   font-size: 13px;
 }
 
 .order-summary strong {
-  color: #0f172a;
+  color: #241B2F;
   text-align: right;
 }
 
 .order-summary .payable {
   padding-top: 10px;
-  border-top: 1px solid #f1f2f4;
+  border-top: 1px solid #E9E4EE;
 }
 
 .order-summary .payable strong {
-  color: #ff2f68;
+  color: #980B32;
   font-size: 20px;
 }
 
 .order-actions {
   justify-content: flex-end;
-  border-top: 1px solid #f1f2f4;
+  border-top: 1px solid #E9E4EE;
 }
 
 .order-actions button {
-  border: 1px solid #e5e7eb;
+  border: 1px solid #948B9D;
   color: #374151;
   background: #fff;
   border-radius: 999px;
@@ -599,8 +599,8 @@ onMounted(() => {
 
 .order-actions button.primary {
   color: #fff;
-  border-color: #ff2f68;
-  background: #ff2f68;
+  border-color: #980B32;
+  background: #980B32;
 }
 
 @media (max-width: 820px) {
@@ -626,7 +626,7 @@ onMounted(() => {
     padding-left: 0;
     border-left: 0;
     padding-top: 14px;
-    border-top: 1px solid #f1f2f4;
+    border-top: 1px solid #E9E4EE;
   }
 }
 
