@@ -35,11 +35,12 @@ class ProductListParams(BaseModel):
 
 
 class SellerProductCreate(BaseModel):
-    name: str
-    description: str
-    price: float
-    stock: int
+    name: str = Field(min_length=1, max_length=200)
+    description: str = Field(min_length=1)
+    price: float = Field(ge=0)
+    stock: int = Field(ge=0)
     category: str
+    imageUrls: list[str] | None = None
 
 
 class SellerProductUpdate(BaseModel):
@@ -48,3 +49,7 @@ class SellerProductUpdate(BaseModel):
     price: float | None = Field(default=None, ge=0)
     stock: int | None = Field(default=None, ge=0)
     category: str | None = None
+
+
+class ProductStatusUpdate(BaseModel):
+    status: str  # active / inactive / draft

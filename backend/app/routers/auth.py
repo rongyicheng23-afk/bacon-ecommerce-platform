@@ -46,3 +46,28 @@ def update_me(payload: UpdateProfileRequest, authorization: Annotated[str | None
     if not user:
         raise HTTPException(401, "请先登录")
     return ApiResponse(data=update_profile(user["userId"], payload.model_dump(exclude_none=True)))
+
+
+# ---- /api/auth/* 路径别名（与计划文档对齐） ----
+@router.post("/auth/register", response_model=ApiResponse)
+def auth_register(payload: RegisterRequest) -> ApiResponse:
+    if payload.role == "seller" and not payload.shopName:
+        raise HTTPException(400, "商家账号需要填写店铺名称")
+    try:
+        return ApiResponse(data=register_user(payload.model_dump()))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/auth/login", response_model=ApiResponse)
+def auth_login(payload: LoginRequest) -> ApiResponse:
+    try:
+        return ApiResponse(data=login_user(payload.email, payload.password))
+    except ValueError as e:
+        raise HTTPException(401, str(e))
+
+
+@router.post("/auth/logout", response_model=ApiResponse)
+def auth_logout(authorization: Annotated[str | None, Header()] = None) -> ApiResponse:
+    logout_user(authorization)
+    return ApiResponse(data=None)

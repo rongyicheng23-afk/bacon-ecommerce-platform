@@ -68,8 +68,124 @@ def get_product(product_id: int) -> dict | None:
 
 def list_categories() -> list[str]:
     with get_connection() as conn:
-        rows = conn.execute("SELECT DISTINCT category FROM products WHERE status = 'active' ORDER BY category").fetchall()
+        # 优先从 categories 表读取
+        rows = conn.execute(
+            "SELECT name FROM categories WHERE status = 'active' ORDER BY sort_order"
+        ).fetchall()
+        if rows:
+            return [r["name"] for r in rows]
+        # 兼容旧数据
+        rows = conn.execute(
+            "SELECT DISTINCT category FROM products WHERE status = 'active' ORDER BY category"
+        ).fetchall()
         return [r["category"] for r in rows]
+
+
+def get_category_tree() -> list[dict]:
+    with get_connection() as conn:
+        cats = conn.execute(
+            "SELECT * FROM categories WHERE status = 'active' ORDER BY sort_order"
+        ).fetchall()
+        if not cats:
+            # 兼容旧数据
+            rows = conn.execute(
+                "SELECT DISTINCT category FROM products WHERE status = 'active' ORDER BY category"
+            ).fetchall()
+            return [{"categoryId": 0, "name": r["category"], "parentId": None, "children": []} for r in rows]
+
+        result = []
+        for c in cats:
+            result.append({
+                "categoryId": c["category_id"],
+                "name": c["name"],
+                "parentId": c["parent_id"],
+                "sortOrder": c["sort_order"],
+                "icon": c["icon"],
+                "children": [],
+            })
+        return result
+
+
+def seller_create_product(seller_id: int, data: dict) -> dict:
+    ts = now_iso()
+    imgs = data.get("imageUrls") or [
+        "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=900&q=85",
+        "https://images.unsplash.com/photo-1597072689227-888e5f0c9c96?auto=format&fit=crop&w=900&q=85",
+        "https://images.unsplash.com/photo-1501045337507-64de3b3e5a0e?auto=format&fit=crop&w=900&q=85",
+        "https://images.unsplash.com/photo-1538688525198-9b88f6f53126?auto=format&fit=crop&w=900&q=85",
+    ]
+    with get_connection() as conn:
+        cur = conn.execute(
+            """INSERT INTO products (seller_id, name, description, price, stock, status, image_urls, category, created_at, updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (seller_id, data["name"], data["description"], data["price"], data["stock"],
+             "active", json.dumps(imgs, ensure_ascii=False), data["category"], ts, ts),
+        )
+        product_id = cur.lastrowid
+        # 创建默认 SKU
+        conn.execute(
+            """INSERT INTO product_skus (product_id, name, price, stock, image_url, attributes)
+               VALUES (?,?,?,?,?,?)""",
+            (product_id, "标准版", data["price"], data["stock"], imgs[0],
+             json.dumps({"颜色": "默认", "版本": "标准版"}, ensure_ascii=False)),
+        )
+        row = conn.execute("SELECT * FROM products WHERE product_id = ?", (product_id,)).fetchone()
+        return row_to_product(row, _load_skus(conn, product_id))
+
+
+def seller_update_product_status(product_id: int, seller_id: int, status: str) -> dict | None:
+    ts = now_iso()
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM products WHERE product_id = ? AND seller_id = ?",
+            (product_id, seller_id),
+        ).fetchone()
+        if not row:
+            return None
+        conn.execute(
+            "UPDATE products SET status = ?, updated_at = ? WHERE product_id = ?",
+            (status, ts, product_id),
+        )
+        row = conn.execute("SELECT * FROM products WHERE product_id = ?", (product_id,)).fetchone()
+        return row_to_product(row, _load_skus(conn, product_id))
+
+
+def get_shop_profile(owner_user_id: int) -> dict | None:
+    with get_connection() as conn:
+        shop = conn.execute(
+            "SELECT * FROM shops WHERE owner_user_id = ?", (owner_user_id,)
+        ).fetchone()
+        if not shop:
+            return None
+        products = conn.execute(
+            "SELECT COUNT(*) AS cnt FROM products WHERE seller_id = ? AND status = 'active'",
+            (owner_user_id,),
+        ).fetchone()
+        recent = conn.execute(
+            "SELECT * FROM products WHERE seller_id = ? AND status = 'active' ORDER BY created_at DESC LIMIT 8",
+            (owner_user_id,),
+        ).fetchall()
+        return {
+            "shopId": shop["shop_id"],
+            "ownerUserId": shop["owner_user_id"],
+            "name": shop["name"],
+            "description": shop["description"],
+            "logoUrl": shop["logo_url"],
+            "status": shop["status"],
+            "productCount": products["cnt"],
+            "createdAt": shop["created_at"],
+            "updatedAt": shop["updated_at"],
+            "recentProducts": [row_to_product(r, _load_skus(conn, r["product_id"])) for r in recent],
+        }
+
+
+def seller_list_products(seller_id: int) -> list[dict]:
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM products WHERE seller_id = ? ORDER BY created_at DESC",
+            (seller_id,),
+        ).fetchall()
+        return [row_to_product(r, _load_skus(conn, r["product_id"])) for r in rows]
 
 
 def seller_update_product(product_id: int, seller_id: int, data: dict) -> dict | None:

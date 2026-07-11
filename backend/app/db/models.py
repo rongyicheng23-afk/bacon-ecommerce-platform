@@ -33,6 +33,30 @@ def create_tables(conn: sqlite3.Connection) -> None:
             updated_at    TEXT    NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS shops (
+            shop_id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            owner_user_id   INTEGER NOT NULL UNIQUE,
+            name            TEXT    NOT NULL,
+            description     TEXT    DEFAULT '',
+            logo_url        TEXT    DEFAULT '',
+            status          TEXT    NOT NULL DEFAULT 'active' CHECK(status IN ('pending','active','closed')),
+            created_at      TEXT    NOT NULL,
+            updated_at      TEXT    NOT NULL,
+            FOREIGN KEY (owner_user_id) REFERENCES users(user_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS categories (
+            category_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name        TEXT    NOT NULL UNIQUE,
+            parent_id   INTEGER,
+            sort_order  INTEGER DEFAULT 0,
+            status      TEXT    NOT NULL DEFAULT 'active',
+            icon        TEXT    DEFAULT '',
+            created_at  TEXT    NOT NULL,
+            updated_at  TEXT    NOT NULL,
+            FOREIGN KEY (parent_id) REFERENCES categories(category_id)
+        );
+
         CREATE TABLE IF NOT EXISTS sessions (
             token       TEXT PRIMARY KEY,
             user_id     INTEGER NOT NULL,

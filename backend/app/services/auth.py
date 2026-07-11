@@ -48,7 +48,15 @@ def register_user(data: dict) -> dict:
              data.get("shopName"), data.get("mainCategory"),
              hash_password(data["password"]), "active", ts, ts),
         )
-        user = conn.execute("SELECT * FROM users WHERE user_id = ?", (cur.lastrowid,)).fetchone()
+        user_id = cur.lastrowid
+        # 商家注册时自动创建店铺
+        if data["role"] == "seller":
+            shop_name = data.get("shopName") or f"{data['username']}的店铺"
+            conn.execute(
+                "INSERT INTO shops (owner_user_id, name, status, created_at, updated_at) VALUES (?,?,?,?,?)",
+                (user_id, shop_name, "active", ts, ts),
+            )
+        user = conn.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)).fetchone()
         token = generate_token()
         conn.execute(
             "INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?,?,?,?)",
