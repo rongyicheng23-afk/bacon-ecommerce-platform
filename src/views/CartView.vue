@@ -362,12 +362,12 @@ onMounted(async () => {
   margin-bottom: 1.25rem;
   padding: 1.5rem;
   border-radius: 16px;
-  background: linear-gradient(135deg, #111827, #2d1b42);
+  background: linear-gradient(135deg, #241B2F, #2d1b42);
   color: #fff;
 }
 
 .cart-hero span {
-  color: #ffd7df;
+  color: #AD1745;
   font-size: 0.86rem;
   font-weight: 900;
 }
@@ -389,7 +389,7 @@ onMounted(async () => {
   padding: 0 1rem;
   border: 0;
   border-radius: 999px;
-  background: #fe2c55;
+  background: #980B32;
   color: #fff;
   cursor: pointer;
   font-weight: 900;
@@ -418,15 +418,15 @@ onMounted(async () => {
   gap: 1rem;
   align-items: center;
   padding: 1rem;
-  border-bottom: 1px solid #f1f2f4;
-  color: #666;
+  border-bottom: 1px solid #E9E4EE;
+  color: #756D7E;
 }
 
 .cart-toolbar label {
   display: inline-flex;
   gap: 0.4rem;
   align-items: center;
-  color: #111827;
+  color: #241B2F;
   font-weight: 900;
 }
 
@@ -434,14 +434,14 @@ onMounted(async () => {
 .remove-button {
   border: 0;
   background: transparent;
-  color: #666;
+  color: #756D7E;
   cursor: pointer;
   font-weight: 800;
 }
 
 .cart-toolbar button:hover,
 .remove-button:hover {
-  color: #fe2c55;
+  color: #980B32;
 }
 
 .cart-line {
@@ -450,7 +450,7 @@ onMounted(async () => {
   gap: 1rem;
   align-items: center;
   padding: 1rem;
-  border-bottom: 1px solid #f1f2f4;
+  border-bottom: 1px solid #E9E4EE;
 }
 
 .cart-line:last-child {
@@ -481,7 +481,7 @@ onMounted(async () => {
 
 .line-info span,
 .recommend-card span {
-  color: #fe2c55;
+  color: #980B32;
   font-size: 0.78rem;
   font-weight: 900;
 }
@@ -490,7 +490,7 @@ onMounted(async () => {
   display: -webkit-box;
   margin: 0.25rem 0;
   overflow: hidden;
-  color: #111827;
+  color: #241B2F;
   font-size: 1rem;
   line-height: 1.4;
   cursor: pointer;
@@ -502,7 +502,7 @@ onMounted(async () => {
   display: -webkit-box;
   margin: 0 0 0.25rem;
   overflow: hidden;
-  color: #666;
+  color: #756D7E;
   font-size: 0.84rem;
   line-height: 1.5;
   -webkit-box-orient: vertical;
@@ -515,7 +515,7 @@ onMounted(async () => {
 
 .line-price,
 .line-total {
-  color: #fe2c55;
+  color: #980B32;
   font-weight: 900;
 }
 
@@ -524,7 +524,7 @@ onMounted(async () => {
   grid-template-columns: 32px 48px 32px;
   overflow: hidden;
   width: max-content;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #948B9D;
   border-radius: 8px;
 }
 
@@ -547,8 +547,8 @@ onMounted(async () => {
 }
 
 .quantity-stepper input {
-  border-right: 1px solid #e5e7eb;
-  border-left: 1px solid #e5e7eb;
+  border-right: 1px solid #948B9D;
+  border-left: 1px solid #948B9D;
   outline: none;
 }
 
@@ -560,7 +560,7 @@ onMounted(async () => {
 
 .summary-panel h2 {
   margin: 0 0 1rem;
-  color: #111827;
+  color: #241B2F;
   font-size: 1.2rem;
 }
 
@@ -571,23 +571,23 @@ onMounted(async () => {
   gap: 1rem;
   align-items: center;
   margin-bottom: 0.85rem;
-  color: #666;
+  color: #756D7E;
 }
 
 .summary-row strong {
-  color: #111827;
+  color: #241B2F;
 }
 
 .summary-total {
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid #f1f2f4;
-  color: #111827;
+  border-top: 1px solid #E9E4EE;
+  color: #241B2F;
   font-weight: 900;
 }
 
 .summary-total strong {
-  color: #fe2c55;
+  color: #980B32;
   font-size: 1.5rem;
 }
 
@@ -763,7 +763,7 @@ onMounted(async () => {
 
 .section-title h2 {
   margin: 0;
-  color: #111827;
+  color: #241B2F;
 }
 
 .section-title span {
@@ -779,7 +779,7 @@ onMounted(async () => {
 
 .recommend-card {
   overflow: hidden;
-  border: 1px solid #f1f2f4;
+  border: 1px solid #E9E4EE;
   border-radius: 12px;
   background: #fff;
   cursor: pointer;
@@ -798,7 +798,7 @@ onMounted(async () => {
   min-height: 2.5rem;
   margin: 0.25rem 0 0.4rem;
   overflow: hidden;
-  color: #111827;
+  color: #241B2F;
   font-size: 0.9rem;
   line-height: 1.4;
   -webkit-box-orient: vertical;
@@ -806,19 +806,19 @@ onMounted(async () => {
 }
 
 .recommend-card strong {
-  color: #fe2c55;
+  color: #980B32;
 }
 
 .state,
 .empty-state {
   padding: 3rem;
-  color: #666;
+  color: #756D7E;
   text-align: center;
 }
 
 .empty-state h2 {
   margin: 0 0 0.5rem;
-  color: #111827;
+  color: #241B2F;
 }
 
 .empty-state p {

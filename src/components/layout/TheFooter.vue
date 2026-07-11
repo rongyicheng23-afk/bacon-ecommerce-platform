@@ -7,12 +7,12 @@ import { RouterLink } from 'vue-router'
     <div class="footer-content">
       <section class="footer-section">
         <h3>Bacon Mall</h3>
-        <p>面向专业实习2的网页端电商平台，后续接入 FastAPI、SQLite 和 Hadoop 离线推荐流程。</p>
+        <p>面向多品类商品的智能电商推荐平台。</p>
       </section>
 
       <section class="footer-section">
         <h3>核心能力</h3>
-        <p>商品浏览、搜索筛选、购物车、订单管理、用户行为日志和个性化推荐。</p>
+        <p>商品浏览、搜索筛选、购物车、订单管理、用户行为分析、个性化推荐。</p>
       </section>
 
       <section class="footer-section">
@@ -36,7 +36,7 @@ import { RouterLink } from 'vue-router'
 .footer {
   margin-top: 4rem;
   padding: 3rem 0 1rem;
-  background-color: #0f172a;
+  background-color: #5A0B72;
 }
 
 .footer-content {
@@ -73,14 +73,14 @@ import { RouterLink } from 'vue-router'
 }
 
 .footer-section a:hover {
-  color: #ff2f68;
+  color: #980B32;
 }
 
 .footer-bottom {
   margin-top: 2rem;
   padding-top: 1.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  color: #64748b;
+  color: #756D7E;
   text-align: center;
 }
 

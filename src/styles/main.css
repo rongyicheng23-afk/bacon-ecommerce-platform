@@ -1,23 +1,44 @@
 /*用于全局样式*/
 :root {
-    --primary-color: #ff2f68;
-    --primary-dark: #d91f48;
-    --text-color: #0f172a;
-    --text-light: #64748b;
+    --primary-color: #980B32;
+    --primary-dark: #5A0B72;
+    --text-color: #241B2F;
+    --text-light: #756D7E;
     --background-color: #fff;
-    --background-light: #f8fafc;
-    --page-bg: #f5f7fb;
-    --border-color: #e2e8f0;
-    --card-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
-    --card-shadow-hover: 0 12px 32px rgba(15, 23, 42, 0.1);
+    --background-light: #F4EFF7;
+    --page-bg: #FFFFFF;
+    --border-color: #E9E4EE;
+    --card-shadow: 0 4px 20px rgba(55, 35, 75, 0.16);
+    --card-shadow-hover: 0 12px 36px rgba(90, 11, 114, 0.26);
+
+    /* deep purple palette */
+    --purple-dark: #5A0B72;
+    --purple-main: #7B189F;
+    --purple-light: #9226B3;
+
+    /* wine red palette (prices, favorites, promotions) */
+    --wine-dark: #85072B;
+    --wine-main: #980B32;
+    --wine-hover: #AD1745;
+    --wine-light-bg: #F8EDF1;
+
+    /* service yellow */
+    --yellow-main: #F4D35E;
+    --yellow-light: #F8E58A;
+    --yellow-text: #6A4A00;
 
     /* category accent colors */
-    --cat-digital: #2563eb;
-    --cat-fashion: #a855f7;
-    --cat-home: #16a34a;
-    --cat-hot: #ff2f68;
-    --cat-new: #22c55e;
-    --cat-smart: #6366f1;
+    --cat-digital: #5A0B72;
+    --cat-fashion: #9226B3;
+    --cat-home: #7B189F;
+    --cat-hot: #980B32;
+    --cat-new: #F4D35E;
+    --cat-smart: #7B189F;
+
+    /* icon gradient - deep purple */
+    --icon-gradient: linear-gradient(135deg, #5A0B72 0%, #7B189F 55%, #9226B3 100%);
+    --icon-purple: #7B189F;
+    --icon-glow: 0 6px 18px rgba(90, 11, 114, 0.24);
 }
 
 /* Reset styles */
@@ -140,17 +161,17 @@ a {
 
 .auth-heading h2 {
     margin: 0;
-    color: #111827;
+    color: #241B2F;
     font-size: 30px;
 }
 
 .auth-heading span {
-    color: #ff2f68;
+    color: #980B32;
 }
 
 .auth-heading p {
     margin: 10px 0 0;
-    color: #6b7280;
+    color: #756D7E;
     line-height: 1.6;
 }
 
@@ -175,26 +196,26 @@ a {
     width: 100%;
     box-sizing: border-box;
     min-height: 48px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #948B9D;
     border-radius: 12px;
     padding: 0 14px;
     outline: none;
-    color: #111827;
+    color: #241B2F;
     background: #fafafa;
     font-size: 15px;
 }
 
 .auth-form input:focus {
-    border-color: #ff2f68;
+    border-color: #980B32;
     background: #fff;
-    box-shadow: 0 0 0 4px rgba(255, 47, 104, 0.1);
+    box-shadow: 0 0 0 4px rgba(111, 76, 195, 0.1);
 }
 
 .auth-error {
     margin: 0;
     padding: 10px 12px;
     color: #b91c1c;
-    background: #fff1f2;
+    background: #F4EFF7;
     border-radius: 12px;
     font-size: 14px;
 }
@@ -203,7 +224,7 @@ a {
     min-height: 50px;
     border: 0;
     color: #fff;
-    background: #ff2f68;
+    background: linear-gradient(135deg, #5A0B72 0%, #7B189F 55%, #9226B3 100%);
     border-radius: 999px;
     font-size: 16px;
     font-weight: 900;
@@ -219,12 +240,12 @@ a {
     display: flex;
     justify-content: center;
     gap: 8px;
-    color: #6b7280;
+    color: #756D7E;
     font-size: 14px;
 }
 
 .auth-form a {
-    color: #ff2f68;
+    color: #980B32;
     font-weight: 900;
     text-decoration: none;
 }

@@ -11,33 +11,36 @@ const userStore = useUserStore()
 const productStore = useProductStore()
 const keyword = ref('')
 const cartItemCount = ref(0)
-const showSuggestions = ref(false)
-let blurTimer: number | undefined
+const searchHistory = ref<string[]>([])
+const showHistory = ref(false)
 
-const hotSearches = ['耳机', '机械键盘', '背包', '台灯', '加湿器', '鼠标', '充电宝', 'T恤']
+const loadHistory = () => {
+  try { searchHistory.value = JSON.parse(localStorage.getItem('searchHistory') || '[]') } catch { searchHistory.value = [] }
+}
 
-const suggestionList = computed(() => {
-  const kw = keyword.value.trim().toLowerCase()
-  if (!kw) return hotSearches.map((t) => ({ text: t, hot: true }))
-  const names = productStore.products
-    .filter((p) => p.name.toLowerCase().includes(kw))
-    .slice(0, 6)
-    .map((p) => ({ text: p.name, hot: false }))
-  return names.length > 0 ? names : [{ text: `搜索 "${kw}"`, hot: false }]
-})
+const saveHistory = (term: string) => {
+  if (!term) return
+  searchHistory.value = [term, ...searchHistory.value.filter((h) => h !== term)].slice(0, 8)
+  localStorage.setItem('searchHistory', JSON.stringify(searchHistory.value))
+}
 
-const navigateToSuggestion = (text: string) => {
-  keyword.value = text
-  showSuggestions.value = false
-  router.push({ path: '/products', query: { q: text } })
+const removeHistory = (term: string) => {
+  searchHistory.value = searchHistory.value.filter((h) => h !== term)
+  localStorage.setItem('searchHistory', JSON.stringify(searchHistory.value))
 }
 
 const submitSearch = () => {
-  showSuggestions.value = false
-  router.push({
-    path: '/products',
-    query: { q: keyword.value.trim() || undefined }
-  })
+  const term = keyword.value.trim()
+  if (term) saveHistory(term)
+  router.push({ path: '/products', query: { q: term || undefined } })
+  showHistory.value = false
+}
+
+const searchFromHistory = (term: string) => {
+  keyword.value = term
+  saveHistory(term)
+  router.push({ path: '/products', query: { q: term } })
+  showHistory.value = false
 }
 
 const onSearchFocus = () => {
@@ -66,6 +69,7 @@ const refreshCartCount = () => {
 
 onMounted(async () => {
   refreshCartCount()
+  loadHistory()
   window.addEventListener(cartUpdatedEvent, refreshCartCount)
   window.addEventListener('storage', refreshCartCount)
   if (productStore.products.length === 0) {
@@ -81,20 +85,22 @@ onUnmounted(() => {
 
 <template>
   <header class="site-header">
+    <!-- ====== top bar: purple gradient ====== -->
     <div class="top-bar">
       <div class="top-inner">
-        <span>
-          {{
-            userStore.isAuthenticated
-              ? `欢迎回来，${userStore.currentUser?.role === 'seller' ? userStore.currentUser?.shopName || userStore.currentUser?.username : userStore.currentUser?.username}`
-              : '欢迎来到 Bacon Mall'
-          }}
-        </span>
-        <div class="top-links">
-          <RouterLink v-if="userStore.isSeller" to="/seller">商家中心</RouterLink>
-          <RouterLink v-if="userStore.isBuyer" to="/orders">我的订单</RouterLink>
-          <RouterLink v-if="userStore.isBuyer" to="/profile">个人中心</RouterLink>
-          <RouterLink v-if="userStore.isBuyer" to="/history">浏览足迹</RouterLink>
+        <div class="top-left">
+          <span class="top-welcome">
+            {{ userStore.isAuthenticated ? `欢迎回来，${userStore.currentUser?.username}` : '欢迎来到 Bacon Mall' }}
+          </span>
+          <span class="top-sep">|</span>
+          <RouterLink to="/products?sort=price-asc" class="top-entry">今日特价</RouterLink>
+          <RouterLink to="/hot-sales" class="top-entry">热卖榜单</RouterLink>
+          <RouterLink to="/new-arrivals" class="top-entry">新品首发</RouterLink>
+        </div>
+
+        <div class="top-right">
+          <RouterLink to="/orders" v-if="userStore.isAuthenticated">我的订单</RouterLink>
+          <RouterLink to="/profile" v-if="userStore.isAuthenticated">个人中心</RouterLink>
           <RouterLink to="/login" v-if="!userStore.isAuthenticated">登录</RouterLink>
           <RouterLink to="/register" v-if="!userStore.isAuthenticated">注册</RouterLink>
           <button v-if="userStore.isAuthenticated" type="button" @click="handleLogout">退出登录</button>
@@ -102,6 +108,7 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- ====== main header: logo + search + cart ====== -->
     <div class="main-header">
       <RouterLink to="/" class="brand" aria-label="Bacon Mall 首页">
         <span class="brand-mark">B</span>
@@ -111,29 +118,19 @@ onUnmounted(() => {
         </span>
       </RouterLink>
 
-      <form class="header-search" @submit.prevent="submitSearch">
-        <div class="search-wrapper">
-          <input
-            v-model="keyword"
-            type="search"
-            placeholder="搜索商品、分类、关键词"
-            @focus="onSearchFocus"
-            @blur="onSearchBlur"
-          />
-          <div v-if="showSuggestions && suggestionList.length" class="search-dropdown" @mousedown.prevent>
-            <button
-              v-for="item in suggestionList"
-              :key="item.text"
-              type="button"
-              @click="navigateToSuggestion(item.text)"
-            >
-              <span v-if="item.hot" class="hot-mark">热</span>
-              {{ item.text }}
-            </button>
-          </div>
+      <div class="search-wrap">
+        <form class="header-search" @submit.prevent="submitSearch">
+          <input v-model="keyword" type="search" placeholder="搜索商品、分类、关键词" />
+          <button type="submit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            搜索
+          </button>
+        </form>
+        <div class="search-history" @mousedown.prevent>
+          <span class="history-label">历史记录</span>
+          <button v-for="h in searchHistory" :key="h" type="button" class="history-tag" @click="searchFromHistory(h)">{{ h }}<span class="history-del" @click.stop="removeHistory(h)">×</span></button>
         </div>
-        <button type="submit">搜索</button>
-      </form>
+      </div>
 
       <RouterLink v-if="userStore.isBuyer" to="/cart" class="cart-entry">
         <span>购物车</span>
@@ -145,14 +142,14 @@ onUnmounted(() => {
       </RouterLink>
     </div>
 
+    <!-- ====== channel nav ====== -->
     <nav class="channel-nav" aria-label="主导航">
       <div class="channel-inner">
-        <RouterLink to="/" :class="{ active: route.path === '/' }">首页</RouterLink>
-        <RouterLink to="/products?category=数码" :class="{ active: route.query.category === '数码' }">数码家电</RouterLink>
-        <RouterLink to="/products?category=服饰" :class="{ active: route.query.category === '服饰' }">服饰穿搭</RouterLink>
-        <RouterLink to="/products?category=家居" :class="{ active: route.query.category === '家居' }">家居生活</RouterLink>
-        <RouterLink to="/products?category=运动" :class="{ active: route.query.category === '运动' }">运动户外</RouterLink>
-        <RouterLink to="/products?category=食品" :class="{ active: route.query.category === '食品' }">食品生鲜</RouterLink>
+        <RouterLink to="/" exact-active-class="" :class="{ active: route.path === '/' }">首页</RouterLink>
+        <RouterLink to="/category/quality" :class="{ active: route.path.startsWith('/category/quality') }">品质生活</RouterLink>
+        <RouterLink to="/category/digital" :class="{ active: route.path.startsWith('/category/digital') }">数码家电</RouterLink>
+        <RouterLink to="/category/fashion" :class="{ active: route.path.startsWith('/category/fashion') }">服饰穿搭</RouterLink>
+        <RouterLink to="/category/home" :class="{ active: route.path.startsWith('/category/home') }">家居生活</RouterLink>
       </div>
     </nav>
   </header>
@@ -169,62 +166,103 @@ onUnmounted(() => {
   backdrop-filter: blur(16px);
 }
 
+/* ====== top bar: purple gradient ====== */
 .top-bar {
-  background: #f1f5f9;
-  border-bottom: 1px solid #eee;
-  color: #64748b;
+  background: linear-gradient(90deg, #5A0B72 0%, #7B189F 50%, #9226B3 100%);
+  color: #fff;
   font-size: 0.8rem;
 }
 
 .top-inner,
 .main-header,
 .channel-inner {
-  width: min(1400px, calc(100vw - 80px));
+  width: min(1320px, calc(100vw - 48px));
   margin: 0 auto;
 }
 
 .top-inner {
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
   align-items: center;
-  min-height: 34px;
+  min-height: 38px;
 }
 
-.top-links {
+.top-left {
   display: flex;
-  gap: 1rem;
   align-items: center;
+  gap: 28px;
 }
 
-.top-links a,
-.top-links button {
+.top-welcome {
+  color: rgba(255, 255, 255, 0.88);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.top-sep {
+  color: rgba(255, 255, 255, 0.2);
+  font-weight: 200;
+  user-select: none;
+}
+
+.top-entry {
+  color: rgba(255, 255, 255, 0.88);
+  text-decoration: none;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.top-entry:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.top-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.top-right a,
+.top-right button {
   border: 0;
   background: transparent;
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.85);
   cursor: pointer;
   font: inherit;
+  font-weight: 500;
   text-decoration: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
-.top-links a:hover,
-.top-links button:hover {
-  color: var(--primary-color);
+.top-right a:hover,
+.top-right button:hover {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
+/* ====== main header ====== */
 .main-header {
   display: grid;
   grid-template-columns: 240px minmax(320px, 1fr) auto;
   gap: 1.5rem;
-  align-items: center;
-  padding: 1.1rem 0;
+  align-items: start;
+  padding: 1.1rem 0 0.25rem;
+  position: relative;
 }
 
 .brand {
   display: inline-flex;
   gap: 0.75rem;
   align-items: center;
-  color: #0f172a;
+  color: #241B2F;
   text-decoration: none;
 }
 
@@ -234,7 +272,7 @@ onUnmounted(() => {
   height: 44px;
   place-items: center;
   border-radius: 12px;
-  background: linear-gradient(135deg, #ff2f68, #0f172a);
+  background: linear-gradient(135deg, #5A0B72 0%, #7B189F 55%, #9226B3 100%);
   color: #fff;
   font-size: 1.4rem;
   font-weight: 900;
@@ -263,9 +301,17 @@ onUnmounted(() => {
   min-height: 46px;
   overflow: visible;
   padding: 0.25rem;
-  border: 2px solid var(--primary-color);
+  border: 2px solid transparent;
   border-radius: 999px;
-  background: #fff;
+  background: linear-gradient(#fff, #fff) padding-box,
+              linear-gradient(90deg, #5A0B72 0%, #7B189F 50%, #9226B3 100%) border-box;
+  transition: box-shadow 0.25s ease;
+}
+
+.header-search:focus-within {
+  box-shadow:
+    0 0 0 4px rgba(123, 24, 159, 0.12),
+    0 8px 22px rgba(90, 11, 114, 0.12);
 }
 
 .search-wrapper {
@@ -282,64 +328,87 @@ onUnmounted(() => {
   border: 0;
   border-radius: 999px;
   outline: none;
-  color: #0f172a;
+  color: #241B2F;
   font-size: 0.95rem;
 }
 
-.search-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  right: 0;
-  padding: 6px;
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 16px 40px rgba(17, 24, 39, 0.16);
-  z-index: 50;
+.header-search input::placeholder {
+  color: #948B9D;
 }
 
-.search-dropdown button {
+.header-search button {
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 40px;
-  padding: 0 12px;
+  gap: 5px;
+  min-width: 86px;
+  padding: 0 0.8rem;
   border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: #0f172a;
-  font-size: 14px;
-  cursor: pointer;
-  text-align: left;
-}
-
-.search-dropdown button:hover {
-  background: #f1f5f9;
-}
-
-.hot-mark {
-  display: inline-grid;
-  width: 20px;
-  height: 20px;
-  place-items: center;
-  border-radius: 4px;
-  background: #ff2f68;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #85072B 0%, #7B189F 65%, #9226B3 100%);
   color: #fff;
-  font-size: 11px;
-  font-weight: 900;
+  cursor: pointer;
+  font-weight: 700;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.header-search button svg {
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
 }
 
-.header-search > button {
-  min-width: 86px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--primary-color);
-  color: #fff;
-  cursor: pointer;
-  font-weight: 800;
+.header-search button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow: 0 8px 20px rgba(111, 76, 195, 0.26);
 }
+
+.search-wrap { position: relative; }
+
+.search-history {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0 0;
+}
+
+.history-label {
+  font-size: 0.74rem;
+  color: #948B9D;
+  font-weight: 700;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+.history-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border: 1px solid #E9E4EE;
+  border-radius: 999px;
+  background: #fff;
+  color: #756D7E;
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.history-tag:hover { border-color: #7B189F; color: #7B189F; background: #F3EAF8; }
+
+.history-del {
+  display: inline-grid;
+  width: 14px; height: 14px; place-items: center;
+  border-radius: 50%;
+  background: #E9E4EE;
+  color: #948B9D;
+  font-size: 0.6rem; line-height: 1;
+  transition: all 0.15s;
+}
+
+.history-del:hover { background: #7B189F; color: #fff; }
 
 .cart-entry {
   display: flex;
@@ -348,10 +417,10 @@ onUnmounted(() => {
   align-items: center;
   min-height: 44px;
   padding: 0 1rem;
-  border: 2px solid #e5e7eb;
+  border: 2px solid #948B9D;
   border-radius: 999px;
   background: #fff;
-  color: #0f172a;
+  color: #241B2F;
   text-decoration: none;
   font-weight: 700;
   white-space: nowrap;
@@ -373,20 +442,11 @@ onUnmounted(() => {
   font-size: 0.78rem;
 }
 
+/* ====== channel nav ====== */
 .channel-nav {
   border-top: 1px solid #f1f1f1;
-  position: relative;
 }
 
-.channel-nav::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #ff2f68, #6366f1, #2563eb, #a855f7, #16a34a);
-}
 
 .channel-inner {
   display: flex;
@@ -399,7 +459,7 @@ onUnmounted(() => {
 .channel-inner a {
   position: relative;
   flex: 0 0 auto;
-  color: #0f172a;
+  color: #241B2F;
   text-decoration: none;
   font-weight: 700;
 }
@@ -424,8 +484,11 @@ onUnmounted(() => {
   .top-inner,
   .main-header,
   .channel-inner {
-    width: min(100% - 32px, 1400px);
+    width: min(100% - 28px, 1320px);
   }
+
+  .top-left { gap: 16px; }
+  .top-sep { display: none; }
 
   .main-header {
     grid-template-columns: 1fr;
@@ -439,14 +502,18 @@ onUnmounted(() => {
 
 @media (max-width: 640px) {
   .top-inner {
-    align-items: flex-start;
     flex-direction: column;
-    padding: 0.45rem 0;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 6px 0;
   }
 
-  .top-links {
+  .top-left,
+  .top-right {
     flex-wrap: wrap;
   }
+
+  .top-left { gap: 12px; }
 
   .channel-inner {
     gap: 1.2rem;

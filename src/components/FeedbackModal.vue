@@ -17,13 +17,14 @@ const feedbackTypes = [
 
 const close = () => {
   visible.value = false
+  submitted.value = false
 }
 
 const submit = () => {
   if (!content.value.trim()) return
-  // store locally as mock
+  if (!contact.value.trim()) return
   const feedbacks = JSON.parse(localStorage.getItem('feedbacks') || '[]')
-  feedbacks.push({
+  feedbacks.unshift({
     type: type.value,
     content: content.value.trim(),
     contact: contact.value.trim(),
@@ -80,12 +81,13 @@ defineExpose({ open: () => { visible.value = true; submitted.value = false } })
               </div>
 
               <div class="field">
-                <label for="fb-contact">联系方式（选填）</label>
+                <label for="fb-contact">联系方式 <span class="required">*</span></label>
                 <input
                   id="fb-contact"
                   v-model="contact"
                   type="text"
-                  placeholder="手机号 / 邮箱"
+                  placeholder="手机号 / 邮箱（必填）"
+                  required
                 />
               </div>
             </div>
@@ -122,7 +124,7 @@ defineExpose({ open: () => { visible.value = true; submitted.value = false } })
 }
 
 .feedback-modal {
-  width: min(480px, calc(100vw - 40px));
+  width: min(520px, calc(100vw - 40px));
   max-height: calc(100vh - 80px);
   overflow-y: auto;
   border-radius: 18px;
@@ -135,12 +137,12 @@ defineExpose({ open: () => { visible.value = true; submitted.value = false } })
   justify-content: space-between;
   align-items: center;
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #f1f2f4;
+  border-bottom: 1px solid #E9E4EE;
 }
 
 .modal-header h2 {
   margin: 0;
-  color: #0f172a;
+  color: #241B2F;
   font-size: 1.15rem;
   font-weight: 900;
 }
@@ -152,15 +154,15 @@ defineExpose({ open: () => { visible.value = true; submitted.value = false } })
   place-items: center;
   border: 0;
   border-radius: 50%;
-  background: #f7f8fa;
+  background: #F7F6FA;
   color: #999;
   cursor: pointer;
   font-size: 0.85rem;
 }
 
 .modal-close:hover {
-  background: #fff1f2;
-  color: #ff2f68;
+  background: #F4EFF7;
+  color: #980B32;
 }
 
 .modal-body {
@@ -179,6 +181,11 @@ defineExpose({ open: () => { visible.value = true; submitted.value = false } })
   font-weight: 800;
 }
 
+.field label .required {
+  color: #980B32;
+  font-weight: 900;
+}
+
 .type-options {
   display: flex;
   flex-wrap: wrap;
@@ -188,10 +195,10 @@ defineExpose({ open: () => { visible.value = true; submitted.value = false } })
 .type-btn {
   min-height: 34px;
   padding: 0 0.85rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #948B9D;
   border-radius: 999px;
   background: #fff;
-  color: #64748b;
+  color: #756D7E;
   cursor: pointer;
   font-size: 0.84rem;
   font-weight: 700;
@@ -199,9 +206,9 @@ defineExpose({ open: () => { visible.value = true; submitted.value = false } })
 }
 
 .type-btn.active {
-  border-color: #ff2f68;
-  background: #fff2f5;
-  color: #ff2f68;
+  border-color: #980B32;
+  background: #F4EFF7;
+  color: #980B32;
 }
 
 .type-btn:hover:not(.active) {
@@ -212,10 +219,10 @@ defineExpose({ open: () => { visible.value = true; submitted.value = false } })
 .field input[type='text'] {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #948B9D;
   border-radius: 10px;
   background: #fafafa;
-  color: #0f172a;
+  color: #241B2F;
   font: inherit;
   font-size: 0.9rem;
   outline: none;
@@ -225,7 +232,7 @@ defineExpose({ open: () => { visible.value = true; submitted.value = false } })
 
 .field textarea:focus,
 .field input:focus {
-  border-color: #ff2f68;
+  border-color: #980B32;
   background: #fff;
 }
 
@@ -234,16 +241,16 @@ defineExpose({ open: () => { visible.value = true; submitted.value = false } })
   justify-content: flex-end;
   gap: 0.75rem;
   padding: 1rem 1.5rem;
-  border-top: 1px solid #f1f2f4;
+  border-top: 1px solid #E9E4EE;
 }
 
 .btn-cancel {
   min-height: 38px;
   padding: 0 1.25rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #948B9D;
   border-radius: 999px;
   background: #fff;
-  color: #64748b;
+  color: #756D7E;
   cursor: pointer;
   font-size: 0.88rem;
   font-weight: 700;
@@ -254,7 +261,7 @@ defineExpose({ open: () => { visible.value = true; submitted.value = false } })
   padding: 0 1.5rem;
   border: 0;
   border-radius: 999px;
-  background: #ff2f68;
+  background: #980B32;
   color: #fff;
   cursor: pointer;
   font-size: 0.88rem;
@@ -262,7 +269,7 @@ defineExpose({ open: () => { visible.value = true; submitted.value = false } })
 }
 
 .btn-submit:hover {
-  background: #e8254a;
+  background: #5a3a9e;
 }
 
 .success-state {
@@ -276,7 +283,7 @@ defineExpose({ open: () => { visible.value = true; submitted.value = false } })
 
 .success-state h3 {
   margin: 0.75rem 0 0.5rem;
-  color: #0f172a;
+  color: #241B2F;
   font-size: 1.1rem;
 }
 

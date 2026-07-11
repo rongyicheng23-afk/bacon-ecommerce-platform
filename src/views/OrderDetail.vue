@@ -410,7 +410,7 @@ onMounted(() => {
   left: calc(50% + 24px);
   width: calc(100% - 48px);
   height: 3px;
-  background: #e5e7eb;
+  background: #948B9D;
   border-radius: 999px;
 }
 
@@ -419,11 +419,11 @@ onMounted(() => {
 }
 
 .timeline-node.done::before {
-  background: #fe2c55;
+  background: #980B32;
 }
 
 .timeline-node.cancelled::before {
-  background: #e5e7eb;
+  background: #948B9D;
 }
 
 .timeline-dot {
@@ -434,7 +434,7 @@ onMounted(() => {
   height: 40px;
   place-items: center;
   border-radius: 50%;
-  background: #e5e7eb;
+  background: #948B9D;
   color: #9ca3af;
   font-weight: 900;
   font-size: 14px;
@@ -443,12 +443,12 @@ onMounted(() => {
 }
 
 .timeline-node.done .timeline-dot {
-  background: #fe2c55;
+  background: #980B32;
   color: #fff;
 }
 
 .timeline-node.active .timeline-dot {
-  background: #fe2c55;
+  background: #980B32;
   color: #fff;
   box-shadow: 0 0 0 6px rgba(254, 44, 85, 0.2);
   animation: dot-pulse 2s ease-in-out infinite;
@@ -474,11 +474,11 @@ onMounted(() => {
 
 .timeline-node.done .timeline-body strong,
 .timeline-node.active .timeline-body strong {
-  color: #111827;
+  color: #241B2F;
 }
 
 .timeline-node.active .timeline-body strong {
-  color: #fe2c55;
+  color: #980B32;
 }
 
 .timeline-node.cancelled .timeline-body strong {
@@ -495,7 +495,7 @@ onMounted(() => {
 
 .timeline-node.done .timeline-body p,
 .timeline-node.active .timeline-body p {
-  color: #6b7280;
+  color: #756D7E;
 }
 
 .timeline-body time {
@@ -558,7 +558,7 @@ onMounted(() => {
 
 .detail-actions button.primary,
 .order-missing button {
-  color: #111827;
+  color: #241B2F;
   background: #fff;
 }
 
@@ -584,7 +584,7 @@ onMounted(() => {
 
 .detail-card h2 {
   margin: 0 0 16px;
-  color: #111827;
+  color: #241B2F;
   font-size: 20px;
 }
 
@@ -595,11 +595,11 @@ onMounted(() => {
 }
 
 .detail-card strong {
-  color: #111827;
+  color: #241B2F;
 }
 
 .detail-card span {
-  color: #6b7280;
+  color: #756D7E;
 }
 
 .detail-card dl {
@@ -615,12 +615,12 @@ onMounted(() => {
 }
 
 .detail-card dt {
-  color: #6b7280;
+  color: #756D7E;
 }
 
 .detail-card dd {
   margin: 0;
-  color: #111827;
+  color: #241B2F;
   font-weight: 800;
 }
 
@@ -635,7 +635,7 @@ onMounted(() => {
   align-items: center;
   gap: 16px;
   padding-bottom: 14px;
-  border-bottom: 1px solid #f1f2f4;
+  border-bottom: 1px solid #E9E4EE;
 }
 
 .detail-item:last-child {
@@ -653,19 +653,19 @@ onMounted(() => {
 
 .detail-item h3 {
   margin: 0 0 7px;
-  color: #111827;
+  color: #241B2F;
   font-size: 16px;
 }
 
 .detail-item p {
   margin: 0;
-  color: #6b7280;
+  color: #756D7E;
   font-size: 13px;
 }
 
 .detail-item span,
 .detail-item strong {
-  color: #111827;
+  color: #241B2F;
   font-weight: 900;
 }
 
@@ -676,11 +676,11 @@ onMounted(() => {
 
 .price-card .payable {
   padding-top: 12px;
-  border-top: 1px solid #f1f2f4;
+  border-top: 1px solid #E9E4EE;
 }
 
 .price-card .payable dd {
-  color: #fe2c55;
+  color: #980B32;
   font-size: 24px;
 }
 

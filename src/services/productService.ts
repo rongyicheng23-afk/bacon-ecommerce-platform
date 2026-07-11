@@ -1328,7 +1328,7 @@ const mockResponse = (data: Product[] | Product): ProductResponse => ({
 export const productService = {
   async getProducts() {
     try {
-      const response = await axios.get<ProductResponse>(`${BASE_URL}/product/list`)
+      const response = await axios.get<ProductResponse>(`${BASE_URL}/product/list`, { timeout: 2000 })
       return response.data
     } catch {
       return mockResponse(mockProducts)
