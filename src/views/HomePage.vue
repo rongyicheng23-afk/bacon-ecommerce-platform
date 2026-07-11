@@ -20,11 +20,13 @@ const products = computed(() => productStore.products)
 const bannerProducts = computed(() => products.value.slice(0, 3))
 const feedProducts = computed(() => {
   const list = products.value
+  if (list.length === 0) return []
+
   const result: Product[] = []
   while (result.length < 60) {
     for (const p of list) { result.push(p); if (result.length >= 60) break }
   }
-  return result.length > 0 ? result : getPersonalizedProducts(list, 60)
+  return getPersonalizedProducts(result, 60)
 })
 const recommendationSummary = computed(() => getRecommendationSummary())
 const serviceCards = ['正品保障', '快速配送', '售后无忧', '安全支付']

@@ -16,6 +16,7 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const keyword = ref('')
 const selectedCategory = ref('全部')
+const selectedSubcategory = ref('全部')
 const sortType = ref<SortType>('default')
 const minPrice = ref('')
 const maxPrice = ref('')
@@ -86,6 +87,7 @@ const getSoldPct = (p: Product) => Math.min(95, Math.round((1 - p.stock / 200) *
 const syncQuery = () => {
   keyword.value = typeof route.query.q === 'string' ? route.query.q : ''
   selectedCategory.value = typeof route.query.category === 'string' ? route.query.category : '全部'
+  selectedSubcategory.value = typeof route.query.subcategory === 'string' ? route.query.subcategory : '全部'
   sortType.value = isSortType(route.query.sort) ? route.query.sort : 'default'
   minPrice.value = typeof route.query.minPrice === 'string' ? route.query.minPrice : ''
   maxPrice.value = typeof route.query.maxPrice === 'string' ? route.query.maxPrice : ''

@@ -43,17 +43,6 @@ const searchFromHistory = (term: string) => {
   showHistory.value = false
 }
 
-const onSearchFocus = () => {
-  if (blurTimer) clearTimeout(blurTimer)
-  showSuggestions.value = true
-}
-
-const onSearchBlur = () => {
-  blurTimer = window.setTimeout(() => {
-    showSuggestions.value = false
-  }, 180)
-}
-
 const handleLogout = async () => {
   try {
     await userStore.logout()

@@ -25,6 +25,7 @@ export interface Product {
   /** 商品图片列表（MinIO 路径数组），第一张为主图 */
   imageUrls: string[];
   category?: string;
+  subcategory?: string;
   /** 商品下的所有 SKU */
   skus: ProductSku[];
   createdAt: string;
