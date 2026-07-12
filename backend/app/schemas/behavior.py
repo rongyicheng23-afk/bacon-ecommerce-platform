@@ -10,7 +10,7 @@ class BehaviorLogCreate(BaseModel):
     productId: int | None = None
     productName: str | None = None
     action: Literal[
-        "view", "search_click", "favorite", "unfavorite",
+        "view", "search", "search_click", "favorite", "unfavorite",
         "cart", "purchase", "refund"
     ]
     category: str | None = None

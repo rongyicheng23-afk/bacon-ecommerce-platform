@@ -31,3 +31,4 @@ uploads/
 .pytest_cache/
 htmlcov/
 .coverage
+exports/

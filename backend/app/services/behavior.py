@@ -7,11 +7,12 @@ from app.db.database import now_iso
 
 ACTION_WEIGHTS = {
     "view": 1,
+    "search": 2,
     "search_click": 2,
     "favorite": 3,
     "unfavorite": -2,
-    "cart": 5,
-    "purchase": 10,
+    "cart": 4,
+    "purchase": 5,
     "refund": -8,
 }
 

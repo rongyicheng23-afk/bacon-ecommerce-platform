@@ -6,9 +6,10 @@ import { productService } from '@/services/productService'
 import { useProductStore } from '@/stores/productStore'
 import { addProductToCart } from '@/utils/cart'
 import { readFavoriteIds, toggleFavoriteId } from '@/utils/favorites'
+import { behaviorService } from '@/services/behaviorService'
 import MagnifiableImage from '@/components/MagnifiableImage.vue'
 
-type BehaviorAction = 'view' | 'favorite' | 'unfavorite' | 'cart' | 'buy' | 'view_recommendation'
+type BehaviorAction = 'view' | 'favorite' | 'unfavorite' | 'cart' | 'buy'
 type DetailTab = 'detail' | 'reviews' | 'recommend' | 'qa'
 
 const route = useRoute()
@@ -192,28 +193,17 @@ const canBuy = computed(() => {
   return Boolean(product.value && product.value.status === 'active' && currentStock.value > 0)
 })
 
-const readBehaviorLogs = () => {
-  try {
-    return JSON.parse(localStorage.getItem('behaviorLogs') || '[]')
-  } catch {
-    return []
-  }
-}
-
 const recordBehavior = (target: Product, action: BehaviorAction) => {
-  const logs = readBehaviorLogs()
-  logs.push({
-    userId: 1,
+  behaviorService.send({
     productId: target.productId,
     productName: target.name,
     action,
-    category: target.category || '未分类',
+    category: target.category,
     quantity: quantity.value,
     skuId: selectedSkuId.value,
     skuName: selectedSku.value?.name || '',
-    timestamp: new Date().toISOString()
+    source: 'product_detail',
   })
-  localStorage.setItem('behaviorLogs', JSON.stringify(logs.slice(-100)))
 }
 
 const fetchProduct = async () => {
@@ -291,7 +281,7 @@ const buyNow = () => {
 }
 
 const openRelatedProduct = (target: Product) => {
-  recordBehavior(target, 'view_recommendation')
+  recordBehavior(target, 'view')
   router.push(`/product/${target.productId}`)
 }
 

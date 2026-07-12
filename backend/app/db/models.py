@@ -184,7 +184,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
             session_id   TEXT,
             product_id   INTEGER,
             product_name TEXT,
-            action       TEXT NOT NULL CHECK(action IN ('view','search_click','favorite','unfavorite','cart','purchase','refund')),
+            action       TEXT NOT NULL CHECK(action IN ('view','search','search_click','favorite','unfavorite','cart','purchase','refund')),
             category     TEXT,
             quantity     INTEGER,
             sku_id       INTEGER,
