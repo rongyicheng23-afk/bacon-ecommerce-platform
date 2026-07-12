@@ -1327,23 +1327,16 @@ const mockResponse = (data: Product[] | Product): ProductResponse => ({
 
 export const productService = {
   async getProducts() {
-    try {
-      const response = await axios.get<ProductResponse>(`${BASE_URL}/product/list`, { timeout: 2000 })
-      return response.data
-    } catch {
-      return mockResponse(mockProducts)
-    }
+    const response = await axios.get<ProductResponse>(`${BASE_URL}/product/list`, {
+      params: { pageSize: 200 }
+    })
+    return response.data
   },
 
   async getProduct(id: number) {
-    try {
-      const response = await axios.get<ProductResponse>(`${BASE_URL}/product/get`, {
-        params: { productId: id }
-      })
-      return response.data
-    } catch {
-      const product = mockProducts.find((item) => item.productId === id)
-      return mockResponse(product || mockProducts[0])
-    }
+    const response = await axios.get<ProductResponse>(`${BASE_URL}/product/get`, {
+      params: { productId: id }
+    })
+    return response.data
   }
 }
