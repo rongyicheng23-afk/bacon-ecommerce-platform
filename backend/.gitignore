@@ -32,3 +32,4 @@ uploads/
 htmlcov/
 .coverage
 exports/
+tmp_recommendation/
