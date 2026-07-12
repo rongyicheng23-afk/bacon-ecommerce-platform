@@ -90,7 +90,7 @@ def generate(
     hot_ids = [p["product_id"] for p in global_hot]
 
     # 所有用户
-    users = conn.execute("SELECT user_id FROM users WHERE status = 'active'").fetchall()
+    users = conn.execute("SELECT user_id FROM users WHERE status = 'active' AND role = 'buyer'").fetchall()
     all_user_ids = [u["user_id"] for u in users]
 
     # 若没有用户偏好数据，添加已知用户

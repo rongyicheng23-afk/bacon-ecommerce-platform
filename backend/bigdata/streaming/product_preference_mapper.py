@@ -18,7 +18,9 @@ for line in sys.stdin:
     except json.JSONDecodeError:
         continue
 
-    user_id = record.get("userId") or 0
+    user_id = record.get("userId")
+    if user_id is None:
+        continue  # 跳过游客日志
     product_id = record.get("productId")
     if product_id is None:
         continue

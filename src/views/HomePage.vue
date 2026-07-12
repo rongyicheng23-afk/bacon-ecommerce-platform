@@ -5,7 +5,8 @@ import { useProductStore } from '../stores/productStore'
 import type { Product } from '../types'
 import { addProductToCart } from '@/utils/cart'
 import { readFavoriteIds, toggleFavoriteId } from '@/utils/favorites'
-import { getPersonalizedProducts, getRecommendationSummary } from '@/utils/recommendation'
+import { behaviorService } from '@/services/behaviorService'
+import api from '@/services/api'
 
 type BehaviorAction = 'view' | 'favorite' | 'unfavorite' | 'cart' | 'buy'
 
@@ -18,17 +19,29 @@ const activeSlide = ref(0)
 const favoriteIds = ref<number[]>([])
 const products = computed(() => productStore.products)
 const bannerProducts = computed(() => products.value.slice(0, 3))
-const feedProducts = computed(() => {
-  const list = products.value
-  if (list.length === 0) return []
+const recommendedProducts = ref<Product[]>([])
+const recommendationSummary = ref('')
 
-  const result: Product[] = []
-  while (result.length < 60) {
-    for (const p of list) { result.push(p); if (result.length >= 60) break }
+const fetchRecommendations = async () => {
+  try {
+    const res = await api.get('/recommendations', { params: { limit: 60 } })
+    if (res.data.code === '0000') {
+      recommendedProducts.value = res.data.data || []
+      if (recommendedProducts.value.length > 0) {
+        recommendationSummary.value = '基于你的浏览偏好为你推荐'
+      }
+    }
+  } catch {
+    // 兜底：用全量商品
+    recommendedProducts.value = products.value.slice(0, 60)
   }
-  return getPersonalizedProducts(result, 60)
+}
+
+// feedProducts 优先用推荐结果，无结果时用全量
+const feedProducts = computed(() => {
+  if (recommendedProducts.value.length > 0) return recommendedProducts.value
+  return products.value.slice(0, 60)
 })
-const recommendationSummary = computed(() => getRecommendationSummary())
 const serviceCards = ['正品保障', '快速配送', '售后无忧', '安全支付']
 const subscribeEmail2 = ref('')
 const subscribed2 = ref(false)
@@ -89,25 +102,14 @@ const actionText: Record<BehaviorAction, string> = {
   buy: '购买'
 }
 
-const readBehaviorLogs = () => {
-  try {
-    return JSON.parse(localStorage.getItem('behaviorLogs') || '[]')
-  } catch {
-    return []
-  }
-}
-
 const recordBehavior = (product: Product, action: BehaviorAction) => {
-  const logs = readBehaviorLogs()
-  logs.push({
-    userId: 1,
+  behaviorService.send({
     productId: product.productId,
     productName: product.name,
-    action,
-    category: product.category || '未分类',
-    timestamp: new Date().toISOString()
+    action: action === 'buy' ? 'purchase' : action,
+    category: product.category,
+    source: 'home_page',
   })
-  localStorage.setItem('behaviorLogs', JSON.stringify(logs.slice(-100)))
 }
 
 const recordProductAction = (product: Product, action: Exclude<BehaviorAction, 'view'>) => {
@@ -218,6 +220,7 @@ onMounted(async () => {
     loading.value = true
     try {
       await productStore.fetchProducts()
+      await fetchRecommendations()
     } catch (err) {
       error.value = err instanceof Error ? err.message : '加载商品失败'
     } finally {
@@ -416,9 +419,7 @@ onUnmounted(() => {
           <div>
             <span class="section-kicker">For you</span>
             <h2 id="feed-title">为你精选</h2>
-            <p v-if="recommendationSummary.length" class="recommendation-hint">
-              最近偏好：
-              <span v-for="item in recommendationSummary" :key="item.category">{{ item.category }}</span>
+            <p v-if="recommendationSummary" class="recommendation-hint">{{ recommendationSummary }}
             </p>
           </div>
           <button type="button" class="more-link" @click="router.push('/products')">查看更多</button>

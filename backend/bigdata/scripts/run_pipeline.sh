@@ -38,13 +38,16 @@ if [ -z "${INPUT_FILE}" ] || [ ! -f "${INPUT_FILE}" ]; then
     echo "❌ 没有可用的行为日志文件"
     exit 1
 fi
-echo "   输入: ${INPUT_FILE} ($(wc -l < "${INPUT_FILE}") 条)"
+
+# 从文件名提取实际日期（用于 HDFS 路径）
+ACTUAL_DATE=$(basename "${INPUT_FILE}" .jsonl | sed 's/behavior-//')
+echo "   输入: ${INPUT_FILE} ($(wc -l < "${INPUT_FILE}") 条)  实际日期: ${ACTUAL_DATE}"
 
 # Step 2: 上传 HDFS（仅 Hadoop 模式）
 if [ "${MODE}" = "hadoop" ]; then
     echo ""
     echo "[2/5] 上传 HDFS..."
-    bash "${SCRIPT_DIR}/upload_to_hdfs.sh" "${BATCH_DATE}"
+    bash "${SCRIPT_DIR}/upload_to_hdfs.sh" "${ACTUAL_DATE}"
 else
     echo ""
     echo "[2/5] 上传 HDFS — 跳过（本地模式）"
@@ -58,9 +61,13 @@ mkdir -p "${TMP_DIR}"
 
 if [ "${MODE}" = "hadoop" ]; then
     # Hadoop Streaming 模式
-    HDFS_INPUT="/bacon-mall/raw/behavior/date=${BATCH_DATE}"
-    HDFS_CAT_OUT="/bacon-mall/warehouse/user_category_scores/date=${BATCH_DATE}"
-    HDFS_PROD_OUT="/bacon-mall/warehouse/user_product_scores/date=${BATCH_DATE}"
+    HDFS_INPUT="/bacon-mall/raw/behavior/date=${ACTUAL_DATE}"
+    HDFS_CAT_OUT="/bacon-mall/warehouse/user_category_scores/date=${ACTUAL_DATE}"
+    HDFS_PROD_OUT="/bacon-mall/warehouse/user_product_scores/date=${ACTUAL_DATE}"
+
+    # 删除旧输出目录（Hadoop 要求输出目录不存在）
+    hadoop fs -rm -r -skipTrash "${HDFS_CAT_OUT}" 2>/dev/null || true
+    hadoop fs -rm -r -skipTrash "${HDFS_PROD_OUT}" 2>/dev/null || true
 
     # 用户分类偏好
     hadoop jar "${HADOOP_HOME}/share/hadoop/tools/lib/hadoop-streaming-*.jar" \
@@ -69,7 +76,10 @@ if [ "${MODE}" = "hadoop" ]; then
         -mapper "python3 category_preference_mapper.py" \
         -reducer "python3 category_preference_reducer.py" \
         -file "${STREAMING_DIR}/category_preference_mapper.py" \
-        -file "${STREAMING_DIR}/category_preference_reducer.py"
+        -file "${STREAMING_DIR}/category_preference_reducer.py" || {
+            echo "❌ Hadoop 分类偏好任务失败"
+            exit 1
+        }
 
     hadoop fs -getmerge "${HDFS_CAT_OUT}" "${TMP_DIR}/category_scores.txt"
 
@@ -112,12 +122,21 @@ echo "[5/5] 记录运行日志..."
 python3 -c "
 from app.db.database import get_connection, now_iso
 ts = now_iso()
+user_count = 0
+try:
+    with open('${TMP_DIR}/recommendations.txt') as f:
+        users = set()
+        for line in f:
+            parts = line.strip().split('\t')
+            if parts: users.add(parts[0])
+        user_count = len(users)
+except: pass
 with get_connection() as conn:
-    conn.execute('''INSERT INTO recommendation_runs (batch_date, status, total_products, started_at, finished_at, created_at)
-                    VALUES (?,?,?,?,?,?)''',
-                 ('${BATCH_DATE}', 'completed', ${REC_COUNT}, ts, ts, ts))
+    conn.execute('''INSERT INTO recommendation_runs (batch_date, status, total_users, total_products, started_at, finished_at, created_at)
+                    VALUES (?,?,?,?,?,?,?)''',
+                 ('${BATCH_DATE}', 'completed', user_count, ${REC_COUNT}, ts, ts, ts))
     conn.commit()
-print('   run recorded')
+print(f'   run recorded: {user_count} users, ${REC_COUNT} recs')
 "
 
 echo ""

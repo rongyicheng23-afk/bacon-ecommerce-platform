@@ -5,8 +5,7 @@ import { useProductStore } from '../stores/productStore'
 import type { Product } from '../types'
 import { addProductToCart } from '@/utils/cart'
 import { readFavoriteIds, toggleFavoriteId } from '@/utils/favorites'
-
-type BehaviorAction = 'view' | 'favorite' | 'unfavorite' | 'cart' | 'buy'
+import { behaviorService } from '@/services/behaviorService'
 type SortType = 'default' | 'discount-desc' | 'price-asc' | 'price-desc' | 'sales-desc'
 
 const route = useRoute()
@@ -96,12 +95,10 @@ const syncQuery = () => {
 
 const isSortType = (v: unknown): v is SortType => ['default', 'discount-desc', 'price-asc', 'price-desc', 'sales-desc'].includes(v as string)
 
-const recordBehavior = (product: Product, action: BehaviorAction) => {
-  const logs = JSON.parse(localStorage.getItem('behaviorLogs') || '[]')
-  logs.push({ userId: 1, productId: product.productId, productName: product.name, action, category: product.category || '未分类', timestamp: new Date().toISOString() })
-  localStorage.setItem('behaviorLogs', JSON.stringify(logs.slice(-100)))
+const navigateToDetail = (product: Product) => {
+  behaviorService.send({ productId: product.productId, productName: product.name, action: 'view', category: product.category, source: 'product_catalog' })
+  router.push(`/product/${product.productId}`)
 }
-const navigateToDetail = (product: Product) => { recordBehavior(product, 'view'); router.push(`/product/${product.productId}`) }
 
 const isFavorite = (id: number) => favoriteIds.value.includes(id)
 const toggleFavorite = (p: Product) => {

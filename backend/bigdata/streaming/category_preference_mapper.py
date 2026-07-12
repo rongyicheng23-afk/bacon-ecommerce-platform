@@ -18,7 +18,9 @@ for line in sys.stdin:
     except json.JSONDecodeError:
         continue
 
-    user_id = record.get("userId") or 0
+    user_id = record.get("userId")
+    if user_id is None:
+        continue  # 跳过游客日志，不参与个性化推荐
     category = record.get("category") or "未分类"
     action = record.get("action", "view")
     weight = WEIGHTS.get(action, 0)

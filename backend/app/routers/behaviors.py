@@ -102,35 +102,36 @@ def recommendations(
     userId: int | None = None,
     limit: int = Query(20, ge=1, le=60),
 ) -> ApiResponse:
+    """返回个性化推荐。优先读 recommendation_results（Hadoop 离线结果），无数据时兜底返回热销。"""
     user = get_current_user(authorization)
     real_uid = user["userId"] if user else userId
 
     with get_connection() as conn:
-        cats: list[str] = []
+        items = []
         if real_uid:
-            rows = conn.execute(
-                """SELECT category,
-                          SUM(CASE action
-                              WHEN 'view' THEN 1
-                              WHEN 'search_click' THEN 2
-                              WHEN 'favorite' THEN 3
-                              WHEN 'unfavorite' THEN -2
-                              WHEN 'cart' THEN 5
-                              WHEN 'purchase' THEN 10
-                              WHEN 'refund' THEN -8
-                              ELSE 0
-                          END) AS score
-                   FROM behavior_logs
-                   WHERE user_id = ? AND category IS NOT NULL AND category != '订单'
-                   GROUP BY category ORDER BY score DESC LIMIT 3""",
+            # 获取最新批次
+            batch = conn.execute(
+                "SELECT batch_date FROM recommendation_results WHERE user_id = ? ORDER BY batch_date DESC LIMIT 1",
                 (real_uid,),
+            ).fetchone()
+            if batch:
+                rows = conn.execute(
+                    """SELECT p.* FROM recommendation_results r
+                       JOIN products p ON p.product_id = r.product_id
+                       WHERE r.user_id = ? AND r.batch_date = ? AND p.status = 'active'
+                       ORDER BY r.rank_no LIMIT ?""",
+                    (real_uid, batch["batch_date"], limit),
+                ).fetchall()
+                from app.services.product import row_to_product, _load_skus
+                items = [row_to_product(r, _load_skus(conn, r["product_id"])) for r in rows]
+
+        # 兜底：无 Hadoop 结果时返回全站热销
+        if not items:
+            rows = conn.execute(
+                "SELECT * FROM products WHERE status = 'active' ORDER BY sales_count DESC LIMIT ?",
+                (limit,),
             ).fetchall()
-            cats = [r["category"] for r in rows]
+            from app.services.product import row_to_product, _load_skus
+            items = [row_to_product(r, _load_skus(conn, r["product_id"])) for r in rows]
 
-    result = list_products(page=1, page_size=100)
-    items = result["items"]
-    if not cats:
-        return ApiResponse(data=items[:limit])
-
-    ranked = sorted(items, key=lambda p: (0 if p["category"] in cats else 1, -p["stock"]))
-    return ApiResponse(data=ranked[:limit])
+    return ApiResponse(data=items)

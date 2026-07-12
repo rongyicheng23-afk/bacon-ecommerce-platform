@@ -47,8 +47,24 @@ async def upload(
     return ApiResponse(data={"objectKey": object_key, "url": url, "folder": folder})
 
 
+VALID_FOLDERS = {"products", "avatars", "shop-logos"}
+
+
+def _validate_object_key(key: str) -> str:
+    """防止路径穿越：拒绝 .. / 和绝对路径"""
+    if not key or ".." in key or key.startswith("/") or "\\" in key:
+        raise HTTPException(400, "无效的文件路径")
+    return key
+
+
 @router.delete("/media/delete", response_model=ApiResponse)
 def delete(object_key: str, folder: str = "products", authorization: AUTH = None) -> ApiResponse:
-    _require_auth(authorization)
+    user = _require_auth(authorization)
+    if folder not in VALID_FOLDERS:
+        raise HTTPException(400, f"无效的文件夹: {folder}")
+    _validate_object_key(object_key)
+    # 头像只允许本人删
+    if folder == "avatars" and user["role"] != "admin":
+        raise HTTPException(403, "仅管理员可删除头像")
     delete_object(object_key, folder)
     return ApiResponse(data=None)
