@@ -1,5 +1,33 @@
+# 虚拟环境
 .venv/
+venv/
+env/
+
+# Python 缓存
 __pycache__/
 *.pyc
-bacon_mall.db
+*.pyo
+*.pyd
+
+# 数据库（包含用户数据和密钥）
+*.db
+*.sqlite
+*.sqlite3
+
+# 环境变量（含密钥）
+.env
+
+# IDE & OS
 .DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 上传文件（临时开发用）
+uploads/
+
+# 测试
+.pytest_cache/
+htmlcov/
+.coverage
