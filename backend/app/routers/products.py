@@ -16,13 +16,20 @@ def product_list(
     keyword: str | None = None,
     sort: Literal["price-asc", "price-desc", "stock-desc"] | None = None,
     page: int = Query(1, ge=1),
-    pageSize: int = Query(20, ge=1, le=100),
+    pageSize: int = Query(20, ge=1, le=200),
 ) -> ApiResponse:
     result = list_products(category=category, keyword=keyword, sort=sort, page=page, page_size=pageSize)
     return ApiResponse(data=result)
 
 
 @router.get("/product/get", response_model=ApiResponse)
+def product_get(productId: int = Query(...)) -> ApiResponse:
+    p = get_product(productId)
+    if not p:
+        raise HTTPException(404, "商品不存在")
+    return ApiResponse(data=p)
+
+
 @router.get("/products/{product_id}", response_model=ApiResponse)
 def product_detail(product_id: int) -> ApiResponse:
     p = get_product(product_id)

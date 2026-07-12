@@ -18,15 +18,16 @@ export const useProductStore = defineStore('product', {
         const response = await productService.getProducts()
 
         if (response.code === '0000' && response.data) {
+          const raw = response.data as unknown as Record<string, unknown>
           // 后端返回 { items, total, page, pageSize } 分页对象
-          if (response.data.items) {
-            this.products = response.data.items
-            this.total = response.data.total
-          } else if (Array.isArray(response.data)) {
-            this.products = response.data
-            this.total = response.data.length
+          if (raw.items) {
+            this.products = raw.items as Product[]
+            this.total = (raw.total as number) || 0
+          } else if (Array.isArray(raw)) {
+            this.products = raw as Product[]
+            this.total = (raw as Product[]).length
           } else {
-            this.products = [response.data]
+            this.products = [raw as unknown as Product]
             this.total = 1
           }
         } else {

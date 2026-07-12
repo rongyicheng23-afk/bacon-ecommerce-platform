@@ -287,6 +287,8 @@ def seed_demo_data(conn: sqlite3.Connection) -> None:
 
     seller = conn.execute("SELECT user_id FROM users WHERE role = 'seller' LIMIT 1").fetchone()
     seller_id = seller["user_id"] if seller else None
+    shop = conn.execute("SELECT shop_id FROM shops WHERE owner_user_id = ?", (seller_id,)).fetchone() if seller_id else None
+    shop_id = shop["shop_id"] if shop else None
 
     for idx, (name, desc, price, cat, imgs) in enumerate(PRODUCT_SEEDS):
         product_id = 1001 + idx
@@ -295,9 +297,9 @@ def seed_demo_data(conn: sqlite3.Connection) -> None:
         ).fetchone()
         if not product:
             conn.execute(
-                """INSERT INTO products (product_id, seller_id, name, description, price, stock, status, image_urls, category, created_at, updated_at)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-                (product_id, seller_id, name, desc, price, 0, "active", json.dumps(imgs, ensure_ascii=False), cat, ts, ts),
+                """INSERT INTO products (product_id, seller_id, shop_id, name, description, price, stock, sales_count, status, image_urls, category, created_at, updated_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (product_id, seller_id, shop_id, name, desc, price, 0, 0, "active", json.dumps(imgs, ensure_ascii=False), cat, ts, ts),
             )
         total_stock = 0
         total_price = float("inf")
@@ -314,9 +316,9 @@ def seed_demo_data(conn: sqlite3.Connection) -> None:
                 ).fetchone()
                 if not existing_sku:
                     conn.execute(
-                        """INSERT INTO product_skus (product_id, name, price, stock, image_url, attributes)
-                           VALUES (?,?,?,?,?,?)""",
-                        (product_id, sku_name, sku_price, sku_stock, imgs[ci % len(imgs)], json.dumps({"颜色": color, "版本": vname}, ensure_ascii=False)),
+                        """INSERT INTO product_skus (product_id, sku_code, name, price, stock, image_url, attributes, created_at, updated_at)
+                           VALUES (?,?,?,?,?,?,?,?,?)""",
+                        (product_id, f"SKU-{product_id}-{ci}-{vi}", sku_name, sku_price, sku_stock, imgs[ci % len(imgs)], json.dumps({"颜色": color, "版本": vname}, ensure_ascii=False), ts, ts),
                     )
         aggregate = conn.execute(
             "SELECT MIN(price) AS min_price, SUM(stock) AS total_stock FROM product_skus WHERE product_id = ?",

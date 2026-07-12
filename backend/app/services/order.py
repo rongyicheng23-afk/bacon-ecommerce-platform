@@ -254,11 +254,14 @@ def create_order(user_id: int, data: dict) -> dict:
         order_id = _generate_order_id(conn)
         total = sum(r["sku_price"] * r["quantity"] for r in cart_rows)
         delivery_fee = 12 if data.get("deliveryType") == "express" else 0
+        seller_id = list(seller_ids)[0]
+        shop = conn.execute("SELECT shop_id FROM shops WHERE owner_user_id = ?", (seller_id,)).fetchone()
+        shop_id = shop["shop_id"] if shop else None
 
         conn.execute(
-            """INSERT INTO orders (order_id, user_id, status, total_amount, payable_amount, delivery_fee, delivery_type, payment_type, address_json, remark, created_at, updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (order_id, user_id, "pending_payment", total, total + delivery_fee, delivery_fee,
+            """INSERT INTO orders (order_id, user_id, shop_id, seller_id, status, total_amount, payable_amount, delivery_fee, delivery_type, payment_type, address_json, remark, created_at, updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (order_id, user_id, shop_id, seller_id, "pending_payment", total, total + delivery_fee, delivery_fee,
              data.get("deliveryType", "standard"), data.get("paymentType", "alipay"),
              addr_json, data.get("remark", ""), ts, ts),
         )
@@ -270,8 +273,8 @@ def create_order(user_id: int, data: dict) -> dict:
             if stock_update.rowcount != 1:
                 raise ValueError(f"《{r['product_name']}》库存不足")
             conn.execute(
-                "UPDATE products SET stock = MAX(0, stock - ?), updated_at = ? WHERE product_id = ?",
-                (r["quantity"], ts, r["product_id"]),
+                "UPDATE products SET stock = MAX(0, stock - ?), sales_count = sales_count + ?, updated_at = ? WHERE product_id = ?",
+                (r["quantity"], r["quantity"], ts, r["product_id"]),
             )
             conn.execute(
                 "INSERT INTO order_items (order_id, product_id, sku_id, product_name, sku_name, price, quantity, image_url) VALUES (?,?,?,?,?,?,?,?)",
@@ -396,7 +399,7 @@ def seller_ship_order(seller_id: int, order_id: int) -> dict | None:
             (order_id, seller_id, seller_id),
         ).fetchone()
         if not row: return None
-        conn.execute("UPDATE orders SET status = 'shipped', updated_at = ? WHERE order_id = ?", (ts, order_id))
+        conn.execute("UPDATE orders SET status = 'shipped', shipped_at = ?, updated_at = ? WHERE order_id = ?", (ts, ts, order_id))
     return get_order(order_id, row["user_id"])
 
 
