@@ -33,3 +33,6 @@ htmlcov/
 .coverage
 exports/
 tmp_recommendation/
+
+# MinIO 本地数据
+minio_data/
