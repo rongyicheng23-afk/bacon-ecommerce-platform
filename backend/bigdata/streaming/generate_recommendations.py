@@ -75,6 +75,7 @@ def generate(
     batch_date: str,
 ) -> list[dict]:
     conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA foreign_keys = ON")
     conn.row_factory = sqlite3.Row
 
     # 所有活跃商品

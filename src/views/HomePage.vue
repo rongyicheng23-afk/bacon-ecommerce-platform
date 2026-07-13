@@ -216,18 +216,17 @@ onMounted(async () => {
   startCountdown()
   loadRecentViewed()
 
-  if (products.value.length === 0) {
-    loading.value = true
-    try {
+  loading.value = products.value.length === 0
+  try {
+    if (products.value.length === 0) {
       await productStore.fetchProducts()
-      await fetchRecommendations()
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : '加载商品失败'
-    } finally {
-      loading.value = false
     }
+    await fetchRecommendations()
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '加载失败'
+  } finally {
+    loading.value = false
   }
-  loadRecentViewed()
 })
 
 onUnmounted(() => {

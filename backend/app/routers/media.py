@@ -30,6 +30,8 @@ async def upload(
     authorization: AUTH = None,
 ) -> ApiResponse:
     user = _require_auth(authorization)
+    if folder not in VALID_FOLDERS:
+        raise HTTPException(400, f"无效的文件夹: {folder}")
     if user["role"] == "buyer" and folder not in ("avatars",):
         raise HTTPException(403, "买家仅可上传头像")
 

@@ -104,6 +104,8 @@ def recommendations(
 ) -> ApiResponse:
     """返回个性化推荐。优先读 recommendation_results（Hadoop 离线结果），无数据时兜底返回热销。"""
     user = get_current_user(authorization)
+    if not user and userId is not None:
+        raise HTTPException(403, "游客不能查看其他用户的推荐")
     real_uid = user["userId"] if user else userId
 
     with get_connection() as conn:

@@ -13,7 +13,12 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")/.."
 STREAMING_DIR="${ROOT_DIR}/bigdata/streaming"
 EXPORT_DIR="${ROOT_DIR}/exports"
-DB_PATH="${ROOT_DIR}/bacon_mall.db"
+
+# 从 .env 读取数据库路径，否则用默认值
+if [ -f "${ROOT_DIR}/.env" ]; then
+    DB_PATH=$(grep -E '^BACON_DB_PATH=' "${ROOT_DIR}/.env" | head -1 | sed 's/^BACON_DB_PATH=//' | xargs)
+fi
+DB_PATH="${DB_PATH:-${ROOT_DIR}/bacon_mall.db}"
 BATCH_DATE="$(date +%Y-%m-%d)"
 
 echo "========================================"
