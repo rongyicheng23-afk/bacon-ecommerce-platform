@@ -414,8 +414,6 @@ onUnmounted(() => {
           <div>
             <span class="section-kicker">For you</span>
             <h2 id="feed-title">为你精选</h2>
-            <p v-if="recommendationSummary" class="recommendation-hint">{{ recommendationSummary }}
-            </p>
           </div>
           <button type="button" class="more-link" @click="router.push('/products')">查看更多</button>
         </div>
