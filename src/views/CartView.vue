@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProductStore } from '@/stores/productStore'
 import type { Product } from '@/types'
-import { readCartItems, saveCartItems, type CartLine } from '@/utils/cart'
+import type { CartLine } from '@/utils/cart'
+import api from '@/services/api'
 import { computeBestDiscount, claimCoupon, allCoupons, readClaimedCoupons, type Coupon } from '@/utils/coupons'
-
-type BehaviorAction = 'cart_update' | 'cart_remove' | 'checkout' | 'view_recommendation'
 
 const router = useRouter()
 const productStore = useProductStore()
@@ -54,49 +53,67 @@ const handleClaim = (couponId: number) => {
   }
 }
 
-const saveCart = () => {
-  saveCartItems(cartItems.value)
+type CartApiItem = Omit<CartLine, 'id'> & { cartItemId: number }
+
+const applyCart = (items: CartApiItem[]) => {
+  const selected = new Set(cartItems.value.filter((item) => item.selected).map((item) => item.id))
+  cartItems.value = items.map((item) => ({
+    ...item,
+    id: item.cartItemId,
+    selected: selected.size ? selected.has(item.cartItemId) : item.selected,
+  }))
 }
 
-const recordBehavior = (product: Pick<CartLine, 'productId' | 'name' | 'category'>, action: BehaviorAction) => {
-  const logs = JSON.parse(localStorage.getItem('behaviorLogs') || '[]')
-  logs.push({
-    userId: 1,
-    productId: product.productId,
-    productName: product.name,
-    action,
-    category: product.category,
-    timestamp: new Date().toISOString()
-  })
-  localStorage.setItem('behaviorLogs', JSON.stringify(logs.slice(-100)))
+const fetchCart = async () => {
+  const response = await api.get<{ code: string; data: { items: CartApiItem[] } }>('/cart')
+  applyCart(response.data.data.items || [])
 }
 
-const setAllSelected = (checked: boolean) => {
-  cartItems.value = cartItems.value.map((item) => ({ ...item, selected: checked }))
+const setAllSelected = async (checked: boolean) => {
+  try {
+    await Promise.all(cartItems.value.map((item) => api.put(`/cart/items/${item.id}`, { selected: checked })))
+    await fetchCart()
+  } catch (error) {
+    actionMessage.value = error instanceof Error ? error.message : '更新勾选状态失败'
+  }
 }
 
-const toggleItem = (id: number) => {
-  cartItems.value = cartItems.value.map((item) => (item.id === id ? { ...item, selected: !item.selected } : item))
+const toggleItem = async (id: number) => {
+  const item = cartItems.value.find((line) => line.id === id)
+  if (!item) return
+  try {
+    const response = await api.put<{ code: string; data: { items: CartApiItem[] } }>(`/cart/items/${id}`, { selected: !item.selected })
+    applyCart(response.data.data.items || [])
+  } catch (error) {
+    actionMessage.value = error instanceof Error ? error.message : '更新勾选状态失败'
+  }
 }
 
-const setQuantity = (id: number, quantity: number) => {
-  cartItems.value = cartItems.value.map((item) => {
-    if (item.id !== id) return item
-    const nextQuantity = Math.max(1, Math.min(quantity, item.stock || 1))
-    recordBehavior(item, 'cart_update')
-    return { ...item, quantity: nextQuantity }
-  })
+const setQuantity = async (id: number, quantity: number) => {
+  try {
+    const response = await api.put<{ code: string; data: { items: CartApiItem[] } }>(`/cart/items/${id}`, { quantity })
+    applyCart(response.data.data.items || [])
+  } catch (error) {
+    actionMessage.value = error instanceof Error ? error.message : '更新数量失败'
+  }
 }
 
-const removeItem = (id: number) => {
-  const target = cartItems.value.find((item) => item.id === id)
-  if (target) recordBehavior(target, 'cart_remove')
-  cartItems.value = cartItems.value.filter((item) => item.id !== id)
+const removeItem = async (id: number) => {
+  try {
+    const response = await api.delete<{ code: string; data: { items: CartApiItem[] } }>(`/cart/items/${id}`)
+    applyCart(response.data.data.items || [])
+  } catch (error) {
+    actionMessage.value = error instanceof Error ? error.message : '删除商品失败'
+  }
 }
 
-const clearSelected = () => {
-  selectedItems.value.forEach((item) => recordBehavior(item, 'cart_remove'))
-  cartItems.value = cartItems.value.filter((item) => !item.selected)
+const clearSelected = async () => {
+  try {
+    await Promise.all(selectedItems.value.map((item) => api.delete(`/cart/items/${item.id}`)))
+    await fetchCart()
+  } catch (error) {
+    actionMessage.value = error instanceof Error ? error.message : '删除商品失败'
+  }
 }
 
 const checkout = () => {
@@ -105,7 +122,6 @@ const checkout = () => {
     return
   }
 
-  selectedItems.value.forEach((item) => recordBehavior(item, 'checkout'))
   localStorage.setItem(
     'checkoutDraft',
     JSON.stringify({
@@ -127,14 +143,6 @@ const openProduct = (productId: number) => {
 }
 
 const openRecommendation = (product: Product) => {
-  recordBehavior(
-    {
-      productId: product.productId,
-      name: product.name,
-      category: product.category || '精选'
-    },
-    'view_recommendation'
-  )
   router.push(`/product/${product.productId}`)
 }
 
@@ -143,15 +151,13 @@ const handleImageError = (event: Event) => {
   img.src = 'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=900&q=85'
 }
 
-watch(cartItems, saveCart, { deep: true })
-
 onMounted(async () => {
   try {
     if (productStore.products.length === 0) {
       await productStore.fetchProducts()
     }
 
-    cartItems.value = readCartItems()
+    await fetchCart()
   } finally {
     loading.value = false
   }

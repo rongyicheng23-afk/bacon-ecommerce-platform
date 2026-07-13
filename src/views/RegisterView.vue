@@ -57,7 +57,7 @@ const handleRegister = async () => {
       <div>
         <span>Join Bacon Mall</span>
         <h1>创建账号后体验完整电商购物流程</h1>
-        <p>注册信息会暂时保存在浏览器本地，后续接 FastAPI 时会迁移到 SQLite 或 MySQL 用户表。</p>
+        <p>注册信息会写入 FastAPI 后端的 SQLite 数据库，后续可平滑迁移至 MySQL。</p>
       </div>
 
       <ul>
@@ -71,7 +71,7 @@ const handleRegister = async () => {
       <div class="auth-heading">
         <span>Create account</span>
         <h2>注册账号</h2>
-        <p>填写基础信息，先完成前端最小可运行版本。</p>
+        <p>填写基础信息，注册后将自动登录。</p>
       </div>
 
       <form class="auth-form" @submit.prevent="handleRegister">

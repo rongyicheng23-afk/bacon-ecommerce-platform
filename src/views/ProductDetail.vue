@@ -4,9 +4,9 @@ import { useRoute, useRouter } from 'vue-router'
 import type { Product, ProductSku } from '@/types'
 import { productService } from '@/services/productService'
 import { useProductStore } from '@/stores/productStore'
-import { addProductToCart } from '@/utils/cart'
 import { readFavoriteIds, toggleFavoriteId } from '@/utils/favorites'
 import { behaviorService } from '@/services/behaviorService'
+import { commerceService } from '@/services/commerceService'
 import MagnifiableImage from '@/components/MagnifiableImage.vue'
 
 type BehaviorAction = 'view' | 'favorite' | 'unfavorite' | 'cart' | 'buy'
@@ -254,30 +254,39 @@ const isFavorite = computed(() => {
   return Boolean(product.value && favoriteIds.value.includes(product.value.productId))
 })
 
-const toggleFavorite = () => {
+const toggleFavorite = async () => {
   if (!product.value || !canBuy.value) return
   const wasFavorite = isFavorite.value
-  favoriteIds.value = toggleFavoriteId(product.value.productId)
-  handleAction(wasFavorite ? 'unfavorite' : 'favorite')
+  try {
+    if (localStorage.getItem('token')) {
+      favoriteIds.value = await commerceService.toggleFavorite(product.value.productId, wasFavorite)
+    } else {
+      favoriteIds.value = toggleFavoriteId(product.value.productId)
+    }
+    handleAction(wasFavorite ? 'unfavorite' : 'favorite')
+  } catch (error) {
+    actionMessage.value = error instanceof Error ? error.message : '收藏操作失败'
+  }
 }
 
-const addToCart = () => {
+const addToCart = async () => {
   if (!product.value || !canBuy.value) return
-  addProductToCart(product.value, {
-    quantity: quantity.value,
-    sku: selectedSku.value ?? undefined
-  })
-  handleAction('cart')
+  if (!localStorage.getItem('token')) {
+    router.push({ path: '/login', query: { redirect: route.fullPath } })
+    return
+  }
+  try {
+    await commerceService.addToCart(product.value, selectedSku.value, quantity.value)
+    handleAction('cart')
+  } catch (error) {
+    actionMessage.value = error instanceof Error ? error.message : '加入购物车失败'
+  }
 }
 
-const buyNow = () => {
+const buyNow = async () => {
   if (!product.value || !canBuy.value) return
-  addProductToCart(product.value, {
-    quantity: quantity.value,
-    sku: selectedSku.value ?? undefined
-  })
-  handleAction('buy')
-  router.push('/cart')
+  await addToCart()
+  if (localStorage.getItem('token')) router.push('/cart')
 }
 
 const openRelatedProduct = (target: Product) => {
@@ -312,8 +321,12 @@ const handleImageError = (event: Event) => {
 
 watch(() => route.params.id, fetchProduct)
 
-onMounted(() => {
-  favoriteIds.value = readFavoriteIds()
+onMounted(async () => {
+  if (localStorage.getItem('token')) {
+    try { favoriteIds.value = await commerceService.favorites() } catch { favoriteIds.value = [] }
+  } else {
+    favoriteIds.value = readFavoriteIds()
+  }
   fetchProduct()
 })
 </script>

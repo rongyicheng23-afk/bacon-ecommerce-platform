@@ -3,7 +3,7 @@ import api from './api'
 type BehaviorAction = 'view' | 'search' | 'favorite' | 'unfavorite' | 'cart' | 'buy' | 'purchase'
 
 interface BehaviorPayload {
-  productId: number
+  productId?: number
   productName?: string
   action: BehaviorAction
   category?: string
@@ -13,6 +13,7 @@ interface BehaviorPayload {
   orderId?: number
   amount?: number
   source?: string
+  queryText?: string
 }
 
 interface BehaviorResponse {
@@ -23,6 +24,8 @@ interface BehaviorResponse {
 
 export const behaviorService = {
   async send(payload: BehaviorPayload): Promise<void> {
+    // 本项目只把已登录买家的行为送入推荐数据集，避免游客数据污染偏好计算。
+    if (!localStorage.getItem('token')) return
     let sessionId = sessionStorage.getItem('bacon_session_id')
     if (!sessionId) {
       sessionId = 'sess-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8)
@@ -44,6 +47,7 @@ export const behaviorService = {
         orderId: payload.orderId,
         amount: payload.amount,
         source: payload.source,
+        queryText: payload.queryText,
         sessionId,
       })
     } catch {

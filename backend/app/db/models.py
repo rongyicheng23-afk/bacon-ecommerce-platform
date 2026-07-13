@@ -226,6 +226,15 @@ def create_tables(conn: sqlite3.Connection) -> None:
             created_at  TEXT    NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS media_assets (
+            object_key    TEXT    NOT NULL,
+            folder        TEXT    NOT NULL CHECK(folder IN ('products','avatars','shop-logos')),
+            owner_user_id INTEGER NOT NULL,
+            created_at    TEXT    NOT NULL,
+            PRIMARY KEY (object_key, folder),
+            FOREIGN KEY (owner_user_id) REFERENCES users(user_id) ON DELETE CASCADE
+        );
+
         -- 索引
         CREATE INDEX IF NOT EXISTS idx_behavior_user_time
             ON behavior_logs(user_id, created_at);
@@ -251,6 +260,8 @@ def create_tables(conn: sqlite3.Connection) -> None:
             ON recommendation_results(user_id, batch_date);
         CREATE INDEX IF NOT EXISTS idx_recommendation_run_batch
             ON recommendation_runs(batch_date);
+        CREATE INDEX IF NOT EXISTS idx_media_assets_owner
+            ON media_assets(owner_user_id, folder);
     """)
 
     # ---- 兼容旧数据库的列补充 ----

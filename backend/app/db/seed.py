@@ -285,6 +285,21 @@ def seed_demo_data(conn: sqlite3.Connection) -> None:
                 (seller_row["user_id"], shop_name, description, "active", ts, ts),
             )
 
+    # 保证课程演示账号能直接完成下单流程。
+    demo_buyer = conn.execute(
+        "SELECT user_id, username, phone FROM users WHERE email = 'student@example.com'"
+    ).fetchone()
+    if demo_buyer and not conn.execute(
+        "SELECT 1 FROM addresses WHERE user_id = ?", (demo_buyer["user_id"],)
+    ).fetchone():
+        conn.execute(
+            "INSERT INTO addresses (user_id, name, phone, detail, is_default, created_at, updated_at) VALUES (?,?,?,?,?,?,?)",
+            (
+                demo_buyer["user_id"], demo_buyer["username"], demo_buyer["phone"] or "13800002026",
+                "广东省广州市天河区 Bacon Mall 演示收货地址", 1, ts, ts,
+            ),
+        )
+
     seller = conn.execute("SELECT user_id FROM users WHERE role = 'seller' LIMIT 1").fetchone()
     seller_id = seller["user_id"] if seller else None
     shop = conn.execute("SELECT shop_id FROM shops WHERE owner_user_id = ?", (seller_id,)).fetchone() if seller_id else None

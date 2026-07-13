@@ -1,6 +1,7 @@
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
+// FastAPI 默认运行在 8001；部署时可通过 VITE_API_BASE_URL 覆盖。
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001/api'
 
 const api = axios.create({
   baseURL: BASE_URL,

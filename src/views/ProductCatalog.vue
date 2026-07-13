@@ -108,7 +108,11 @@ const toggleFavorite = (p: Product) => {
   setTimeout(() => actionMessage.value = '', 1500)
 }
 const addToCart = (p: Product) => { addProductToCart(p); actionMessage.value = `已加购《${p.name}》`; setTimeout(() => actionMessage.value = '', 1500) }
-const submitSearch = () => router.replace({ path: '/products', query: { q: keyword.value.trim() || undefined, category: selectedCategory.value === '全部' ? undefined : selectedCategory.value, subcategory: selectedSubcategory.value === '全部' ? undefined : selectedSubcategory.value, sort: sortType.value === 'default' ? undefined : sortType.value, minPrice: minPrice.value || undefined, maxPrice: maxPrice.value || undefined, stock: stockOnly.value ? '1' : undefined } })
+const submitSearch = () => {
+  const queryText = keyword.value.trim()
+  if (queryText) behaviorService.send({ action: 'search', queryText, source: 'product_catalog' })
+  router.replace({ path: '/products', query: { q: queryText || undefined, category: selectedCategory.value === '全部' ? undefined : selectedCategory.value, subcategory: selectedSubcategory.value === '全部' ? undefined : selectedSubcategory.value, sort: sortType.value === 'default' ? undefined : sortType.value, minPrice: minPrice.value || undefined, maxPrice: maxPrice.value || undefined, stock: stockOnly.value ? '1' : undefined } })
+}
 const selectCategory = (c: string) => {
   if (c === '全部') { if (selectedSubcategory.value !== '全部') selectedSubcategory.value = '全部'; else selectedCategory.value = '全部' }
   else if (mainCategories.value.includes(c)) { selectedCategory.value = c; selectedSubcategory.value = '全部' }

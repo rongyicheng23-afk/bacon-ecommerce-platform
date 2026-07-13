@@ -120,7 +120,7 @@ def add_cart_item(user_id: int, product_id: int, sku_id: int, quantity: int = 1)
     return get_cart(user_id)
 
 
-def update_cart_item(user_id: int, item_id: int, quantity: int) -> dict:
+def update_cart_item(user_id: int, item_id: int, quantity: int | None = None, selected: bool | None = None) -> dict:
     ts = now_iso()
     with get_connection() as conn:
         row = conn.execute(
@@ -132,10 +132,12 @@ def update_cart_item(user_id: int, item_id: int, quantity: int) -> dict:
         ).fetchone()
         if not row:
             raise ValueError("购物车商品不存在")
-        if quantity > row["stock"]:
+        if quantity is not None and quantity > row["stock"]:
             raise ValueError(f"库存不足，当前最多可购买 {row['stock']} 件")
-        conn.execute("UPDATE cart_items SET quantity = ?, updated_at = ? WHERE cart_item_id = ? AND user_id = ?",
-                     (quantity, ts, item_id, user_id))
+        conn.execute(
+            "UPDATE cart_items SET quantity = COALESCE(?, quantity), selected = COALESCE(?, selected), updated_at = ? WHERE cart_item_id = ? AND user_id = ?",
+            (quantity, None if selected is None else int(selected), ts, item_id, user_id),
+        )
     return get_cart(user_id)
 
 

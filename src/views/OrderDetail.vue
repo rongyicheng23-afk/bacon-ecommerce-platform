@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import api from '@/services/api'
 
 type OrderStatus = 'pending_payment' | 'paid' | 'shipped' | 'completed' | 'cancelled'
 
@@ -153,7 +154,7 @@ const handleImageError = (event: Event) => {
   img.src = 'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=500&q=85'
 }
 
-const readOrder = () => {
+const readOrder = async () => {
   const orderId = Number(route.params.id)
   if (Number.isNaN(orderId)) {
     router.push('/orders')
@@ -161,31 +162,11 @@ const readOrder = () => {
   }
 
   try {
-    const orders = JSON.parse(localStorage.getItem('mockOrders') || '[]') as MockOrder[]
-    order.value = orders.find((item) => item.orderId === orderId) || null
+    const response = await api.get<{ code: string; data: MockOrder }>(`/orders/${orderId}`)
+    order.value = response.data.data
   } catch {
     order.value = null
   }
-}
-
-const saveOrder = () => {
-  if (!order.value) return
-  const orders = JSON.parse(localStorage.getItem('mockOrders') || '[]') as MockOrder[]
-  const nextOrders = orders.map((item) => (item.orderId === order.value?.orderId ? order.value : item))
-  localStorage.setItem('mockOrders', JSON.stringify(nextOrders))
-}
-
-const recordBehavior = (action: string) => {
-  if (!order.value) return
-  const logs = JSON.parse(localStorage.getItem('behaviorLogs') || '[]')
-  logs.push({
-    userId: 1,
-    action,
-    orderId: order.value.orderId,
-    amount: order.value.payableAmount,
-    timestamp: new Date().toISOString()
-  })
-  localStorage.setItem('behaviorLogs', JSON.stringify(logs.slice(-100)))
 }
 
 const showMessage = (message: string) => {
@@ -195,29 +176,35 @@ const showMessage = (message: string) => {
   }, 1600)
 }
 
-const updateStatus = (status: OrderStatus, message: string) => {
-  if (!order.value) return
-  order.value.status = status
-  saveOrder()
-  recordBehavior(`order_${status}`)
-  showMessage(message)
-}
-
 const payOrder = () => {
   if (!order.value) return
   router.push(`/payment/${order.value.orderId}`)
 }
 
-const cancelOrder = () => {
-  updateStatus('cancelled', '订单已取消')
+const cancelOrder = async () => {
+  if (!order.value) return
+  try {
+    const response = await api.post<{ code: string; data: MockOrder }>(`/orders/${order.value.orderId}/cancel`)
+    order.value = response.data.data
+    showMessage('订单已取消')
+  } catch (error) {
+    showMessage(error instanceof Error ? error.message : '取消订单失败')
+  }
 }
 
-const confirmReceive = () => {
-  updateStatus('completed', '已确认收货')
+const confirmReceive = async () => {
+  if (!order.value) return
+  try {
+    const response = await api.post<{ code: string; data: MockOrder }>(`/orders/${order.value.orderId}/receive`)
+    order.value = response.data.data
+    showMessage('已确认收货')
+  } catch (error) {
+    showMessage(error instanceof Error ? error.message : '确认收货失败')
+  }
 }
 
-onMounted(() => {
-  readOrder()
+onMounted(async () => {
+  await readOrder()
 })
 </script>
 

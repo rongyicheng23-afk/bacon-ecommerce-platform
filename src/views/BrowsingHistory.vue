@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProductStore } from '@/stores/productStore'
+import api from '@/services/api'
 
 interface BehaviorEntry {
   userId: number
@@ -18,12 +19,9 @@ const logs = ref<BehaviorEntry[]>([])
 const filterAction = ref<string>('all')
 const todayStr = new Date().toISOString().slice(0, 10)
 
-const readLogs = () => {
-  try {
-    logs.value = JSON.parse(localStorage.getItem('behaviorLogs') || '[]') as BehaviorEntry[]
-  } catch {
-    logs.value = []
-  }
+const readLogs = async () => {
+  const response = await api.get<{ code: string; data: BehaviorEntry[] }>('/history')
+  logs.value = response.data.data || []
 }
 
 const actionLabel: Record<string, string> = {
@@ -69,9 +67,9 @@ const goProduct = (productId: number) => {
   router.push(`/product/${productId}`)
 }
 
-const clearLogs = () => {
+const clearLogs = async () => {
   if (confirm('确定要清空所有浏览记录吗？')) {
-    localStorage.setItem('behaviorLogs', '[]')
+    await api.delete('/history')
     logs.value = []
   }
 }
@@ -81,7 +79,7 @@ const handleImageError = (e: Event) => {
 }
 
 onMounted(async () => {
-  readLogs()
+  try { await readLogs() } catch { logs.value = [] }
   if (productStore.products.length === 0) {
     await productStore.fetchProducts()
   }

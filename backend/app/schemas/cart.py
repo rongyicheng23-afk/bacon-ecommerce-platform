@@ -8,7 +8,8 @@ class CartItemAdd(BaseModel):
 
 
 class CartItemUpdate(BaseModel):
-    quantity: int = Field(ge=1, le=99)
+    quantity: int | None = Field(default=None, ge=1, le=99)
+    selected: bool | None = None
 
 
 class AddressCreate(BaseModel):

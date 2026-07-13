@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import type { User, LoginRequest, RegisterRequest } from '../types/user'
-import { getMockUsers, saveMockUsers, createMockUser, toPublicUser } from '@/utils/mockUsers'
+import { userService } from '@/services/userService'
 
 const currentUserKey = 'currentUser'
 
@@ -52,19 +52,11 @@ export const useUserStore = defineStore('user', {
       this.loading = true
       this.error = null
       try {
-        const users = getMockUsers()
-        const user = users.find((item) => item.email === credentials.email)
-
-        if (!user || user.password !== credentials.password) {
-          throw new Error('邮箱或密码不正确。测试账号：student@example.com / seller@example.com / 123456')
-        }
-
-        const publicUser = toPublicUser(user)
-        const token = `mock-token-${user.userId}`
-
-        this.token = token
-        this.currentUser = publicUser
-        saveCurrentUser(publicUser, token)
+        const response = await userService.login(credentials)
+        if (response.code !== '0000') throw new Error(response.info || '登录失败')
+        this.token = response.data.token
+        this.currentUser = response.data.user
+        saveCurrentUser(response.data.user, response.data.token)
       } catch (error) {
         this.error = error instanceof Error ? error.message : '登录失败'
         throw error
@@ -77,20 +69,12 @@ export const useUserStore = defineStore('user', {
       this.loading = true
       this.error = null
       try {
-        const users = getMockUsers()
-
-        if (users.some((user) => user.email === data.email)) {
-          throw new Error('该邮箱已经注册，请直接登录')
-        }
-
-        const user = createMockUser(data)
-        const publicUser = toPublicUser(user)
-        const token = `mock-token-${user.userId}`
-
-        saveMockUsers([user, ...users])
-        this.token = token
-        this.currentUser = publicUser
-        saveCurrentUser(publicUser, token)
+        const { confirmPassword: _confirmPassword, ...payload } = data
+        const response = await userService.register(payload as RegisterRequest)
+        if (response.code !== '0000') throw new Error(response.info || '注册失败')
+        this.token = response.data.token
+        this.currentUser = response.data.user
+        saveCurrentUser(response.data.user, response.data.token)
       } catch (error) {
         this.error = error instanceof Error ? error.message : '注册失败'
         throw error
@@ -100,6 +84,7 @@ export const useUserStore = defineStore('user', {
     },
 
     async logout() {
+      await userService.logout()
       this.token = null
       this.currentUser = null
       localStorage.removeItem('token')

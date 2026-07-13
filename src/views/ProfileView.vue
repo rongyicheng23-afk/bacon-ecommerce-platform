@@ -5,7 +5,8 @@ import { useUserStore } from '@/stores/userStore'
 import { useProductStore } from '@/stores/productStore'
 import type { Product } from '@/types'
 import { readFavoriteIds } from '@/utils/favorites'
-import { readAddresses, saveAddresses, createAddress, updateAddress, deleteAddress, type Address } from '@/utils/addresses'
+import type { Address } from '@/utils/addresses'
+import { addressService } from '@/services/addressService'
 
 interface BehaviorLog {
   userId?: number
@@ -147,7 +148,7 @@ const clearBehaviorLogs = () => {
 }
 
 // ---- 收货地址管理 ----
-const myAddresses = ref<Address[]>(readAddresses())
+const myAddresses = ref<Address[]>([])
 const editingAddress = ref<Partial<Address> | null>(null)
 const addressForm = ref({ name: '', phone: '', detail: '' })
 
@@ -165,22 +166,30 @@ const cancelEditAddress = () => {
   editingAddress.value = null
 }
 
-const saveAddressForm = () => {
+const saveAddressForm = async () => {
   const form = addressForm.value
   if (!form.name.trim() || !form.phone.trim() || !form.detail.trim()) return
   const e = editingAddress.value
-  if (e?.id && e.id > 0) {
-    updateAddress(e.id, form)
-  } else {
-    createAddress(form)
+  try {
+    if (e?.id && e.id > 0) {
+      await addressService.update(e.id, form)
+    } else {
+      await addressService.create({ ...form, isDefault: myAddresses.value.length === 0 })
+    }
+    myAddresses.value = await addressService.list()
+    editingAddress.value = null
+  } catch (error) {
+    actionMessage.value = error instanceof Error ? error.message : '保存地址失败'
   }
-  myAddresses.value = readAddresses()
-  editingAddress.value = null
 }
 
-const removeAddress = (id: number) => {
-  deleteAddress(id)
-  myAddresses.value = readAddresses()
+const removeAddress = async (id: number) => {
+  try {
+    await addressService.remove(id)
+    myAddresses.value = await addressService.list()
+  } catch (error) {
+    actionMessage.value = error instanceof Error ? error.message : '删除地址失败'
+  }
 }
 
 const handleImageError = (event: Event) => {
@@ -194,6 +203,7 @@ onMounted(async () => {
   if (productStore.products.length === 0) {
     await productStore.fetchProducts()
   }
+  try { myAddresses.value = await addressService.list() } catch { myAddresses.value = [] }
 })
 </script>
 

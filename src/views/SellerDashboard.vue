@@ -2,31 +2,12 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/userStore'
-import { useProductStore } from '@/stores/productStore'
-import type { Product } from '@/types'
-
-interface SellerOrderItem {
-  category?: string
-  productId?: number
-  name?: string
-  price?: number
-  quantity?: number
-  skuName?: string
-  [key: string]: unknown
-}
-
-interface SellerOrder {
-  orderId: number
-  status: 'pending_payment' | 'paid' | 'shipped' | 'completed' | 'cancelled'
-  payableAmount: number
-  items?: SellerOrderItem[]
-  createdAt: string
-}
+import { sellerService, type SellerOrder, type SellerProduct } from '@/services/sellerService'
 
 const router = useRouter()
 const userStore = useUserStore()
-const productStore = useProductStore()
 const orders = ref<SellerOrder[]>([])
+const sellerProducts = ref<SellerProduct[]>([])
 
 /** ---- 管理面板 ---- */
 type ManageTab = 'products' | 'orders' | 'analytics'
@@ -35,24 +16,30 @@ const showManage = ref(false)
 const manageMsg = ref('')
 
 // 商品管理
-const editingProduct = ref<Product | null>(null)
+const editingProduct = ref<SellerProduct | null>(null)
 const editStock = ref(0)
 const editPrice = ref(0)
 
-const openProductEdit = (p: Product) => {
+const openProductEdit = (p: SellerProduct) => {
   editingProduct.value = { ...p }
   editStock.value = p.stock
   editPrice.value = p.price
 }
 
-const saveProduct = () => {
+const saveProduct = async () => {
   if (!editingProduct.value) return
-  const idx = productStore.products.findIndex(p => p.productId === editingProduct.value!.productId)
-  if (idx >= 0) {
-    productStore.products[idx] = { ...productStore.products[idx], stock: editStock.value, price: editPrice.value }
+  try {
+    const updated = await sellerService.updateProduct(editingProduct.value.productId, {
+      stock: editStock.value,
+      price: editPrice.value,
+    })
+    const index = sellerProducts.value.findIndex((p) => p.productId === updated.productId)
+    if (index >= 0) sellerProducts.value[index] = updated
     manageMsg.value = `已更新「${editingProduct.value.name}」`
     editingProduct.value = null
     setTimeout(() => { manageMsg.value = '' }, 2000)
+  } catch (error) {
+    manageMsg.value = error instanceof Error ? error.message : '商品更新失败'
   }
 }
 
@@ -61,42 +48,23 @@ const allSellerOrders = computed(() => {
   return [...orders.value].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 })
 
-const shipOrder = (orderId: number) => {
-  const order = orders.value.find(o => o.orderId === orderId)
-  if (order && order.status === 'paid') {
-    order.status = 'shipped'
-    syncOrdersToStorage()
+const shipOrder = async (orderId: number) => {
+  try {
+    const updated = await sellerService.shipOrder(orderId)
+    const index = orders.value.findIndex((order) => order.orderId === orderId)
+    if (index >= 0) orders.value[index] = updated
     manageMsg.value = `订单 ${orderId} 已发货`
     setTimeout(() => { manageMsg.value = '' }, 2000)
+  } catch (error) {
+    manageMsg.value = error instanceof Error ? error.message : '订单发货失败'
   }
-}
-
-const completeOrder = (orderId: number) => {
-  const order = orders.value.find(o => o.orderId === orderId)
-  if (order && order.status === 'shipped') {
-    order.status = 'completed'
-    syncOrdersToStorage()
-    manageMsg.value = `订单 ${orderId} 已完成`
-    setTimeout(() => { manageMsg.value = '' }, 2000)
-  }
-}
-
-const syncOrdersToStorage = () => {
-  localStorage.setItem('mockOrders', JSON.stringify(orders.value))
 }
 
 const sellerName = computed(() => userStore.currentUser?.shopName || userStore.currentUser?.username || 'Bacon 商家')
 const mainCategory = computed(() => userStore.currentUser?.mainCategory || '综合类目')
 
-/** 过滤出属于该商家类目的订单 */
-const sellerOrders = computed(() => {
-  const cat = userStore.currentUser?.mainCategory
-  if (!cat) return orders.value
-  return orders.value.filter((order) => {
-    if (!order.items || order.items.length === 0) return true
-    return order.items.some((item) => item.category === cat)
-  })
-})
+// 后端已按当前商家过滤订单和商品，前端无需再用类目猜测归属。
+const sellerOrders = computed(() => orders.value)
 
 const paidOrders = computed(() => sellerOrders.value.filter((order) => order.status === 'paid'))
 const shippedOrders = computed(() => sellerOrders.value.filter((order) => order.status === 'shipped'))
@@ -105,12 +73,6 @@ const totalSales = computed(() => {
   return sellerOrders.value
     .filter((order) => order.status !== 'pending_payment' && order.status !== 'cancelled')
     .reduce((sum, order) => sum + order.payableAmount, 0)
-})
-
-const sellerProducts = computed(() => {
-  const cat = userStore.currentUser?.mainCategory
-  if (!cat) return productStore.products
-  return productStore.products.filter((p) => p.category === cat)
 })
 
 const sellerProductCount = computed(() => sellerProducts.value.length)
@@ -125,21 +87,12 @@ const recentOrders = computed(() => {
     .slice(0, 5)
 })
 
-const statusText: Record<SellerOrder['status'], string> = {
+const statusText: Record<string, string> = {
   pending_payment: '待付款',
   paid: '待发货',
   shipped: '待收货',
   completed: '已完成',
   cancelled: '已取消'
-}
-
-const readOrders = () => {
-  try {
-    const data = JSON.parse(localStorage.getItem('mockOrders') || '[]') as SellerOrder[]
-    orders.value = Array.isArray(data) ? data : []
-  } catch {
-    orders.value = []
-  }
 }
 
 const formatDate = (dateString: string) => {
@@ -152,9 +105,15 @@ const formatDate = (dateString: string) => {
 }
 
 onMounted(async () => {
-  readOrders()
-  if (productStore.products.length === 0) {
-    await productStore.fetchProducts()
+  try {
+    const [productData, orderData] = await Promise.all([
+      sellerService.getProducts(),
+      sellerService.getOrders(),
+    ])
+    sellerProducts.value = productData
+    orders.value = orderData
+  } catch (error) {
+    manageMsg.value = error instanceof Error ? error.message : '商家数据加载失败'
   }
 })
 </script>
@@ -291,11 +250,10 @@ onMounted(async () => {
                 <td>#{{ o.orderId }}</td>
                 <td>¥{{ o.payableAmount.toFixed(2) }}</td>
                 <td><span :class="'status-tag status-' + o.status">{{ statusText[o.status] }}</span></td>
-                <td class="order-items-cell">{{ (o.items || []).map((i: SellerOrderItem) => i.name || i.skuName || '').join('、') || '—' }}</td>
+                <td class="order-items-cell">{{ (o.items || []).map((i) => i.productName).join('、') || '—' }}</td>
                 <td>{{ formatDate(o.createdAt) }}</td>
                 <td class="action-cell">
                   <button v-if="o.status === 'paid'" class="btn-ship" @click="shipOrder(o.orderId)">发货</button>
-                  <button v-else-if="o.status === 'shipped'" class="btn-done" @click="completeOrder(o.orderId)">完成</button>
                   <span v-else>—</span>
                 </td>
               </tr>

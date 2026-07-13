@@ -1,4 +1,5 @@
 import type { Product, ProductSku } from '@/types'
+import api from '@/services/api'
 
 export interface CartLine {
   /** 唯一标识：有 SKU 时用 skuId，否则用 productId */
@@ -87,6 +88,14 @@ export const addProductToCart = (product: Product, options: AddToCartOptions = {
     : [toCartLine(product, { quantity, sku }), ...items]
 
   saveCartItems(nextItems)
+  // 未登录时保留本地预览；登录后由后端校验库存、合并 SKU，并写入加购行为。
+  if (localStorage.getItem('token')) {
+    void api.post('/cart/items', {
+      productId: product.productId,
+      skuId: sku?.skuId,
+      quantity,
+    }).catch(() => undefined)
+  }
   return nextItems.find((item) => item.id === matchId)
 }
 
