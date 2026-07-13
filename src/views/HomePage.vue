@@ -20,16 +20,12 @@ const favoriteIds = ref<number[]>([])
 const products = computed(() => productStore.products)
 const bannerProducts = computed(() => products.value.slice(0, 3))
 const recommendedProducts = ref<Product[]>([])
-const recommendationSummary = ref('')
 
 const fetchRecommendations = async () => {
   try {
     const res = await api.get('/recommendations', { params: { limit: 60 } })
     if (res.data.code === '0000') {
       recommendedProducts.value = res.data.data || []
-      if (recommendedProducts.value.length > 0) {
-        recommendationSummary.value = '基于你的浏览偏好为你推荐'
-      }
     }
   } catch {
     // 兜底：用全量商品

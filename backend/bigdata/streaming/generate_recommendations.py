@@ -73,6 +73,7 @@ def generate(
     prod_scores: dict[int, dict[int, float]],
     top: int,
     batch_date: str,
+    output_path: str = "recommendations.txt",
 ) -> list[dict]:
     conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA foreign_keys = ON")
@@ -90,13 +91,14 @@ def generate(
     global_hot = sorted(products, key=lambda p: -p["sales_count"])
     hot_ids = [p["product_id"] for p in global_hot]
 
-    # 所有用户
-    users = conn.execute("SELECT user_id FROM users WHERE status = 'active' AND role = 'buyer'").fetchall()
-    all_user_ids = [u["user_id"] for u in users]
-
-    # 若没有用户偏好数据，添加已知用户
-    known_users = set(cat_scores.keys()) | set(prod_scores.keys())
-    for uid in all_user_ids:
+    # 只处理真实买家（排除游客0、商家等）
+    buyer_ids = {u["user_id"] for u in conn.execute(
+        "SELECT user_id FROM users WHERE status = 'active' AND role = 'buyer'"
+    ).fetchall()}
+    # Hadoop 输出的 userId 必须对应真实买家，否则跳过
+    known_users = (set(cat_scores.keys()) | set(prod_scores.keys())) & buyer_ids
+    # 为没有行为的买家补热销推荐（冷启动）
+    for uid in buyer_ids:
         if uid not in known_users:
             known_users.add(uid)
 
@@ -155,7 +157,7 @@ def generate(
                 })
 
     # 写入数据库 + 输出文件
-    with open(args.output, "w", encoding="utf-8") as out:
+    with open(output_path, "w", encoding="utf-8") as out:
         conn.execute("DELETE FROM recommendation_results WHERE batch_date = ?", (batch_date,))
         for rec in recommendations:
             conn.execute(
@@ -178,4 +180,4 @@ def generate(
 
 if __name__ == "__main__":
     args = parse_args()
-    generate(args.db, load_category_scores(args.category_scores), load_product_scores(args.product_scores), args.top, args.batch_date)
+    generate(args.db, load_category_scores(args.category_scores), load_product_scores(args.product_scores), args.top, args.batch_date, args.output)

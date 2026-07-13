@@ -65,8 +65,8 @@ def delete(object_key: str, folder: str = "products", authorization: AUTH = None
     if folder not in VALID_FOLDERS:
         raise HTTPException(400, f"无效的文件夹: {folder}")
     _validate_object_key(object_key)
-    # 头像只允许本人删
-    if folder == "avatars" and user["role"] != "admin":
-        raise HTTPException(403, "仅管理员可删除头像")
+    # 商品图和店铺图仅商家可删
+    if folder in ("products", "shop-logos") and user["role"] != "seller":
+        raise HTTPException(403, "仅商家可删除商品/店铺图片")
     delete_object(object_key, folder)
     return ApiResponse(data=None)
