@@ -25,6 +25,7 @@ const editName = ref('')
 const editDescription = ref('')
 const editCategory = ref('数码')
 const isNewProduct = ref(false)
+const pendingDeletes = ref<string[]>([])  // 待保存后删除的 MinIO keys
 const uploading = ref(false)
 
 const openProductEdit = (p: SellerProduct) => {
@@ -67,13 +68,11 @@ const uploadImage = async (e: Event) => {
   finally { uploading.value = false; (e.target as HTMLInputElement).value = '' }
 }
 
-const removeImage = async (idx: number) => {
+const removeImage = (idx: number) => {
   const url = editImageUrls.value[idx]
   if (url && url.includes('9002')) {
     const key = url.split('product-images/')[1]
-    if (key) {
-      try { await api.delete('/media/delete', { params: { object_key: key, folder: 'products' } }) } catch {}
-    }
+    if (key) pendingDeletes.value.push(key)
   }
   editImageUrls.value.splice(idx, 1)
 }
@@ -101,11 +100,22 @@ const saveProduct = async () => {
       if (index >= 0) sellerProducts.value[index] = updated
       manageMsg.value = `已更新「${updated.name}」`
     }
+    // 保存成功后删除已标记的 MinIO 图片
+    for (const key of pendingDeletes.value) {
+      try { await api.delete('/media/delete', { params: { object_key: key, folder: 'products' } }) } catch {}
+    }
+    pendingDeletes.value = []
     editingProduct.value = null; isNewProduct.value = false
     setTimeout(() => { manageMsg.value = '' }, 2000)
   } catch (error) {
     manageMsg.value = error instanceof Error ? error.message : '商品更新失败'
   }
+}
+
+const cancelEdit = () => {
+  pendingDeletes.value = []
+  editingProduct.value = null
+  isNewProduct.value = false
 }
 
 // 订单管理
@@ -301,7 +311,7 @@ onMounted(async () => {
             </div>
             <div class="edit-actions">
               <button class="btn-save" @click="saveProduct">保存</button>
-              <button class="btn-cancel" @click="editingProduct = null; isNewProduct = false">取消</button>
+              <button class="btn-cancel" @click="cancelEdit">取消</button>
             </div>
           </div>
           <div style="margin-bottom:12px">
