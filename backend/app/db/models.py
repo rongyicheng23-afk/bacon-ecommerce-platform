@@ -227,12 +227,15 @@ def create_tables(conn: sqlite3.Connection) -> None:
         );
 
         CREATE TABLE IF NOT EXISTS media_assets (
-            object_key    TEXT    NOT NULL,
-            folder        TEXT    NOT NULL CHECK(folder IN ('products','avatars','shop-logos')),
-            owner_user_id INTEGER NOT NULL,
-            created_at    TEXT    NOT NULL,
-            PRIMARY KEY (object_key, folder),
-            FOREIGN KEY (owner_user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            asset_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+            owner_id    INTEGER NOT NULL,
+            object_key  TEXT    NOT NULL UNIQUE,
+            folder      TEXT    NOT NULL DEFAULT 'products',
+            filename    TEXT    NOT NULL,
+            content_type TEXT   NOT NULL DEFAULT 'image/webp',
+            size_bytes  INTEGER NOT NULL DEFAULT 0,
+            created_at  TEXT    NOT NULL,
+            FOREIGN KEY (owner_id) REFERENCES users(user_id)
         );
 
         -- 索引
@@ -260,8 +263,6 @@ def create_tables(conn: sqlite3.Connection) -> None:
             ON recommendation_results(user_id, batch_date);
         CREATE INDEX IF NOT EXISTS idx_recommendation_run_batch
             ON recommendation_runs(batch_date);
-        CREATE INDEX IF NOT EXISTS idx_media_assets_owner
-            ON media_assets(owner_user_id, folder);
     """)
 
     # ---- 兼容旧数据库的列补充 ----

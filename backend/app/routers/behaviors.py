@@ -20,29 +20,25 @@ def create_behavior(payload: BehaviorLogCreate, authorization: AUTH = None) -> A
         raise HTTPException(403, "游客不能指定其他用户的 userId")
     if not user and not payload.sessionId:
         raise HTTPException(400, "游客行为必须提供 sessionId")
-    if payload.action != "search" and payload.productId is None:
-        raise HTTPException(400, "该行为必须提供 productId")
-    if payload.action == "search" and not payload.queryText:
-        raise HTTPException(400, "搜索行为必须提供 queryText")
+    if payload.productId is None:
+        raise HTTPException(400, "行为日志必须提供 productId")
 
     with get_connection() as conn:
-        product = None
-        if payload.productId is not None:
-            product = conn.execute(
-                "SELECT name, category FROM products WHERE product_id = ?",
-                (payload.productId,),
-            ).fetchone()
-            if not product:
-                raise HTTPException(400, "商品不存在")
+        product = conn.execute(
+            "SELECT name, category FROM products WHERE product_id = ?",
+            (payload.productId,),
+        ).fetchone()
+        if not product:
+            raise HTTPException(400, "商品不存在")
 
         result = insert_behavior(
             conn,
             user_id=user["userId"] if user else None,
             session_id=payload.sessionId,
             product_id=payload.productId,
-            product_name=product["name"] if product else f"搜索：{payload.queryText}",
+            product_name=product["name"],
             action=payload.action,
-            category=product["category"] if product else payload.category,
+            category=product["category"],
             quantity=payload.quantity,
             sku_id=payload.skuId,
             sku_name=payload.skuName,

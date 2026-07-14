@@ -52,7 +52,7 @@ def cart_add(payload: CartItemAdd, authorization: AUTH = None) -> ApiResponse:
 def cart_update(item_id: int, payload: CartItemUpdate, authorization: AUTH = None) -> ApiResponse:
     u = _require_buyer(authorization)
     try:
-        return ApiResponse(data=update_cart_item(u["userId"], item_id, payload.quantity, payload.selected))
+        return ApiResponse(data=update_cart_item(u["userId"], item_id, payload.quantity))
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
 

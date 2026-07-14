@@ -21,4 +21,3 @@ class BehaviorLogCreate(BaseModel):
     amount: float | None = None
     itemCount: int | None = None
     source: str | None = Field(default=None, max_length=100)
-    queryText: str | None = Field(default=None, min_length=1, max_length=100)

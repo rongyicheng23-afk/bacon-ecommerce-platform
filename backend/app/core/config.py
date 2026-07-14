@@ -13,11 +13,11 @@ except ImportError:
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 DB_PATH = os.getenv("BACON_DB_PATH") or str(BASE_DIR / "bacon_mall.db")
 
-_cors_raw = os.getenv("BACON_CORS_ORIGINS") or "http://127.0.0.1:5173,http://localhost:5173"
+_cors_raw = os.getenv("BACON_CORS_ORIGINS") or "http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:5175,http://localhost:5173,http://localhost:5174,http://localhost:5175"
 CORS_ORIGINS = [o.strip() for o in _cors_raw.split(",") if o.strip()]
 
 # MinIO 配置
-MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT") or "127.0.0.1:9002"
+MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT") or "127.0.0.1:9000"
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY") or "minioadmin"
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY") or "minioadmin"
 MINIO_SECURE = (os.getenv("MINIO_SECURE") or "false").lower() == "true"

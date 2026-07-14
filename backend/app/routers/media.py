@@ -5,7 +5,6 @@ from fastapi import APIRouter, Header, HTTPException, UploadFile, File
 from app.schemas.common import ApiResponse
 from app.services.auth import get_current_user
 from app.services.media_service import upload_image, get_object_url, delete_object
-from app.db.database import get_connection, now_iso
 
 router = APIRouter(prefix="/api", tags=["媒体"])
 
@@ -45,12 +44,15 @@ async def upload(
 
     filename = file.filename or "upload.webp"
     object_key = upload_image(data, filename, file.content_type or "image/webp", folder)
+    url = get_object_url(object_key, folder)
+
+    # 记录到 media_assets 表
+    from app.db.database import get_connection, now_iso
     with get_connection() as conn:
         conn.execute(
-            "INSERT OR REPLACE INTO media_assets (object_key, folder, owner_user_id, created_at) VALUES (?,?,?,?)",
-            (object_key, folder, user["userId"], now_iso()),
+            "INSERT INTO media_assets (owner_id, object_key, folder, filename, content_type, size_bytes, created_at) VALUES (?,?,?,?,?,?,?)",
+            (user["userId"], object_key, folder, filename, file.content_type or "image/webp", len(data), now_iso()),
         )
-    url = get_object_url(object_key, folder)
 
     return ApiResponse(data={"objectKey": object_key, "url": url, "folder": folder})
 
@@ -71,19 +73,8 @@ def delete(object_key: str, folder: str = "products", authorization: AUTH = None
     if folder not in VALID_FOLDERS:
         raise HTTPException(400, f"无效的文件夹: {folder}")
     _validate_object_key(object_key)
-    # 商品图和店铺图仅商家可删；头像只能由上传者本人删除。
+    # 商品图和店铺图仅商家可删
     if folder in ("products", "shop-logos") and user["role"] != "seller":
         raise HTTPException(403, "仅商家可删除商品/店铺图片")
-    with get_connection() as conn:
-        asset = conn.execute(
-            "SELECT owner_user_id FROM media_assets WHERE object_key = ? AND folder = ?",
-            (object_key, folder),
-        ).fetchone()
-        if not asset or asset["owner_user_id"] != user["userId"]:
-            raise HTTPException(403, "无权删除该媒体文件")
-        conn.execute(
-            "DELETE FROM media_assets WHERE object_key = ? AND folder = ?",
-            (object_key, folder),
-        )
     delete_object(object_key, folder)
     return ApiResponse(data=None)

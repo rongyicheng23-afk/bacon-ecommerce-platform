@@ -11,8 +11,8 @@ ACTION_WEIGHTS = {
     "search_click": 2,
     "favorite": 3,
     "unfavorite": -2,
-    "cart": 4,
-    "purchase": 5,
+    "cart": 5,
+    "purchase": 8,
     "refund": -8,
 }
 

@@ -34,5 +34,8 @@ htmlcov/
 exports/
 tmp_recommendation/
 
-# MinIO 本地数据
+# MinIO 本地数据与二进制
 minio_data/
+minio_data_community/
+tools/minio-community
+tools/minio*
