@@ -222,6 +222,13 @@ def seller_update_product(product_id: int, seller_id: int, data: dict) -> dict |
             (data.get("name"), data.get("description"), data.get("category"), ts, product_id),
         )
 
+        # 更新 imageUrls（如果传入）
+        if "imageUrls" in data and data["imageUrls"] is not None:
+            conn.execute(
+                "UPDATE products SET image_urls = ?, updated_at = ? WHERE product_id = ?",
+                (json.dumps(data["imageUrls"], ensure_ascii=False), ts, product_id),
+            )
+
         sku_rows = conn.execute(
             "SELECT sku_id, price FROM product_skus WHERE product_id = ? ORDER BY sku_id",
             (product_id,),

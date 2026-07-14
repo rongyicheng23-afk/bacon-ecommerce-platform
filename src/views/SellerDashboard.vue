@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/userStore'
 import { sellerService, type SellerOrder, type SellerProduct } from '@/services/sellerService'
+import api from '@/services/api'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -56,19 +57,26 @@ const uploadImage = async (e: Event) => {
     const form = new FormData()
     form.append('file', file)
     form.append('folder', 'products')
-    const token = localStorage.getItem('token')
-    const res = await fetch('http://127.0.0.1:8001/api/media/upload', {
-      method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form,
+    const res = await api.post('/media/upload', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
     })
-    const json = await res.json()
-    if (json.code === '0000') {
-      editImageUrls.value.push(json.data.url)
+    if (res.data.code === '0000') {
+      editImageUrls.value.push(res.data.data.url)
     }
   } catch (err) { console.error(err) }
   finally { uploading.value = false; (e.target as HTMLInputElement).value = '' }
 }
 
-const removeImage = (idx: number) => { editImageUrls.value.splice(idx, 1) }
+const removeImage = async (idx: number) => {
+  const url = editImageUrls.value[idx]
+  if (url && url.includes('9002')) {
+    const key = url.split('product-images/')[1]
+    if (key) {
+      try { await api.delete('/media/delete', { params: { object_key: key, folder: 'products' } }) } catch {}
+    }
+  }
+  editImageUrls.value.splice(idx, 1)
+}
 const moveImageUp = (idx: number) => {
   if (idx > 0) { [editImageUrls.value[idx-1], editImageUrls.value[idx]] = [editImageUrls.value[idx], editImageUrls.value[idx-1]] }
 }
@@ -87,7 +95,7 @@ const saveProduct = async () => {
       const updated = await sellerService.updateProduct(editingProduct.value.productId, {
         stock: editStock.value, price: editPrice.value,
         name: editName.value, description: editDescription.value,
-        category: editCategory.value,
+        category: editCategory.value, imageUrls: editImageUrls.value,
       })
       const index = sellerProducts.value.findIndex((p) => p.productId === updated.productId)
       if (index >= 0) sellerProducts.value[index] = updated

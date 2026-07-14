@@ -49,6 +49,7 @@ class SellerProductUpdate(BaseModel):
     price: float | None = Field(default=None, ge=0)
     stock: int | None = Field(default=None, ge=0)
     category: str | None = None
+    imageUrls: list[str] | None = None
 
 
 class ProductStatusUpdate(BaseModel):
