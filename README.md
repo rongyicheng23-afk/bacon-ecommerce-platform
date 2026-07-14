@@ -21,26 +21,29 @@
 ## 项目结构
 
 ```
-bacon-mall-frontend/          ← Git 仓库根目录（用 VS Code 打开这个目录）
-├── src/                      # Vue 3 前端源码
-│   ├── services/             # API 调用层（已对接后端）
-│   ├── stores/               # Pinia 状态管理
-│   ├── views/                # 页面组件
-│   ├── components/           # 通用组件
-│   └── types/                # TypeScript 类型定义
-├── package.json              # 前端依赖
-├── .env                      # 前端环境变量
-└── backend/                  # FastAPI 后端源码
-    ├── app/
-    │   ├── main.py           # 应用入口
-    │   ├── core/             # 配置、安全
-    │   ├── db/               # 数据库模型、种子数据、迁移
-    │   ├── routers/          # API 路由
-    │   ├── schemas/          # Pydantic 请求/响应模型
-    │   └── services/         # 业务逻辑
-    ├── requirements.txt      # Python 依赖
-    ├── .env.example          # 环境变量模板（可复制为 .env）
-    └── BACKEND_BIGDATA_PLAN.md  # 后端与大数据计划文档
+bacon-mall-frontend/               ← Git 仓库根目录
+├── src/                           # Vue 3 前端源码
+├── package.json                   # 前端依赖
+├── .env                           # 前端环境变量
+├── docs/                          # 项目文档
+└── backend/                       # ⚠️ 旧副本，已废弃，请勿修改
+                                    #    ↓ 实际后端在这里 ↓
+
+bacon-mall-backend/                ← 🟢 真实后端（用 VS Code 打开此目录开终端）
+├── app/
+│   ├── main.py                    # 应用入口
+│   ├── core/config.py             # 配置 + .env 加载
+│   ├── db/                        # 数据库模型、种子、迁移
+│   ├── routers/                   # API 路由
+│   ├── schemas/                   # Pydantic 模型
+│   └── services/                  # 业务逻辑
+├── bigdata/                       # Hadoop 推荐引擎
+│   ├── streaming/                 # Mapper/Reducer
+│   └── scripts/                   # 管道脚本
+├── scripts/                       # 工具脚本（MinIO 启动等）
+├── requirements.txt
+├── .env                           # MinIO 等配置
+└── .env.example
 ```
 
 ---
@@ -65,37 +68,49 @@ npm install
 ### 3. 安装后端依赖
 
 ```bash
-cd backend
+cd ../bacon-mall-backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-后端 `.env` 非必需（所有设置都有合理默认值）。
+### 4. 启动 MinIO（可选，存储商品图片）
 
-### 4. 启动
-
-**需要同时开两个终端：**
-
-终端 1 — 后端：
 ```bash
-cd backend && source .venv/bin/activate
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+cd ../bacon-mall-backend
+bash scripts/start_minio.sh
+# API: http://127.0.0.1:9002  控制台: http://127.0.0.1:9003
+# 账号: minioadmin / minioadmin
 ```
 
-终端 2 — 前端：
+### 5. 启动
+
+**需要同时开三个终端：**
+
+终端 1 — MinIO（可选）：
 ```bash
-# 在项目根目录
-npm run dev -- --host 127.0.0.1
+cd bacon-mall-backend && bash scripts/start_minio.sh
 ```
 
-### 5. 打开浏览器
+终端 2 — 后端：
+```bash
+cd bacon-mall-backend && source .venv/bin/activate
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
+```
+
+终端 3 — 前端：
+```bash
+cd bacon-mall-frontend && npm run dev -- --host 127.0.0.1 --port 5175
+```
+
+### 6. 打开浏览器
 
 | 地址 | 说明 |
 |------|------|
-| `http://127.0.0.1:5173/` | 前端页面 |
-| `http://127.0.0.1:8000/docs` | 后端 API 文档（Swagger） |
-| `http://127.0.0.1:8000/api/health` | 后端健康检查 |
+| `http://127.0.0.1:5175/` | 前端页面 |
+| `http://127.0.0.1:8001/docs` | 后端 API 文档（Swagger） |
+| `http://127.0.0.1:8001/api/health` | 后端健康检查 |
+| `http://127.0.0.1:9003` | MinIO 控制台 |
 
 ---
 
