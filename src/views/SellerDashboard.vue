@@ -19,24 +19,81 @@ const manageMsg = ref('')
 const editingProduct = ref<SellerProduct | null>(null)
 const editStock = ref(0)
 const editPrice = ref(0)
+const editImageUrls = ref<string[]>([])
+const editName = ref('')
+const editDescription = ref('')
+const editCategory = ref('数码')
+const isNewProduct = ref(false)
+const uploading = ref(false)
 
 const openProductEdit = (p: SellerProduct) => {
   editingProduct.value = { ...p }
   editStock.value = p.stock
   editPrice.value = p.price
+  editImageUrls.value = [...(p.imageUrls || [])]
+  editName.value = p.name
+  editDescription.value = p.description
+  editCategory.value = p.category || '数码'
+  isNewProduct.value = false
+}
+
+const startNewProduct = () => {
+  editingProduct.value = null
+  editStock.value = 100
+  editPrice.value = 99
+  editImageUrls.value = []
+  editName.value = ''
+  editDescription.value = ''
+  editCategory.value = '数码'
+  isNewProduct.value = true
+}
+
+const uploadImage = async (e: Event) => {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  uploading.value = true
+  try {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('folder', 'products')
+    const token = localStorage.getItem('token')
+    const res = await fetch('http://127.0.0.1:8001/api/media/upload', {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form,
+    })
+    const json = await res.json()
+    if (json.code === '0000') {
+      editImageUrls.value.push(json.data.url)
+    }
+  } catch (err) { console.error(err) }
+  finally { uploading.value = false; (e.target as HTMLInputElement).value = '' }
+}
+
+const removeImage = (idx: number) => { editImageUrls.value.splice(idx, 1) }
+const moveImageUp = (idx: number) => {
+  if (idx > 0) { [editImageUrls.value[idx-1], editImageUrls.value[idx]] = [editImageUrls.value[idx], editImageUrls.value[idx-1]] }
 }
 
 const saveProduct = async () => {
-  if (!editingProduct.value) return
   try {
-    const updated = await sellerService.updateProduct(editingProduct.value.productId, {
-      stock: editStock.value,
-      price: editPrice.value,
-    })
-    const index = sellerProducts.value.findIndex((p) => p.productId === updated.productId)
-    if (index >= 0) sellerProducts.value[index] = updated
-    manageMsg.value = `已更新「${editingProduct.value.name}」`
-    editingProduct.value = null
+    if (isNewProduct.value) {
+      const created = await sellerService.createProduct({
+        name: editName.value, description: editDescription.value,
+        price: editPrice.value, stock: editStock.value,
+        category: editCategory.value, imageUrls: editImageUrls.value,
+      })
+      sellerProducts.value.unshift(created)
+      manageMsg.value = `已创建「${created.name}」`
+    } else if (editingProduct.value) {
+      const updated = await sellerService.updateProduct(editingProduct.value.productId, {
+        stock: editStock.value, price: editPrice.value,
+        name: editName.value, description: editDescription.value,
+        category: editCategory.value,
+      })
+      const index = sellerProducts.value.findIndex((p) => p.productId === updated.productId)
+      if (index >= 0) sellerProducts.value[index] = updated
+      manageMsg.value = `已更新「${updated.name}」`
+    }
+    editingProduct.value = null; isNewProduct.value = false
     setTimeout(() => { manageMsg.value = '' }, 2000)
   } catch (error) {
     manageMsg.value = error instanceof Error ? error.message : '商品更新失败'
@@ -213,14 +270,34 @@ onMounted(async () => {
 
         <!-- 商品管理 -->
         <div v-if="manageTab === 'products'" class="manage-body">
-          <div v-if="editingProduct" class="edit-panel">
-            <h3>编辑商品：{{ editingProduct.name }}</h3>
-            <label><span>库存</span><input v-model.number="editStock" type="number" min="0" /></label>
+          <div v-if="isNewProduct || editingProduct" class="edit-panel">
+            <h3>{{ isNewProduct ? '新增商品' : '编辑商品：' + (editingProduct?.name || '') }}</h3>
+            <label><span>名称</span><input v-model="editName" /></label>
+            <label><span>描述</span><input v-model="editDescription" /></label>
+            <label><span>分类</span>
+              <select v-model="editCategory">
+                <option v-for="c in ['数码','服饰','家居','运动','食品','美妆','图书']" :key="c" :value="c">{{ c }}</option>
+              </select></label>
             <label><span>价格 ¥</span><input v-model.number="editPrice" type="number" min="0" step="0.01" /></label>
+            <label><span>库存</span><input v-model.number="editStock" type="number" min="0" /></label>
+            <label><span>图片</span>
+              <input type="file" accept="image/*" @change="uploadImage" :disabled="uploading" />
+              <span v-if="uploading">上传中...</span>
+            </label>
+            <div v-if="editImageUrls.length" class="edit-images">
+              <div v-for="(url, i) in editImageUrls" :key="i" class="edit-image-item">
+                <img :src="url" style="width:80px;height:80px;object-fit:cover;border-radius:6px" />
+                <button @click="moveImageUp(i)" :disabled="i===0">↑</button>
+                <button @click="removeImage(i)">✕</button>
+              </div>
+            </div>
             <div class="edit-actions">
               <button class="btn-save" @click="saveProduct">保存</button>
-              <button class="btn-cancel" @click="editingProduct = null">取消</button>
+              <button class="btn-cancel" @click="editingProduct = null; isNewProduct = false">取消</button>
             </div>
+          </div>
+          <div style="margin-bottom:12px">
+            <button class="btn-save" @click="startNewProduct">+ 新增商品</button>
           </div>
           <table v-if="sellerProducts.length" class="manage-table">
             <thead><tr><th>ID</th><th>商品</th><th>价格</th><th>库存</th><th>状态</th><th>操作</th></tr></thead>
