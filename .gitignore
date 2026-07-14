@@ -30,3 +30,11 @@ coverage
 *.tsbuildinfo
 .env
 .env
+
+# MinIO 数据与二进制
+backend/minio_data/
+backend/minio_data_community/
+backend/tools/
+backend/minio_data/
+backend/minio_data_community/
+backend/tools/
