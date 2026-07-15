@@ -37,7 +37,9 @@ export const useUserStore = defineStore('user', {
     currentUser: readCurrentUser(),
     token: localStorage.getItem(TOKEN_KEY),
     loading: false,
-    error: null as string | null
+    error: null as string | null,
+    /** 是否已向服务端验证过当前 token（防止刷新后直接用 localStorage 旧数据放行） */
+    authChecked: false
   }),
 
   getters: {
@@ -52,20 +54,29 @@ export const useUserStore = defineStore('user', {
     /** 页面刷新后验证本地 token 是否仍有效 */
     async initAuth() {
       const token = localStorage.getItem(TOKEN_KEY)
-      if (!token) return
+      if (!token) {
+        this.authChecked = true
+        return
+      }
       try {
         const user = await userService.fetchMe()
         if (user) {
           this.token = token
           this.currentUser = user
           saveCurrentUser(user, token)
+        } else {
+          // 服务端返回 401 / token 无效 → 清空 Pinia 状态
+          this.token = null
+          this.currentUser = null
         }
       } catch {
-        // token 无效 → 清除
+        // 网络错误等 → 保守清除
         this.token = null
         this.currentUser = null
         localStorage.removeItem(TOKEN_KEY)
         localStorage.removeItem(CURRENT_USER_KEY)
+      } finally {
+        this.authChecked = true
       }
     },
 
@@ -77,6 +88,7 @@ export const useUserStore = defineStore('user', {
         if (response.code !== '0000') throw new Error(response.info || '登录失败')
         this.token = response.data.token
         this.currentUser = response.data.user
+        this.authChecked = true
         saveCurrentUser(response.data.user, response.data.token)
       } catch (error) {
         this.error = error instanceof Error ? error.message : '登录失败'
@@ -94,6 +106,7 @@ export const useUserStore = defineStore('user', {
         if (response.code !== '0000') throw new Error(response.info || '注册失败')
         this.token = response.data.token
         this.currentUser = response.data.user
+        this.authChecked = true
         saveCurrentUser(response.data.user, response.data.token)
       } catch (error) {
         this.error = error instanceof Error ? error.message : '注册失败'
@@ -107,6 +120,7 @@ export const useUserStore = defineStore('user', {
       await userService.logout()
       this.token = null
       this.currentUser = null
+      this.authChecked = false
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem(CURRENT_USER_KEY)
     },

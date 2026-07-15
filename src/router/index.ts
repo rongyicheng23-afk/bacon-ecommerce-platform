@@ -18,6 +18,7 @@ import CustomerService from '@/views/CustomerService.vue'
 import NewArrivals from '@/views/NewArrivals.vue'
 import HotSales from '@/views/HotSales.vue'
 import CategoryPage from '@/views/CategoryPage.vue'
+import { useUserStore } from '@/stores/userStore'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -128,24 +129,30 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   if (!to.meta.requiresAuth) return true
 
-  const token = localStorage.getItem('token')
-  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null') as { role?: 'buyer' | 'seller' } | null
+  const userStore = useUserStore()
 
-  if (!token || !currentUser) {
-    return {
-      name: 'login',
-      query: { redirect: to.fullPath }
-    }
+  // 本地无 token → 直接拦截
+  if (!localStorage.getItem('token')) {
+    return { name: 'login', query: { redirect: to.fullPath } }
   }
 
-  const requiredRole = to.meta.role as 'buyer' | 'seller' | undefined
-  const currentRole = currentUser.role || 'buyer'
+  // 尚未向服务端验证过 → 先验证
+  if (!userStore.authChecked) {
+    await userStore.initAuth()
+  }
 
-  if (requiredRole && currentRole !== requiredRole) {
-    return currentRole === 'seller' ? { name: 'seller-dashboard' } : { name: 'home' }
+  // 验证后仍未登录 → 拦截
+  if (!userStore.isAuthenticated) {
+    return { name: 'login', query: { redirect: to.fullPath } }
+  }
+
+  // 角色校验
+  const requiredRole = to.meta.role as 'buyer' | 'seller' | undefined
+  if (requiredRole && userStore.currentUser?.role !== requiredRole) {
+    return userStore.currentUser?.role === 'seller' ? { name: 'seller-dashboard' } : { name: 'home' }
   }
 
   return true
