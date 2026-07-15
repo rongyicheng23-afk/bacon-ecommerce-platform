@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import ProductList from '@/views/ProductList.vue'
+import HomePage from '@/views/HomePage.vue'
 import ProductDetail from '@/views/ProductDetail.vue'
 import ProductCatalog from '@/views/ProductCatalog.vue'
 import LoginView from '@/views/LoginView.vue'
@@ -11,6 +11,8 @@ import OrderDetail from '@/views/OrderDetail.vue'
 import ProfileView from '@/views/ProfileView.vue'
 import PaymentPage from '@/components/PaymentPage.vue'
 import PaymentSuccess from '@/views/PaymentSuccess.vue'
+import SellerDashboard from '@/views/SellerDashboard.vue'
+import BrowsingHistory from '@/views/BrowsingHistory.vue'
 import MessageCenter from '@/views/MessageCenter.vue'
 import CustomerService from '@/views/CustomerService.vue'
 import NewArrivals from '@/views/NewArrivals.vue'
@@ -26,7 +28,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: ProductList
+      component: HomePage
     },
     {
       path: '/products',
@@ -52,43 +54,55 @@ const router = createRouter({
       path: '/cart',
       name: 'cart',
       component: CartView,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, role: 'buyer' }
     },
     {
       path: '/checkout',
       name: 'checkout',
       component: CheckoutView,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, role: 'buyer' }
     },
     {
       path: '/orders',
       name: 'orders',
       component: OrderList,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, role: 'buyer' }
     },
     {
       path: '/profile',
       name: 'profile',
       component: ProfileView,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, role: 'buyer' }
+    },
+    {
+      path: '/history',
+      name: 'browsing-history',
+      component: BrowsingHistory,
+      meta: { requiresAuth: true, role: 'buyer' }
     },
     {
       path: '/order/:id',
       name: 'order-detail',
       component: OrderDetail,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, role: 'buyer' }
     },
     {
       path: '/payment/:orderId',
       name: 'payment',
       component: PaymentPage,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, role: 'buyer' }
     },
     {
       path: '/payment-success/:orderId',
       name: 'payment-success',
       component: PaymentSuccess,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true, role: 'buyer' }
+    },
+    {
+      path: '/seller',
+      name: 'seller-dashboard',
+      component: SellerDashboard,
+      meta: { requiresAuth: true, role: 'seller' }
     },
     {
       path: '/messages',
@@ -118,12 +132,23 @@ router.beforeEach((to) => {
   if (!to.meta.requiresAuth) return true
 
   const token = localStorage.getItem('token')
-  if (token) return true
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null') as { role?: 'buyer' | 'seller' } | null
 
-  return {
-    name: 'login',
-    query: { redirect: to.fullPath }
+  if (!token || !currentUser) {
+    return {
+      name: 'login',
+      query: { redirect: to.fullPath }
+    }
   }
+
+  const requiredRole = to.meta.role as 'buyer' | 'seller' | undefined
+  const currentRole = currentUser.role || 'buyer'
+
+  if (requiredRole && currentRole !== requiredRole) {
+    return currentRole === 'seller' ? { name: 'seller-dashboard' } : { name: 'home' }
+  }
+
+  return true
 })
 
 export default router

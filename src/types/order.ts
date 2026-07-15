@@ -19,6 +19,8 @@ export type PaymentType = 1 | 2 | 3; // 1: alipay, 2: wechat, 3: credit card
 export interface OrderItem {
   orderItemId: number;
   productId: number;
+  skuId?: number;
+  skuName?: string;
   quantity: number;
   price: number;
   productName: string;
@@ -28,6 +30,7 @@ export interface OrderItem {
 export interface CreateOrderRequest {
   products: Array<{
     productId: number;
+    skuId?: number;
     quantity: number;
   }>;
 }

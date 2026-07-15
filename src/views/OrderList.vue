@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import api from '@/services/api'
 
 type OrderStatus = 'all' | 'pending_payment' | 'paid' | 'shipped' | 'completed' | 'cancelled'
 
 interface MockOrderItem {
   id?: number
   productId: number
+  skuId?: number
+  skuName?: string
   name?: string
   productName?: string
   description?: string
@@ -66,17 +69,13 @@ const paymentText: Record<string, string> = {
   card: '银行卡'
 }
 
-const readOrders = () => {
+const readOrders = async () => {
   try {
-    const data = JSON.parse(localStorage.getItem('mockOrders') || '[]') as MockOrder[]
-    orders.value = Array.isArray(data) ? data : []
+    const response = await api.get<{ code: string; data: MockOrder[] }>('/orders')
+    orders.value = response.data.data || []
   } catch {
     orders.value = []
   }
-}
-
-const saveOrders = () => {
-  localStorage.setItem('mockOrders', JSON.stringify(orders.value))
 }
 
 const showMessage = (message: string) => {
@@ -84,18 +83,6 @@ const showMessage = (message: string) => {
   window.setTimeout(() => {
     actionMessage.value = ''
   }, 1600)
-}
-
-const recordBehavior = (action: string, order: MockOrder) => {
-  const logs = JSON.parse(localStorage.getItem('behaviorLogs') || '[]')
-  logs.push({
-    userId: 1,
-    action,
-    orderId: order.orderId,
-    amount: order.payableAmount,
-    timestamp: new Date().toISOString()
-  })
-  localStorage.setItem('behaviorLogs', JSON.stringify(logs.slice(-100)))
 }
 
 const filteredOrders = computed(() => {
@@ -129,7 +116,10 @@ const formatDate = (dateString: string) => {
   })
 }
 
-const getItemName = (item: MockOrderItem) => item.name || item.productName || '商品'
+const getItemName = (item: MockOrderItem) => {
+  const base = item.name || item.productName || '商品'
+  return item.skuName ? `${base} · ${item.skuName}` : base
+}
 
 const getItemImage = (item: MockOrderItem) => {
   return item.imageUrl || item.productImage || 'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=500&q=85'
@@ -140,33 +130,37 @@ const handleImageError = (event: Event) => {
   img.src = 'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=500&q=85'
 }
 
-const updateStatus = (order: MockOrder, status: MockOrder['status'], message: string) => {
-  order.status = status
-  saveOrders()
-  recordBehavior(`order_${status}`, order)
-  showMessage(message)
+const replaceOrder = (next: MockOrder) => {
+  const index = orders.value.findIndex((order) => order.orderId === next.orderId)
+  if (index >= 0) orders.value[index] = next
 }
 
-const cancelOrder = (order: MockOrder) => {
-  updateStatus(order, 'cancelled', '订单已取消')
+const cancelOrder = async (order: MockOrder) => {
+  try {
+    const response = await api.post<{ code: string; data: MockOrder }>(`/orders/${order.orderId}/cancel`)
+    replaceOrder(response.data.data)
+    showMessage('订单已取消')
+  } catch (error) {
+    showMessage(error instanceof Error ? error.message : '取消订单失败')
+  }
 }
 
 const payOrder = (order: MockOrder) => {
   router.push(`/payment/${order.orderId}`)
 }
 
-const confirmReceive = (order: MockOrder) => {
-  updateStatus(order, 'completed', '已确认收货')
+const confirmReceive = async (order: MockOrder) => {
+  try {
+    const response = await api.post<{ code: string; data: MockOrder }>(`/orders/${order.orderId}/receive`)
+    replaceOrder(response.data.data)
+    showMessage('已确认收货')
+  } catch (error) {
+    showMessage(error instanceof Error ? error.message : '确认收货失败')
+  }
 }
 
-const removeOrder = (orderId: number) => {
-  orders.value = orders.value.filter((order) => order.orderId !== orderId)
-  saveOrders()
-  showMessage('订单记录已删除')
-}
-
-onMounted(() => {
-  readOrders()
+onMounted(async () => {
+  await readOrders()
 })
 </script>
 
@@ -236,11 +230,11 @@ onMounted(() => {
 
           <div class="order-card-body">
             <div class="order-items">
-              <div v-for="item in order.items" :key="`${order.orderId}-${item.productId}`" class="order-item">
+              <div v-for="item in order.items" :key="`${order.orderId}-${item.id || item.skuId || item.productId}`" class="order-item">
                 <img :src="getItemImage(item)" :alt="getItemName(item)" @error="handleImageError" />
                 <div>
                   <h3>{{ getItemName(item) }}</h3>
-                  <p>{{ item.description || item.category || '精选好物' }}</p>
+                  <p>{{ item.skuName || item.description || item.category || '精选好物' }}</p>
                   <span>¥{{ item.price.toFixed(2) }} × {{ item.quantity }}</span>
                 </div>
               </div>
@@ -276,9 +270,6 @@ onMounted(() => {
             </button>
             <button v-if="order.status === 'shipped'" type="button" class="primary" @click="confirmReceive(order)">
               确认收货
-            </button>
-            <button v-if="order.status === 'cancelled' || order.status === 'completed'" type="button" @click="removeOrder(order.orderId)">
-              删除记录
             </button>
           </footer>
         </article>

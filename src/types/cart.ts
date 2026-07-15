@@ -2,6 +2,8 @@ export interface CartItem {
   cartItemId: number;
   cartId: number;
   productId: number;
+  skuId?: number;
+  skuName?: string;
   quantity: number;
   totalPrice: number;
   createdAt: string;
@@ -30,5 +32,6 @@ export interface CartResponse {
 
 export interface AddToCartRequest {
   productId: number;
+  skuId?: number;
   quantity: number;
 }

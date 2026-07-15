@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { removeCartProductIds } from '@/utils/cart'
+import { addressService } from '@/services/addressService'
+import api from '@/services/api'
 
 interface CheckoutItem {
   id: number
   productId: number
+  skuId?: number
+  skuName?: string
   name: string
   description: string
   price: number
@@ -25,37 +28,15 @@ interface CheckoutDraft {
   createdAt: string
 }
 
-interface Address {
-  id: number
-  name: string
-  phone: string
-  detail: string
-  isDefault?: boolean
-}
-
 const router = useRouter()
 const draft = ref<CheckoutDraft | null>(null)
-const selectedAddressId = ref(1)
+const selectedAddressId = ref(0)
 const deliveryType = ref('standard')
 const paymentType = ref('alipay')
 const remark = ref('')
 const actionMessage = ref('')
 
-const addresses: Address[] = [
-  {
-    id: 1,
-    name: '荣同学',
-    phone: '138****2026',
-    detail: '广东省广州市 天河区 默认收货地址',
-    isDefault: true
-  },
-  {
-    id: 2,
-    name: '实习项目测试用户',
-    phone: '139****0709',
-    detail: '广东省深圳市 南山区 电商平台测试地址'
-  }
-]
+const addresses = ref<Array<{ id: number; name: string; phone: string; detail: string; isDefault?: boolean }>>([])
 
 const deliveryOptions = [
   { id: 'standard', name: '普通配送', desc: '预计 48 小时内发货', fee: 0 },
@@ -85,49 +66,26 @@ const readCheckoutDraft = () => {
   }
 }
 
-const recordBehavior = (action: string) => {
-  const logs = JSON.parse(localStorage.getItem('behaviorLogs') || '[]')
-  logs.push({
-    userId: 1,
-    action,
-    category: '订单',
-    amount: payableAmount.value,
-    itemCount: draft.value?.items.length || 0,
-    timestamp: new Date().toISOString()
-  })
-  localStorage.setItem('behaviorLogs', JSON.stringify(logs.slice(-100)))
-}
-
-const submitOrder = () => {
+const submitOrder = async () => {
   if (!draft.value) return
-
-  const orderId = Date.now()
-  const selectedAddress = addresses.find((item) => item.id === selectedAddressId.value)
-  const order = {
-    orderId,
-    status: 'pending_payment',
-    items: draft.value.items,
-    address: selectedAddress,
-    deliveryType: deliveryType.value,
-    paymentType: paymentType.value,
-    remark: remark.value,
-    totalAmount: draft.value.totalAmount,
-    totalSavings: draft.value.totalSavings,
-    deliveryFee: selectedDelivery.value.fee,
-    payableAmount: payableAmount.value,
-    createdAt: new Date().toISOString()
+  if (!selectedAddressId.value) {
+    actionMessage.value = '请先添加并选择收货地址'
+    return
   }
-
-  const orders = JSON.parse(localStorage.getItem('mockOrders') || '[]')
-  localStorage.setItem('mockOrders', JSON.stringify([order, ...orders]))
-  removeCartProductIds(draft.value.items.map((item) => item.productId))
-  localStorage.removeItem('checkoutDraft')
-  recordBehavior('submit_order')
-  actionMessage.value = `订单 ${orderId} 已提交`
-
-  window.setTimeout(() => {
-    router.push(`/payment/${orderId}`)
-  }, 700)
+  try {
+    const response = await api.post<{ code: string; data: { orderId: number } }>('/orders', {
+      addressId: selectedAddressId.value,
+      deliveryType: deliveryType.value,
+      paymentType: paymentType.value,
+      remark: remark.value,
+    })
+    const orderId = response.data.data.orderId
+    localStorage.removeItem('checkoutDraft')
+    actionMessage.value = `订单 ${orderId} 已提交`
+    window.setTimeout(() => router.push(`/payment/${orderId}`), 700)
+  } catch (error) {
+    actionMessage.value = error instanceof Error ? error.message : '提交订单失败'
+  }
 }
 
 const handleImageError = (event: Event) => {
@@ -135,8 +93,11 @@ const handleImageError = (event: Event) => {
   img.src = 'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=900&q=85'
 }
 
-onMounted(() => {
+onMounted(async () => {
   readCheckoutDraft()
+  try { addresses.value = await addressService.list() } catch { addresses.value = [] }
+  const defaultAddr = addresses.value.find((a) => a.isDefault)
+  selectedAddressId.value = defaultAddr?.id ?? addresses.value[0]?.id ?? 0
 })
 </script>
 
@@ -193,9 +154,9 @@ onMounted(() => {
             <article v-for="item in draft.items" :key="item.id" class="order-line">
               <img :src="item.imageUrl || undefined" :alt="item.name" @error="handleImageError" />
               <div>
-                <span>{{ item.category }}</span>
-                <h3>{{ item.name }}</h3>
-                <p>{{ item.description }}</p>
+              <span>{{ item.category }}</span>
+              <h3>{{ item.name }}</h3>
+              <p>{{ item.skuName || item.description }}</p>
               </div>
               <strong>¥{{ item.price }}</strong>
               <small>x {{ item.quantity }}</small>

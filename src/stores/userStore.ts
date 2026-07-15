@@ -1,59 +1,34 @@
 import { defineStore } from 'pinia'
 import type { User, LoginRequest, RegisterRequest } from '../types/user'
+import { userService } from '@/services/userService'
 
-interface MockUser extends User {
-  password: string
-}
-
-const userStorageKey = 'mockUsers'
 const currentUserKey = 'currentUser'
 
-const createUser = (data: {
-  username: string
-  email: string
-  password: string
-  phone?: string
-}): MockUser => {
-  const now = new Date().toISOString()
-
-  return {
-    userId: Date.now(),
-    username: data.username,
-    email: data.email,
-    phone: data.phone || '',
-    password: data.password,
-    status: 'active',
-    createdAt: now,
-    updatedAt: now
+const readCurrentUser = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem(currentUserKey) || 'null') as User | null
+    return user ? { ...user, role: user.role || 'buyer' } : null
+  } catch {
+    return null
   }
 }
 
-const getMockUsers = (): MockUser[] => {
-  const users = JSON.parse(localStorage.getItem(userStorageKey) || '[]') as MockUser[]
-
-  if (users.length > 0) return users
-
-  const demoUser = createUser({
-    username: '荣同学',
-    email: 'student@example.com',
-    password: '123456',
-    phone: '13800002026'
-  })
-  localStorage.setItem(userStorageKey, JSON.stringify([demoUser]))
-  return [demoUser]
+const getUserLandingPath = (user: User | null) => {
+  return user?.role === 'seller' ? '/seller' : '/'
 }
 
 const saveCurrentUser = (user: User, token: string) => {
   localStorage.setItem('token', token)
-  localStorage.setItem(currentUserKey, JSON.stringify(user))
+  localStorage.setItem(currentUserKey, JSON.stringify({ ...user, role: user.role || 'buyer' }))
 }
 
-const readCurrentUser = () => {
-  try {
-    return JSON.parse(localStorage.getItem(currentUserKey) || 'null') as User | null
-  } catch {
-    return null
-  }
+/** 判断 redirect 路径是否与用户角色兼容 */
+const isRedirectCompatible = (user: User, path: string): boolean => {
+  const buyerOnly = ['/cart', '/checkout', '/orders', '/order/', '/profile', '/payment', '/payment-success']
+  const sellerOnly = ['/seller']
+  if (user.role === 'buyer' && sellerOnly.some((p) => path.startsWith(p))) return false
+  if (user.role === 'seller' && buyerOnly.some((p) => path.startsWith(p))) return false
+  return true
 }
 
 export const useUserStore = defineStore('user', {
@@ -66,7 +41,10 @@ export const useUserStore = defineStore('user', {
 
   getters: {
     isAuthenticated: (state) => !!state.token && !!state.currentUser,
-    isActive: (state) => state.currentUser?.status === 'active'
+    isActive: (state) => state.currentUser?.status === 'active',
+    isSeller: (state) => state.currentUser?.role === 'seller',
+    isBuyer: (state) => !state.currentUser || state.currentUser.role === 'buyer',
+    landingPath: (state) => getUserLandingPath(state.currentUser)
   },
 
   actions: {
@@ -74,19 +52,11 @@ export const useUserStore = defineStore('user', {
       this.loading = true
       this.error = null
       try {
-        const users = getMockUsers()
-        const user = users.find((item) => item.email === credentials.email)
-
-        if (!user || user.password !== credentials.password) {
-          throw new Error('邮箱或密码不正确。测试账号：student@example.com / 123456')
-        }
-
-        const { password, ...publicUser } = user
-        const token = `mock-token-${user.userId}`
-
-        this.token = token
-        this.currentUser = publicUser
-        saveCurrentUser(publicUser, token)
+        const response = await userService.login(credentials)
+        if (response.code !== '0000') throw new Error(response.info || '登录失败')
+        this.token = response.data.token
+        this.currentUser = response.data.user
+        saveCurrentUser(response.data.user, response.data.token)
       } catch (error) {
         this.error = error instanceof Error ? error.message : '登录失败'
         throw error
@@ -99,20 +69,12 @@ export const useUserStore = defineStore('user', {
       this.loading = true
       this.error = null
       try {
-        const users = getMockUsers()
-
-        if (users.some((user) => user.email === data.email)) {
-          throw new Error('该邮箱已经注册，请直接登录')
-        }
-
-        const user = createUser(data)
-        const { password, ...publicUser } = user
-        const token = `mock-token-${user.userId}`
-
-        localStorage.setItem(userStorageKey, JSON.stringify([user, ...users]))
-        this.token = token
-        this.currentUser = publicUser
-        saveCurrentUser(publicUser, token)
+        const { confirmPassword: _confirmPassword, ...payload } = data
+        const response = await userService.register(payload as RegisterRequest)
+        if (response.code !== '0000') throw new Error(response.info || '注册失败')
+        this.token = response.data.token
+        this.currentUser = response.data.user
+        saveCurrentUser(response.data.user, response.data.token)
       } catch (error) {
         this.error = error instanceof Error ? error.message : '注册失败'
         throw error
@@ -122,10 +84,20 @@ export const useUserStore = defineStore('user', {
     },
 
     async logout() {
+      await userService.logout()
       this.token = null
       this.currentUser = null
       localStorage.removeItem('token')
       localStorage.removeItem(currentUserKey)
+    },
+
+    /** 登录后跳转：检查 redirect 与角色是否兼容 */
+    getLoginRedirect(redirectPath?: string): string {
+      if (!this.currentUser) return '/login'
+      if (redirectPath && isRedirectCompatible(this.currentUser, redirectPath)) {
+        return redirectPath
+      }
+      return getUserLandingPath(this.currentUser)
     }
   }
 })

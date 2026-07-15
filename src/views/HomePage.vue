@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProductStore } from '../stores/productStore'
 import type { Product } from '../types'
 import { addProductToCart } from '@/utils/cart'
 import { readFavoriteIds, toggleFavoriteId } from '@/utils/favorites'
-import { getPersonalizedProducts, getRecommendationSummary } from '@/utils/recommendation'
+import { behaviorService } from '@/services/behaviorService'
+import api from '@/services/api'
 
 type BehaviorAction = 'view' | 'favorite' | 'unfavorite' | 'cart' | 'buy'
 
@@ -17,16 +18,94 @@ const actionMessage = ref('')
 const activeSlide = ref(0)
 const favoriteIds = ref<number[]>([])
 const products = computed(() => productStore.products)
-const bannerProducts = computed(() => products.value.slice(0, 3))
-const feedProducts = computed(() => {
-  const list = products.value
-  const result: Product[] = []
-  while (result.length < 60) {
-    for (const p of list) { result.push(p); if (result.length >= 60) break }
-  }
-  return result.length > 0 ? result : getPersonalizedProducts(list, 60)
+const bannerProducts = computed(() => products.value.slice(0, 2))
+
+/* ---- digital promo sub-carousel ---- */
+const dpSubIndex = ref(0)
+let dpTimer: number | undefined
+const dpPaused = ref(false)
+
+const findProductByName = (name: string): Product | undefined => {
+  return products.value.find((p) => p.name === name)
+}
+
+const dpSlides = computed(() => {
+  const headphones = findProductByName('智能降噪耳机')
+  const keyboard = findProductByName('轻薄机械键盘')
+  const powerBank = findProductByName('便携移动电源')
+  const charger = findProductByName('无线充电底座')
+  const mouse = findProductByName('人体工学鼠标')
+
+  return [
+    {
+      eyebrow: 'BACON MALL SELECTED',
+      en: 'UNBEATABLE DIGITAL DEALS',
+      cn: '数码好物，焕新日常',
+      desc: '精选耳机、机械键盘与智能设备，兼顾办公效率与日常娱乐体验。',
+      btn: '探索数码家电',
+      leftProduct: headphones,
+      rightProduct: keyboard,
+      leftBadge: '最高立省\n25%',
+      rightBadge: '本周\n新品',
+    },
+    {
+      eyebrow: 'BACON MALL SELECTED',
+      en: 'UNBEATABLE DIGITAL DEALS',
+      cn: '数码好物，焕新日常',
+      desc: '精选耳机、机械键盘与智能设备，兼顾办公效率与日常娱乐体验。',
+      btn: '探索数码家电',
+      leftProduct: powerBank,
+      rightProduct: charger,
+      leftBadge: '便携\n精选',
+      rightBadge: '人气\n推荐',
+    },
+    {
+      eyebrow: 'BACON MALL SELECTED',
+      en: 'UNBEATABLE DIGITAL DEALS',
+      cn: '数码好物，焕新日常',
+      desc: '精选耳机、机械键盘与智能设备，兼顾办公效率与日常娱乐体验。',
+      btn: '探索数码家电',
+      leftProduct: mouse,
+      rightProduct: headphones,
+      leftBadge: '效率\n好物',
+      rightBadge: '热卖\n单品',
+    },
+  ]
 })
-const recommendationSummary = computed(() => getRecommendationSummary())
+
+const dpNext = () => { dpSubIndex.value = (dpSubIndex.value + 1) % dpSlides.value.length }
+const dpPrev = () => { dpSubIndex.value = (dpSubIndex.value - 1 + dpSlides.value.length) % dpSlides.value.length }
+const dpGoTo = (i: number) => { dpSubIndex.value = i }
+
+const startDpTimer = () => {
+  stopDpTimer()
+  dpTimer = window.setInterval(() => { if (activeSlide.value === 1) dpNext() }, 2500)
+}
+const stopDpTimer = () => { if (dpTimer) { clearInterval(dpTimer); dpTimer = undefined } }
+
+watch(activeSlide, (val) => {
+  if (val === 1) startDpTimer()
+  else stopDpTimer()
+})
+const recommendedProducts = ref<Product[]>([])
+
+const fetchRecommendations = async () => {
+  try {
+    const res = await api.get('/recommendations', { params: { limit: 60 } })
+    if (res.data.code === '0000') {
+      recommendedProducts.value = res.data.data || []
+    }
+  } catch {
+    // 兜底：用全量商品
+    recommendedProducts.value = products.value.slice(0, 60)
+  }
+}
+
+// feedProducts 优先用推荐结果，无结果时用全量
+const feedProducts = computed(() => {
+  if (recommendedProducts.value.length > 0) return recommendedProducts.value
+  return products.value.slice(0, 60)
+})
 const serviceCards = ['正品保障', '快速配送', '售后无忧', '安全支付']
 const subscribeEmail2 = ref('')
 const subscribed2 = ref(false)
@@ -38,7 +117,7 @@ const categoryCards = [
   { label: '充电设备', img: 'https://images.unsplash.com/photo-1622560480605-d83c853bc5c3?auto=format&fit=crop&w=400&q=85', query: { category: '数码', subcategory: '充电设备' } },
   { label: '通勤背包', img: 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=400&q=85', query: { category: '服饰' } },
   { label: '家居好物', img: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=85', query: { category: '家居' } },
-  { label: '品质生活', img: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=85', query: { category: '家居' } },
+  { label: '母婴玩具', img: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=85', query: { category: '家居' } },
 ]
 
 const trendList = computed(() => products.value.slice(0, 5).map((p, i) => ({ ...p, trend: [42, 35, 28, 21, 18][i] })))
@@ -68,7 +147,7 @@ const circleCategories = [
   { label: '服饰穿搭', img: '/circle-digital.png', path: '/category/fashion' },
   { label: '家居生活', img: '/circle-digital.png', path: '/category/home' },
   { label: '灯具照明', img: '/circle-digital.png', path: '/category/home' },
-  { label: '品质生活', img: '/circle-digital.png', path: '/category/quality' },
+  { label: '母婴玩具', img: '/circle-digital.png', path: '/category/quality' },
   { label: '智能设备', img: '/circle-digital.png', path: '/category/digital' },
 ]
 
@@ -87,25 +166,14 @@ const actionText: Record<BehaviorAction, string> = {
   buy: '购买'
 }
 
-const readBehaviorLogs = () => {
-  try {
-    return JSON.parse(localStorage.getItem('behaviorLogs') || '[]')
-  } catch {
-    return []
-  }
-}
-
 const recordBehavior = (product: Product, action: BehaviorAction) => {
-  const logs = readBehaviorLogs()
-  logs.push({
-    userId: 1,
+  behaviorService.send({
     productId: product.productId,
     productName: product.name,
-    action,
-    category: product.category || '未分类',
-    timestamp: new Date().toISOString()
+    action: action === 'buy' ? 'purchase' : action,
+    category: product.category,
+    source: 'home_page',
   })
-  localStorage.setItem('behaviorLogs', JSON.stringify(logs.slice(-100)))
 }
 
 const recordProductAction = (product: Product, action: Exclude<BehaviorAction, 'view'>) => {
@@ -137,7 +205,7 @@ const switchSlide = (index: number) => {
   activeSlide.value = index
 }
 
-const totalSlides = computed(() => bannerProducts.value.length + 1)
+const totalSlides = computed(() => bannerProducts.value.length + 3)
 
 const prevSlide = () => {
   activeSlide.value = (activeSlide.value - 1 + totalSlides.value) % totalSlides.value
@@ -145,6 +213,13 @@ const prevSlide = () => {
 
 const nextSlide = () => {
   activeSlide.value = (activeSlide.value + 1) % totalSlides.value
+}
+
+const browseCategory = (category: string) => {
+  router.push({
+    path: '/products',
+    query: { category }
+  })
 }
 
 const getProductTags = (product: Product): Array<{ text: string; type: string }> => {
@@ -205,23 +280,24 @@ onMounted(async () => {
   startCountdown()
   loadRecentViewed()
 
-  if (products.value.length === 0) {
-    loading.value = true
-    try {
+  loading.value = products.value.length === 0
+  try {
+    if (products.value.length === 0) {
       await productStore.fetchProducts()
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : '加载商品失败'
-    } finally {
-      loading.value = false
     }
+    await fetchRecommendations()
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '加载失败'
+  } finally {
+    loading.value = false
   }
-  loadRecentViewed()
 })
 
 onUnmounted(() => {
   if (countdownTimer) {
     window.clearInterval(countdownTimer)
   }
+  stopDpTimer()
 })
 </script>
 
@@ -261,10 +337,53 @@ onUnmounted(() => {
             </div>
           </article>
 
+          <!-- digital promo sub-carousel slide -->
+          <article
+            :class="['hero-slide', 'digital-promo-slide', { active: 1 === activeSlide }]"
+            @mouseenter="dpNext(); startDpTimer()" @mouseleave="startDpTimer()"
+          >
+            <!-- Top notify bar -->
+            <div class="ch-notify" @click.stop="router.push('/new-arrivals')">DIGITAL NEW ARRIVALS 2026 | 精选数码新品限时上线 →</div>
+
+            <!-- Sub-carousel body -->
+            <div class="cat-hero-carousel">
+              <!-- Left column: switching images -->
+              <div class="ch-left-col">
+                <div class="ch-slide" v-for="(slide, si) in dpSlides" :key="'l-'+si" :class="{ active: si === dpSubIndex }">
+                  <img v-if="slide.leftProduct" :src="slide.leftProduct.imageUrls[0]" :alt="slide.leftProduct.name" @error="handleImageError" />
+                  <span class="ch-badge ch-badge-left">{{ slide.leftBadge }}</span>
+                </div>
+              </div>
+              <!-- Center: fixed content -->
+              <div class="ch-center" v-if="dpSlides.length">
+                <span class="ch-eyebrow">{{ dpSlides[0].eyebrow }}</span>
+                <h2 class="ch-en">{{ dpSlides[0].en }}</h2>
+                <h3 class="ch-cn">{{ dpSlides[0].cn }}</h3>
+                <p class="ch-desc">{{ dpSlides[0].desc }}</p>
+                <button class="ch-btn" @click.stop="router.push('/category/digital')">{{ dpSlides[0].btn }} →</button>
+              </div>
+              <!-- Right column: switching images -->
+              <div class="ch-right-col">
+                <div class="ch-slide" v-for="(slide, si) in dpSlides" :key="'r-'+si" :class="{ active: si === dpSubIndex }">
+                  <img v-if="slide.rightProduct" :src="slide.rightProduct.imageUrls[0]" :alt="slide.rightProduct.name" @error="handleImageError" />
+                  <span class="ch-badge ch-badge-right">{{ slide.rightBadge }}</span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- digital promo banner image slide -->
+          <article
+            :class="['hero-slide', 'banner-img-slide', { active: 2 === activeSlide }]"
+            @click="router.push('/category/digital')"
+          >
+            <img :src="'/digital-promo-banner.png'" alt="数码家电活动" @error="handleImageError" />
+          </article>
+
           <article
             v-for="(product, index) in bannerProducts"
             :key="`banner-${product.productId}`"
-            :class="['hero-slide', { active: index + 1 === activeSlide }]"
+            :class="['hero-slide', { active: index + 3 === activeSlide }]"
             @click="navigateToDetail(product)"
           >
             <img loading="lazy" :src="product.imageUrls[0]" :alt="product.name" @error="handleImageError" />
@@ -402,16 +521,11 @@ onUnmounted(() => {
       <section class="service-strip" aria-label="平台服务">
         <span v-for="service in serviceCards" :key="service">{{ service }}</span>
       </section>
-
       <section class="feed-section" aria-labelledby="feed-title">
         <div class="section-title">
           <div>
             <span class="section-kicker">For you</span>
             <h2 id="feed-title">为你精选</h2>
-            <p v-if="recommendationSummary.length" class="recommendation-hint">
-              最近偏好：
-              <span v-for="item in recommendationSummary" :key="item.category">{{ item.category }}</span>
-            </p>
           </div>
           <button type="button" class="more-link" @click="router.push('/products')">查看更多</button>
         </div>
@@ -506,7 +620,6 @@ onUnmounted(() => {
         <p v-else class="home-sub-ok">✓ 订阅成功！新品上线时我们将第一时间通知您。</p>
       </section>
     </template>
-
   </main>
 </template>
 
@@ -581,15 +694,13 @@ onUnmounted(() => {
 }
 
 .hero-slide::after {
-  position: absolute;
-  inset: 0;
-  content: '';
-  background: linear-gradient(90deg, rgba(17, 24, 39, 0.82), rgba(17, 24, 39, 0.34), rgba(17, 24, 39, 0.08));
+  display: none;
 }
 
 .hero-content {
   position: absolute;
   z-index: 2;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
   left: clamp(1.5rem, 5vw, 4.5rem);
   bottom: clamp(1.75rem, 5vw, 4rem);
   max-width: 560px;
@@ -701,7 +812,7 @@ onUnmounted(() => {
 }
 
 .hero-arrow-right {
-  right: 100px;
+  right: 20px;
 }
 
 .hero-carousel:hover .hero-arrow {
@@ -714,6 +825,121 @@ onUnmounted(() => {
   cursor: pointer;
 }
 /* purple notify bar */
+/* digital promo */
+/* ---- digital promo sub-carousel ---- */
+.digital-promo-slide { background: #fff; cursor: default; display: flex; flex-direction: column; }
+.banner-img-slide { cursor: pointer; }
+.banner-img-slide img { width: 100%; height: 100%; object-fit: cover; }
+
+/* notify bar */
+.digital-promo-slide .ch-notify {
+  height: 38px; min-height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(90deg, #64107B 0%, #8F1CAF 100%);
+  color: #fff; font-size: 15px; font-weight: 600;
+  letter-spacing: 0.3px;
+  position: relative; z-index: 5; cursor: pointer;
+}
+
+/* sub-carousel container — 3-column grid, center fixed */
+.cat-hero-carousel {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 30% 40% 30%;
+  overflow: hidden;
+}
+
+/* left & right columns: contain switching slides */
+.ch-left-col, .ch-right-col {
+  position: relative; overflow: hidden;
+}
+
+/* slides inside left/right columns fade in/out */
+.ch-left-col .ch-slide, .ch-right-col .ch-slide {
+  position: absolute; inset: 0;
+  opacity: 0; transition: opacity 0.5s ease;
+}
+.ch-left-col .ch-slide.active, .ch-right-col .ch-slide.active {
+  opacity: 1; z-index: 1;
+}
+.ch-left-col img, .ch-right-col img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transition: transform 0.45s ease;
+}
+.ch-left-col:hover img, .ch-right-col:hover img { transform: scale(1.025); }
+
+/* badges on product images */
+.ch-badge {
+  position: absolute; min-width: 80px; padding: 10px 16px;
+  border-radius: 14px; font-size: 13px; font-weight: 800;
+  text-align: center; z-index: 2; white-space: pre-line; line-height: 1.3;
+}
+.ch-badge-left { top: 72px; left: 48px; background: #980B32; color: #fff; }
+.ch-badge-right { right: 48px; bottom: 72px; background: #F0C94A; color: #34223B; }
+
+/* center content — fixed, no fade */
+.ch-center {
+  background: linear-gradient(145deg, #F2E5FF 0%, #EBD8FC 100%);
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; text-align: center;
+  padding: 48px 32px 70px;
+}
+.ch-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 3px;
+  color: #7B189F; margin-bottom: 10px; text-transform: uppercase;
+}
+.ch-en {
+  margin: 0; font-size: clamp(30px, 2.8vw, 48px); font-weight: 800;
+  letter-spacing: 2px; color: #74128F; line-height: 1.05;
+}
+.ch-cn {
+  margin: 16px 0 0; font-size: clamp(24px, 2vw, 34px);
+  font-weight: 700; color: #4D155F;
+}
+.ch-desc {
+  margin: 14px 0 0; font-size: 14px; line-height: 1.7;
+  color: #75657D; max-width: 380px;
+}
+.ch-btn {
+  margin-top: 22px; height: 46px; padding: 0 26px;
+  border: none; border-radius: 24px;
+  background: linear-gradient(90deg, #681080 0%, #981EB4 100%);
+  color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+}
+.ch-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(111, 19, 137, 0.24); }
+
+/* arrows */
+.ch-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  z-index: 6; width: 48px; height: 48px; border-radius: 50%;
+  background: rgba(255,255,255,0.94); border: 2px solid #7B189F;
+  color: #7B189F; font-size: 1.4rem; cursor: pointer;
+  display: grid; place-items: center;
+  box-shadow: 0 4px 14px rgba(62,22,75,0.12); transition: all 0.2s;
+}
+.ch-arrow:hover { background: #7B189F; color: #fff; transform: translateY(-50%) scale(1.05); }
+.ch-arrow-l { left: 18px; }
+.ch-arrow-r { right: 18px; }
+
+/* dots */
+.ch-dots {
+  position: absolute; bottom: 18px; left: 50%;
+  transform: translateX(-50%); z-index: 6; display: flex; gap: 8px;
+}
+.ch-dots button {
+  width: 8px; height: 8px; border-radius: 50%; border: 0;
+  background: rgba(65,34,72,0.28); cursor: pointer; padding: 0;
+}
+.ch-dots button.active { width: 10px; height: 10px; background: #2B2030; }
+
+@media (max-width: 1200px) { .cat-hero-carousel { grid-template-columns: 32% 36% 32%; } }
+@media (max-width: 767px) {
+  .cat-hero-carousel { height: auto; grid-template-columns: 1fr; }
+  .ch-notify { position: relative; font-size: 12px; }
+  .ch-left-col, .ch-right-col { height: 220px; }
+}
+
 .na-notify-bar {
   position: absolute; top: 0; left: 0; right: 0; height: 40px; z-index: 5;
   background: linear-gradient(90deg, #5A0B72 0%, #7B189F 50%, #9226B3 100%);
@@ -913,10 +1139,6 @@ onUnmounted(() => {
 .new-arrival-slide:hover .new-arrival-cn {
   color: #7B189F;
   text-shadow: 0 8px 22px rgba(123, 24, 159, 0.14);
-}
-
-.new-arrival-slide::after {
-  display: none !important;
 }
 
 @media (max-width: 1100px) {
@@ -1218,10 +1440,60 @@ onUnmounted(() => {
   margin-bottom: 2rem;
 }
 
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.category-tile {
+  min-height: 104px;
+  padding: 1rem;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 14px;
+  background: #fff;
+  color: #111827;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.category-tile:hover,
 .hot-card:hover,
 .feed-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+}
+
+.category-mark {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 0.75rem;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 900;
+}
+
+.tone-0 .category-mark { background: #ff2f68; }
+.tone-1 .category-mark { background: #1677ff; }
+.tone-2 .category-mark { background: #16a34a; }
+.tone-3 .category-mark { background: #7c3aed; }
+
+.category-tile strong,
+.category-tile small {
+  display: block;
+}
+
+.category-tile strong {
+  font-size: 1.1rem;
+}
+
+.category-tile small {
+  margin-top: 0.25rem;
+  color: #6b7280;
 }
 
 .hot-row {
@@ -1551,14 +1823,9 @@ onUnmounted(() => {
   .home-hero-grid {
     grid-template-columns: 1fr;
   }
-
   .hero-carousel {
     height: 380px;
     border-radius: 0;
-  }
-
-  .hero-slide::after {
-    background: linear-gradient(180deg, rgba(17, 24, 39, 0.12), rgba(17, 24, 39, 0.88));
   }
 
   .hero-content {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useProductStore } from '@/stores/productStore'
 import type { Product } from '@/types'
@@ -20,7 +20,7 @@ const stockOnly = ref(false)
 
 const categoryKey = computed(() => (route.params.category as string) || '')
 const categoryLabel = computed(() => {
-  const map: Record<string, string> = { digital: '数码家电', fashion: '服饰穿搭', home: '家居生活', quality: '品质生活' }
+  const map: Record<string, string> = { digital: '数码家电', fashion: '服饰穿搭', home: '家居生活', quality: '母婴玩具' }
   return map[categoryKey.value] || '商品分类'
 })
 const categoryFilter = computed(() => {
@@ -94,33 +94,92 @@ const goDetail = (p: Product) => router.push(`/product/${p.productId}`)
 const resetFilters = () => { selectedMainCategory.value = '全部'; selectedSubcategory.value = '全部'; sortType.value = 'default'; minPrice.value = ''; maxPrice.value = ''; stockOnly.value = false }
 const handleImageError = (e: Event) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=900&q=85' }
 
-const heroContent: Record<string, { en: string; title: string; desc: string; gradient: string }> = {
-  digital:  { en: 'DIGITAL ELECTRONICS', title: '数码家电', desc: '智能设备、高效办公、便携生活', gradient: 'linear-gradient(135deg, #1e293b 0%, #1e3a5f 50%, #2563eb 100%)' },
-  fashion:  { en: 'FASHION & STYLE', title: '服饰穿搭', desc: '背包、出行与日常搭配好物', gradient: 'linear-gradient(135deg, #2d1b2e 0%, #4a1d5e 50%, #a855f7 100%)' },
-  home:     { en: 'HOME & LIVING', title: '家居生活', desc: '温馨居家、品质生活、好物优选', gradient: 'linear-gradient(135deg, #1e293b 0%, #1e3a5f 50%, #2563eb 100%)' },
-  quality:  { en: 'QUALITY LIFE', title: '品质生活', desc: '精选好物，提升日常生活品质', gradient: 'linear-gradient(135deg, #1e293b 0%, #3b2d5b 50%, #7B189F 100%)' },
+/* ---- 3-column carousel ---- */
+const heroSlideIndex = ref(0)
+let heroTimer: number | undefined
+const heroPaused = ref(false)
+
+const catProducts = computed(() => {
+  const cat = categoryFilter.value
+  if (!cat) return products.value
+  return products.value.filter((p: Product) => (p.category || '精选') === cat)
+})
+
+const notifyText: Record<string, string> = {
+  digital: 'DIGITAL NEW ARRIVALS 2026 | 精选数码新品限时上线 →',
+  fashion: 'FASHION NEW ARRIVALS | 本季穿搭新品上线 →',
+  home: 'HOME REFRESH | 本季居家好物焕新上线 →',
+  quality: 'BABY & TOYS NEW ARRIVALS | 软萌新品陪伴登场 →',
 }
 
-watch(() => route.params.category, () => { selectedMainCategory.value = categoryFilter.value || '全部' })
+interface HeroSlide {
+  eyebrow: string; en: string; cn: string; desc: string; btn: string
+  leftBadge: string; rightBadge: string
+  leftProduct?: Product; rightProduct?: Product
+}
+
+const heroSlideConfigs: Record<string, Array<Omit<HeroSlide, 'leftProduct' | 'rightProduct'>>> = {
+  digital: [
+    { eyebrow: 'BACON MALL SELECTED', en: 'DIGITAL ESSENTIALS', cn: '数码家电焕新季', desc: '精选耳机、键盘与智能设备，让科技融入每一种生活场景。', btn: '探索新品', leftBadge: 'NEW', rightBadge: '本周新品' },
+    { eyebrow: 'SMART LIFE', en: 'TECH FOR EVERYDAY', cn: '智能生活新选择', desc: '从办公效率到日常娱乐，发现更贴近生活的科技好物。', btn: '立即查看', leftBadge: '本季精选', rightBadge: '人气推荐' },
+  ],
+  fashion: [
+    { eyebrow: 'STYLE EDIT', en: 'FASHION & STYLE', cn: '本季穿搭灵感', desc: '通勤、出行与日常搭配，找到适合你的风格好物。', btn: '探索穿搭', leftBadge: 'NEW', rightBadge: '本季新品' },
+    { eyebrow: 'DAILY LOOK', en: 'BAG COLLECTION', cn: '背包与出行精选', desc: '轻便大容量，适合学习、通勤和短途出行。', btn: '立即查看', leftBadge: '人气推荐', rightBadge: '限时上新' },
+  ],
+  home: [
+    { eyebrow: 'HOME REFRESH', en: 'COMFY LIVING', cn: '焕新你的理想生活', desc: '从灯光、香气到日常用品，重新整理生活空间。', btn: '探索家居', leftBadge: 'NEW', rightBadge: '本季精选' },
+    { eyebrow: 'COZY SPACE', en: 'HOME ESSENTIALS', cn: '居家好物推荐', desc: '温馨实用，让每一天都更舒适自在。', btn: '立即查看', leftBadge: '限时首发', rightBadge: '人气推荐' },
+  ],
+  quality: [
+    { eyebrow: 'BABY & TOYS', en: 'CUTE COMPANIONS', cn: '萌趣好物，陪伴成长', desc: '软萌玩偶与母婴用品，给宝宝最温暖的陪伴。', btn: '探索好物', leftBadge: 'NEW', rightBadge: '本周新品' },
+    { eyebrow: 'MOMMY & BABY', en: 'SWEET MOMENTS', cn: '温馨亲子时光', desc: '精选母婴好物，让每一天都充满爱与呵护。', btn: '立即查看', leftBadge: '限时上新', rightBadge: '会员专享' },
+  ],
+}
+
+const heroSlides = computed<HeroSlide[]>(() => {
+  const cfg = heroSlideConfigs[categoryKey.value] || heroSlideConfigs.digital
+  const p = catProducts.value
+  const fb = products.value
+  return cfg.map((c, i) => ({
+    ...c,
+    leftProduct: p[i * 2] || fb[i * 2] || p[0],
+    rightProduct: p[i * 2 + 1] || fb[i * 2 + 1] || p[0],
+  }))
+})
+
+const heroNext = () => { heroSlideIndex.value = (heroSlideIndex.value + 1) % heroSlides.value.length }
+const heroPrev = () => { heroSlideIndex.value = (heroSlideIndex.value - 1 + heroSlides.value.length) % heroSlides.value.length }
+
+const startHeroTimer = () => {
+  stopHeroTimer()
+  heroTimer = window.setInterval(() => { if (!heroPaused.value) heroNext() }, 5000)
+}
+const stopHeroTimer = () => { if (heroTimer) { clearInterval(heroTimer); heroTimer = undefined } }
+
+watch(() => route.params.category, () => {
+  selectedMainCategory.value = categoryFilter.value || '全部'
+  heroSlideIndex.value = 0
+})
 
 onMounted(async () => {
   favoriteIds.value = readFavoriteIds()
   selectedMainCategory.value = categoryFilter.value || '全部'
   try { if (products.value.length === 0) await productStore.fetchProducts() } catch (err) { error.value = err instanceof Error ? err.message : '加载失败' } finally { loading.value = false }
+  startHeroTimer()
 })
+onUnmounted(() => { stopHeroTimer() })
 </script>
 
 <template>
   <main class="cat-page">
     <p v-if="actionMessage" class="cat-toast">{{ actionMessage }}</p>
 
-    <!-- Hero -->
-    <section class="cat-hero" :style="{ background: heroContent[categoryKey]?.gradient || heroContent.digital.gradient }">
-      <div>
-        <span>{{ heroContent[categoryKey]?.en || 'CATEGORY' }}</span>
-        <h1>{{ heroContent[categoryKey]?.title || categoryLabel }}</h1>
-        <p>{{ heroContent[categoryKey]?.desc || '探索精选好物' }}</p>
-      </div>
+    <!-- Category Hero Banner -->
+    <section class="cat-hero">
+      <span>BACON MALL</span>
+      <h1>{{ categoryLabel }}</h1>
+      <p>精选好物，品质生活</p>
     </section>
 
     <div v-if="loading" class="cat-state">加载中...</div>
@@ -194,7 +253,7 @@ onMounted(async () => {
 .cat-page { max-width: 100%; }
 .cat-toast { position: fixed; z-index: 120; right: 2rem; top: 5.5rem; padding: 0.65rem 1rem; border-radius: 999px; background: rgba(36,27,47,0.92); color: #fff; font-size: 0.84rem; font-weight: 700; }
 
-.cat-hero { padding: 2rem 2.5rem; border-radius: 18px; color: #fff; margin-bottom: 1.5rem; }
+.cat-hero { padding: 2rem 2.5rem; border-radius: 18px; background: linear-gradient(135deg, #5A0B72 0%, #7B189F 50%, #9226B3 100%); color: #fff; margin-bottom: 1.5rem; }
 .cat-hero span { font-size: 0.78rem; font-weight: 800; letter-spacing: 1px; opacity: 0.8; }
 .cat-hero h1 { margin: 0.25rem 0 0.4rem; font-size: 2.2rem; font-weight: 900; }
 .cat-hero p { margin: 0; opacity: 0.78; font-size: 0.92rem; }
@@ -225,7 +284,7 @@ onMounted(async () => {
 .cat-card-tags { position: absolute; top: 8px; left: 8px; display: flex; flex-direction: column; gap: 4px; }
 .cat-tag { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 900; }
 .cat-tag.hot { background: linear-gradient(135deg, #FF5A36, #ff2f68); color: #fff; }
-.cat-tag.value { background: #6366f1; color: #fff; }
+.cat-tag.value { background: #980B32; color: #fff; }
 .cat-tag.urgent { background: #FFD84D; color: #422006; }
 .cat-tag.new { background: #FFD84D; color: #422006; }
 .cat-card-body { padding: 0.75rem; }

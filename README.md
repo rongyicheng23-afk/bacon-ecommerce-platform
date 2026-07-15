@@ -1,123 +1,205 @@
-# Bacon Mall Frontend
+# Bacon Mall — 电商个性化推荐系统
 
-“专业实习2”项目前端：基于用户行为日志的电商个性化推荐系统。
+"专业实习2"项目：基于用户行为日志的电商个性化推荐系统。
 
-当前阶段先完成网页端电商平台的前端可演示闭环，后续再接入 Python + FastAPI、SQLite/MySQL、Hadoop/HDFS 离线推荐计算。
+前端 Vue 3 + 后端 FastAPI + 大数据 Hadoop。
 
-## 技术栈
+---
 
-- Vue 3
-- Vite 6
-- TypeScript
-- Pinia
-- Axios
+## 环境要求
 
-## 已完成的前端功能
+| 工具 | 版本要求 | 检查命令 |
+|------|---------|----------|
+| Node.js | ≥ 18 | `node -v` |
+| Python | ≥ 3.10 | `python3 --version` |
+| Git | 任意 | `git --version` |
 
-- 首页：运营轮播、分类入口、热卖单品、为你精选瀑布流
-- 首页推荐：根据浏览、收藏、加购、购买等行为日志动态排序商品
-- 商品库：搜索、分类筛选、价格筛选、库存筛选、排序
-- 商品详情：商品图片、价格、库存、规格、数量、详情、评价、相关推荐
-- 收藏：收藏/取消收藏，并在个人中心展示最近收藏
-- 购物车：首页、商品库、详情页加购后真实写入本地购物车
-- 结算：购物车选择商品后进入订单确认页
-- 支付：前端模拟支付，支付后订单进入“待发货”
-- 订单：订单列表、订单详情、待付款/待发货/待收货/已完成/已取消
-- 登录注册：本地 mock 登录注册，不依赖后端
-- 个人中心：账号信息、订单概览、最近行为、兴趣分类、最近收藏
-- 行为日志：本地记录浏览、收藏、取消收藏、加购、购买、结算、支付等行为
+建议使用 **VS Code** 打开项目根目录，终端会自动定位到正确路径。
 
-## 本地运行
+---
 
-安装依赖：
+## 项目结构
+
+```
+bacon-mall-frontend/               ← Git 仓库根目录
+├── src/                           # Vue 3 前端源码
+├── package.json                   # 前端依赖
+├── .env                           # 前端环境变量
+├── docs/                          # 项目文档
+└── backend/                       # ⚠️ 旧副本，已废弃，请勿修改
+                                    #    ↓ 实际后端在这里 ↓
+
+bacon-mall-backend/                ← 🟢 真实后端（用 VS Code 打开此目录开终端）
+├── app/
+│   ├── main.py                    # 应用入口
+│   ├── core/config.py             # 配置 + .env 加载
+│   ├── db/                        # 数据库模型、种子、迁移
+│   ├── routers/                   # API 路由
+│   ├── schemas/                   # Pydantic 模型
+│   └── services/                  # 业务逻辑
+├── bigdata/                       # Hadoop 推荐引擎
+│   ├── streaming/                 # Mapper/Reducer
+│   └── scripts/                   # 管道脚本
+├── scripts/                       # 工具脚本（MinIO 启动等）
+├── requirements.txt
+├── .env                           # MinIO 等配置
+└── .env.example
+```
+
+---
+
+## 首次启动（完整步骤）
+
+### 1. 克隆项目
+
+```bash
+git clone https://github.com/rongyicheng23-afk/bacon-ecommerce-platform.git
+cd bacon-ecommerce-platform
+```
+
+### 2. 安装前端依赖
 
 ```bash
 npm install
 ```
 
-启动开发服务器：
+前端 `.env` 已内置在仓库中，通常无需修改。
+
+### 3. 安装后端依赖
 
 ```bash
-npm run dev -- --host 127.0.0.1
+cd ../bacon-mall-backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-浏览器打开：
-
-```text
-http://127.0.0.1:5173/
-```
-
-构建检查：
+### 4. 启动 MinIO（可选，存储商品图片）
 
 ```bash
-npm run build
+cd ../bacon-mall-backend
+bash scripts/start_minio.sh
+# API: http://127.0.0.1:9002  控制台: http://127.0.0.1:9003
+# 账号: minioadmin / minioadmin
 ```
+
+### 5. 启动
+
+**需要同时开三个终端：**
+
+终端 1 — MinIO（可选）：
+```bash
+cd bacon-mall-backend && bash scripts/start_minio.sh
+```
+
+终端 2 — 后端：
+```bash
+cd bacon-mall-backend && source .venv/bin/activate
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
+```
+
+终端 3 — 前端：
+```bash
+cd bacon-mall-frontend && npm run dev -- --host 127.0.0.1 --port 5175
+```
+
+### 6. 打开浏览器
+
+| 地址 | 说明 |
+|------|------|
+| `http://127.0.0.1:5175/` | 前端页面 |
+| `http://127.0.0.1:8001/docs` | 后端 API 文档（Swagger） |
+| `http://127.0.0.1:8001/api/health` | 后端健康检查 |
+| `http://127.0.0.1:9003` | MinIO 控制台 |
+
+---
 
 ## 测试账号
 
-```text
-邮箱：student@example.com
-密码：123456
+| 角色 | 邮箱 | 密码 |
+|------|------|------|
+| 买家 | `student@example.com` | `123456` |
+| 商家 | `seller@example.com` | `123456` |
+
+首次启动后端会自动创建数据库和种子数据（104 件商品、2 个账号）。
+
+---
+
+## 页面一览
+
+| 路径 | 页面 | 需要登录 |
+|------|------|----------|
+| `/` | 首页 | — |
+| `/products` | 商品库 | — |
+| `/product/:id` | 商品详情 | — |
+| `/category/:cat` | 分类页 | — |
+| `/login` | 登录 | — |
+| `/register` | 注册 | — |
+| `/cart` | 购物车 | 买家 |
+| `/checkout` | 订单确认 | 买家 |
+| `/payment/:orderId` | 模拟支付 | 买家 |
+| `/orders` | 我的订单 | 买家 |
+| `/order/:id` | 订单详情 | 买家 |
+| `/profile` | 个人中心 | 买家 |
+| `/history` | 浏览历史 | 买家 |
+| `/seller` | 商家后台 | 商家 |
+| `/messages` | 消息中心 | — |
+| `/new-arrivals` | 新品首发 | — |
+| `/hot-sales` | 热卖榜单 | — |
+
+---
+
+## 常见问题
+
+### 前端页面报 "Network Error"
+
+**原因**：后端未启动，或前端 `.env` 中 API 地址不对。
+
+**解决**：
+1. 确认终端 1 的后端正运行（看到 `Uvicorn running on http://127.0.0.1:8000`）
+2. 确认 `项目根目录/.env` 中有 `VITE_API_BASE_URL=http://127.0.0.1:8000/api`
+3. 重启前端（`Ctrl+C` 后重新 `npm run dev`）
+
+### 后端启动报端口占用
+
+```bash
+# 查出占用 8000 端口的进程
+lsof -i :8000
+# 换一个端口启动
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
+```
+如果换了端口，记得同步改前端 `.env` 中的端口号。
+
+### 数据库删了想重建
+
+```bash
+cd backend
+rm -f bacon_mall.db
+# 重启后端会自动建表 + 种子数据
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-也可以在注册页创建本地 mock 用户。
+### 旧数据库升级
 
-## 页面入口
-
-```text
-/                 首页
-/products         商品库
-/product/:id      商品详情
-/cart             购物车
-/checkout         订单确认
-/payment/:orderId 模拟支付
-/orders           我的订单
-/order/:id        订单详情
-/profile          个人中心
-/login            登录
-/register         注册
+```bash
+cd backend && source .venv/bin/activate
+python -m app.db.migrate
 ```
 
-## 本地 Mock 数据
+---
 
-当前前端阶段使用浏览器 `localStorage` 保存数据：
+## 技术栈
 
-```text
-mockUsers            mock 用户
-currentUser          当前登录用户
-token                mock 登录 token
-behaviorLogs         用户行为日志
-favoriteProductIds   收藏商品 id
-mockCartItems        购物车商品
-checkoutDraft        待结算订单草稿
-mockOrders           mock 订单
-```
+| 层 | 技术 |
+|----|------|
+| 前端框架 | Vue 3 + Vite + TypeScript |
+| 状态管理 | Pinia |
+| HTTP 客户端 | Axios（自动携带 Token） |
+| 后端框架 | FastAPI |
+| 数据库 | SQLite（15 张表，含 CHECK/FK/UNIQUE 约束） |
+| 认证 | Session Token（PBKDF2 密码哈希） |
+| 大数据 | Hadoop HDFS + YARN + Streaming（计划中） |
 
-## 推荐逻辑
+## 后续计划
 
-前端当前先实现轻量推荐排序，用于演示“用户行为影响首页内容”：
-
-```text
-浏览商品：较低权重
-收藏商品：中等权重
-加入购物车：较高权重
-购买/支付：最高权重
-近期行为：有时间加成
-```
-
-首页“为你精选”会根据 `behaviorLogs` 中的商品和分类偏好动态排序。后续接入后端和 Hadoop 后，这部分会替换为 FastAPI 返回的推荐结果。
-
-## 后续后端与大数据计划
-
-1. 创建 FastAPI 后端项目
-2. 使用 SQLite 建用户、商品、购物车、订单、行为日志表
-3. 前端从 localStorage mock 切换到后端接口
-4. 后端定期导出用户行为日志
-5. 上传日志到 Hadoop HDFS
-6. 使用 Hadoop Streaming + Python 计算用户偏好和推荐分数
-7. 推荐结果回写数据库
-8. FastAPI 提供推荐接口给首页使用
-
-## 项目定位
-
-Hadoop 集群不是数据库，也不是前端运行环境。它在本项目中的作用是存储和批量分析用户行为日志，用来证明项目具备“大数据离线计算 + 个性化推荐”的核心部分。
+见 [backend/BACKEND_BIGDATA_PLAN.md](backend/BACKEND_BIGDATA_PLAN.md)

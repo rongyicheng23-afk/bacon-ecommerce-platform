@@ -5,8 +5,7 @@ import { useProductStore } from '../stores/productStore'
 import type { Product } from '../types'
 import { addProductToCart } from '@/utils/cart'
 import { readFavoriteIds, toggleFavoriteId } from '@/utils/favorites'
-
-type BehaviorAction = 'view' | 'favorite' | 'unfavorite' | 'cart' | 'buy'
+import { behaviorService } from '@/services/behaviorService'
 type SortType = 'default' | 'discount-desc' | 'price-asc' | 'price-desc' | 'sales-desc'
 
 const route = useRoute()
@@ -96,12 +95,10 @@ const syncQuery = () => {
 
 const isSortType = (v: unknown): v is SortType => ['default', 'discount-desc', 'price-asc', 'price-desc', 'sales-desc'].includes(v as string)
 
-const recordBehavior = (product: Product, action: BehaviorAction) => {
-  const logs = JSON.parse(localStorage.getItem('behaviorLogs') || '[]')
-  logs.push({ userId: 1, productId: product.productId, productName: product.name, action, category: product.category || '未分类', timestamp: new Date().toISOString() })
-  localStorage.setItem('behaviorLogs', JSON.stringify(logs.slice(-100)))
+const navigateToDetail = (product: Product) => {
+  behaviorService.send({ productId: product.productId, productName: product.name, action: 'view', category: product.category, source: 'product_catalog' })
+  router.push(`/product/${product.productId}`)
 }
-const navigateToDetail = (product: Product) => { recordBehavior(product, 'view'); router.push(`/product/${product.productId}`) }
 
 const isFavorite = (id: number) => favoriteIds.value.includes(id)
 const toggleFavorite = (p: Product) => {
@@ -111,7 +108,11 @@ const toggleFavorite = (p: Product) => {
   setTimeout(() => actionMessage.value = '', 1500)
 }
 const addToCart = (p: Product) => { addProductToCart(p); actionMessage.value = `已加购《${p.name}》`; setTimeout(() => actionMessage.value = '', 1500) }
-const submitSearch = () => router.replace({ path: '/products', query: { q: keyword.value.trim() || undefined, category: selectedCategory.value === '全部' ? undefined : selectedCategory.value, subcategory: selectedSubcategory.value === '全部' ? undefined : selectedSubcategory.value, sort: sortType.value === 'default' ? undefined : sortType.value, minPrice: minPrice.value || undefined, maxPrice: maxPrice.value || undefined, stock: stockOnly.value ? '1' : undefined } })
+const submitSearch = () => {
+  const queryText = keyword.value.trim()
+  if (queryText) behaviorService.send({ action: 'search', queryText, source: 'product_catalog' })
+  router.replace({ path: '/products', query: { q: queryText || undefined, category: selectedCategory.value === '全部' ? undefined : selectedCategory.value, subcategory: selectedSubcategory.value === '全部' ? undefined : selectedSubcategory.value, sort: sortType.value === 'default' ? undefined : sortType.value, minPrice: minPrice.value || undefined, maxPrice: maxPrice.value || undefined, stock: stockOnly.value ? '1' : undefined } })
+}
 const selectCategory = (c: string) => {
   if (c === '全部') { if (selectedSubcategory.value !== '全部') selectedSubcategory.value = '全部'; else selectedCategory.value = '全部' }
   else if (mainCategories.value.includes(c)) { selectedCategory.value = c; selectedSubcategory.value = '全部' }
@@ -201,6 +202,11 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
           <option value="sales-desc">销量优先</option>
         </select>
       </div>
+
+      <form class="search-box" @submit.prevent="submitSearch">
+        <input v-model="keyword" type="search" placeholder="搜索耳机、背包、台灯..." />
+        <button type="submit">搜索</button>
+      </form>
     </section>
 
     <div v-if="loading" class="state">加载中...</div>

@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/userStore'
+import { useProductStore } from '@/stores/productStore'
 import { cartUpdatedEvent, getCartItemCount } from '@/utils/cart'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const productStore = useProductStore()
 const keyword = ref('')
 const cartItemCount = ref(0)
 const searchHistory = ref<string[]>([])
@@ -54,11 +56,14 @@ const refreshCartCount = () => {
   cartItemCount.value = getCartItemCount()
 }
 
-onMounted(() => {
+onMounted(async () => {
   refreshCartCount()
   loadHistory()
   window.addEventListener(cartUpdatedEvent, refreshCartCount)
   window.addEventListener('storage', refreshCartCount)
+  if (productStore.products.length === 0) {
+    await productStore.fetchProducts()
+  }
 })
 
 onUnmounted(() => {
@@ -116,9 +121,13 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <RouterLink v-if="userStore.isAuthenticated" to="/cart" class="cart-entry">
+      <RouterLink v-if="userStore.isBuyer" to="/cart" class="cart-entry">
         <span>购物车</span>
         <strong>{{ cartItemCount }}</strong>
+      </RouterLink>
+      <RouterLink v-else-if="userStore.isSeller" to="/seller" class="cart-entry">
+        <span>商家中心</span>
+        <strong>店</strong>
       </RouterLink>
     </div>
 
@@ -126,7 +135,7 @@ onUnmounted(() => {
     <nav class="channel-nav" aria-label="主导航">
       <div class="channel-inner">
         <RouterLink to="/" exact-active-class="" :class="{ active: route.path === '/' }">首页</RouterLink>
-        <RouterLink to="/category/quality" :class="{ active: route.path.startsWith('/category/quality') }">品质生活</RouterLink>
+        <RouterLink to="/category/quality" :class="{ active: route.path.startsWith('/category/quality') }">母婴玩具</RouterLink>
         <RouterLink to="/category/digital" :class="{ active: route.path.startsWith('/category/digital') }">数码家电</RouterLink>
         <RouterLink to="/category/fashion" :class="{ active: route.path.startsWith('/category/fashion') }">服饰穿搭</RouterLink>
         <RouterLink to="/category/home" :class="{ active: route.path.startsWith('/category/home') }">家居生活</RouterLink>
@@ -279,7 +288,7 @@ onUnmounted(() => {
   box-sizing: border-box;
   width: 100%;
   min-height: 46px;
-  overflow: hidden;
+  overflow: visible;
   padding: 0.25rem;
   border: 2px solid transparent;
   border-radius: 999px;
@@ -294,12 +303,19 @@ onUnmounted(() => {
     0 8px 22px rgba(90, 11, 114, 0.12);
 }
 
-.header-search input {
+.search-wrapper {
+  position: relative;
   flex: 1;
   min-width: 0;
+}
+
+.header-search input {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
   padding: 0 1rem;
-  border-radius: 999px 0 0 999px;
   border: 0;
+  border-radius: 999px;
   outline: none;
   color: #241B2F;
   font-size: 0.95rem;

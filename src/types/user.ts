@@ -3,6 +3,9 @@ export interface User {
   username: string;
   email: string;
   phone: string;
+  role: 'buyer' | 'seller';
+  shopName?: string;
+  mainCategory?: string;
   status: 'active' | 'inactive';
   createdAt: string;
   updatedAt: string;
@@ -19,6 +22,9 @@ export interface RegisterRequest {
   password: string;
   confirmPassword: string;
   phone?: string;
+  role: 'buyer' | 'seller';
+  shopName?: string;
+  mainCategory?: string;
 }
 
 export interface AuthResponse {

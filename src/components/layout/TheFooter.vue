@@ -1,3 +1,7 @@
+<script setup lang="ts">
+import { RouterLink } from 'vue-router'
+</script>
+
 <template>
   <footer class="footer">
     <div class="footer-content">
@@ -13,11 +17,12 @@
 
       <section class="footer-section">
         <h3>快速入口</h3>
-        <router-link to="/">首页</router-link>
-        <router-link to="/products">全部商品</router-link>
-        <router-link to="/cart">购物车</router-link>
-        <router-link to="/orders">我的订单</router-link>
-        <router-link to="/profile">个人中心</router-link>
+        <RouterLink to="/">首页</RouterLink>
+        <RouterLink to="/products">全部商品</RouterLink>
+        <RouterLink to="/cart">购物车</RouterLink>
+        <RouterLink to="/orders">我的订单</RouterLink>
+        <RouterLink to="/profile">个人中心</RouterLink>
+        <RouterLink to="/seller">商家中心</RouterLink>
       </section>
     </div>
 

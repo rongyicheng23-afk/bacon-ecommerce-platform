@@ -10,7 +10,7 @@ interface BehaviorLog {
 const actionWeights: Record<string, number> = {
   view: 1,
   favorite: 4,
-  unfavorite: 0,   // 取消收藏不参与推荐计算
+  unfavorite: -4,
   cart: 6,
   buy: 8,
   submit_order: 10,
@@ -46,7 +46,7 @@ export const getPersonalizedProducts = (products: Product[], limit = 40) => {
   const categoryScores = new Map<string, number>()
 
   logs.forEach((log) => {
-    const weight = (actionWeights[log.action || ''] || 1) * recencyBoost(log.timestamp)
+    const weight = (actionWeights[log.action || ''] ?? 1) * recencyBoost(log.timestamp)
 
     if (log.productId) {
       productScores.set(log.productId, (productScores.get(log.productId) || 0) + weight)
@@ -82,7 +82,7 @@ export const getRecommendationSummary = () => {
 
   logs.forEach((log) => {
     if (!log.category || log.category === '订单') return
-    const weight = actionWeights[log.action || ''] || 1
+    const weight = actionWeights[log.action || ''] ?? 1
     categoryScores.set(log.category, (categoryScores.get(log.category) || 0) + weight)
   })
 

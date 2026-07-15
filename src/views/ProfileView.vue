@@ -5,6 +5,8 @@ import { useUserStore } from '@/stores/userStore'
 import { useProductStore } from '@/stores/productStore'
 import type { Product } from '@/types'
 import { readFavoriteIds } from '@/utils/favorites'
+import type { Address } from '@/utils/addresses'
+import { addressService } from '@/services/addressService'
 
 interface BehaviorLog {
   userId?: number
@@ -145,6 +147,51 @@ const clearBehaviorLogs = () => {
   }, 1600)
 }
 
+// ---- 收货地址管理 ----
+const myAddresses = ref<Address[]>([])
+const editingAddress = ref<Partial<Address> | null>(null)
+const addressForm = ref({ name: '', phone: '', detail: '' })
+
+const startAddAddress = () => {
+  editingAddress.value = { name: '', phone: '', detail: '' }
+  addressForm.value = { name: '', phone: '', detail: '' }
+}
+
+const startEditAddress = (addr: Address) => {
+  editingAddress.value = { ...addr }
+  addressForm.value = { name: addr.name, phone: addr.phone, detail: addr.detail }
+}
+
+const cancelEditAddress = () => {
+  editingAddress.value = null
+}
+
+const saveAddressForm = async () => {
+  const form = addressForm.value
+  if (!form.name.trim() || !form.phone.trim() || !form.detail.trim()) return
+  const e = editingAddress.value
+  try {
+    if (e?.id && e.id > 0) {
+      await addressService.update(e.id, form)
+    } else {
+      await addressService.create({ ...form, isDefault: myAddresses.value.length === 0 })
+    }
+    myAddresses.value = await addressService.list()
+    editingAddress.value = null
+  } catch (error) {
+    actionMessage.value = error instanceof Error ? error.message : '保存地址失败'
+  }
+}
+
+const removeAddress = async (id: number) => {
+  try {
+    await addressService.remove(id)
+    myAddresses.value = await addressService.list()
+  } catch (error) {
+    actionMessage.value = error instanceof Error ? error.message : '删除地址失败'
+  }
+}
+
 const handleImageError = (event: Event) => {
   const img = event.target as HTMLImageElement
   img.src = 'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=500&q=85'
@@ -156,6 +203,7 @@ onMounted(async () => {
   if (productStore.products.length === 0) {
     await productStore.fetchProducts()
   }
+  try { myAddresses.value = await addressService.list() } catch { myAddresses.value = [] }
 })
 </script>
 
@@ -280,6 +328,56 @@ onMounted(async () => {
             <strong>¥{{ product.price.toFixed(2) }}</strong>
           </div>
         </article>
+      </div>
+    </section>
+
+    <section class="profile-card address-card">
+      <div class="card-head">
+        <div>
+          <span>Address</span>
+          <h2>收货地址</h2>
+        </div>
+        <button type="button" @click="startAddAddress">新建地址</button>
+      </div>
+
+      <div v-if="myAddresses.length === 0" class="profile-empty">
+        暂无收货地址，结算前请先添加。
+      </div>
+
+      <div v-else class="address-list">
+        <div v-for="addr in myAddresses" :key="addr.id" class="address-item">
+          <div class="address-info">
+            <strong>{{ addr.name }} <em v-if="addr.isDefault">默认</em></strong>
+            <span>{{ addr.phone }}</span>
+            <p>{{ addr.detail }}</p>
+          </div>
+          <div class="address-actions">
+            <button type="button" @click="startEditAddress(addr)">编辑</button>
+            <button type="button" @click="removeAddress(addr.id)">删除</button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="editingAddress" class="address-form-overlay" @click.self="cancelEditAddress">
+        <div class="address-form">
+          <h3>{{ editingAddress.id ? '编辑地址' : '新建地址' }}</h3>
+          <label>
+            <span>收件人</span>
+            <input v-model="addressForm.name" placeholder="姓名" />
+          </label>
+          <label>
+            <span>手机号</span>
+            <input v-model="addressForm.phone" placeholder="手机号" />
+          </label>
+          <label>
+            <span>详细地址</span>
+            <input v-model="addressForm.detail" placeholder="省/市/区/街道" />
+          </label>
+          <div class="address-form-buttons">
+            <button type="button" class="primary" @click="saveAddressForm">保存</button>
+            <button type="button" @click="cancelEditAddress">取消</button>
+          </div>
+        </div>
       </div>
     </section>
   </main>
@@ -586,6 +684,151 @@ onMounted(async () => {
 
 .profile-empty p {
   margin: 0;
+}
+
+.address-card {
+  margin-top: 16px;
+}
+
+.address-list {
+  display: grid;
+  gap: 10px;
+}
+
+.address-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  background: #fafafa;
+  border-radius: 12px;
+}
+
+.address-info strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #111827;
+}
+
+.address-info em {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fff1f2;
+  color: #fe2c55;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.address-info span {
+  color: #6b7280;
+  margin-left: 8px;
+  font-size: 13px;
+}
+
+.address-info p {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.address-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.address-actions button {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.address-actions button:hover {
+  border-color: #fe2c55;
+  color: #fe2c55;
+}
+
+.address-form-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  background: rgba(17, 24, 39, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.address-form {
+  width: min(420px, calc(100vw - 32px));
+  padding: 24px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 56px rgba(17, 24, 39, 0.18);
+}
+
+.address-form h3 {
+  margin: 0 0 18px;
+  color: #111827;
+}
+
+.address-form label {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.address-form label span {
+  color: #374151;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.address-form input {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  outline: none;
+  font-size: 14px;
+}
+
+.address-form input:focus {
+  border-color: #fe2c55;
+}
+
+.address-form-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.address-form-buttons button {
+  min-height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.address-form-buttons button.primary {
+  background: #fe2c55;
+  color: #fff;
+}
+
+.address-form-buttons button:not(.primary) {
+  background: #f1f2f4;
+  color: #374151;
 }
 
 @media (max-width: 960px) {

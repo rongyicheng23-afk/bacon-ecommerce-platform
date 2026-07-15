@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import api from '@/services/api'
 
 type OrderStatus = 'pending_payment' | 'paid' | 'shipped' | 'completed' | 'cancelled'
 
@@ -42,7 +43,7 @@ const totalQuantity = computed(() => {
   return order.value?.items.reduce((sum, item) => sum + item.quantity, 0) || 0
 })
 
-const readOrder = () => {
+const readOrder = async () => {
   const orderId = Number(route.params.orderId)
   if (Number.isNaN(orderId)) {
     error.value = '订单号不正确'
@@ -50,8 +51,8 @@ const readOrder = () => {
   }
 
   try {
-    const orders = JSON.parse(localStorage.getItem('mockOrders') || '[]') as MockOrder[]
-    order.value = orders.find((item) => item.orderId === orderId) || null
+    const response = await api.get<{ code: string; data: MockOrder }>(`/orders/${orderId}`)
+    order.value = response.data.data
     selectedMethod.value = order.value?.paymentType || 'alipay'
 
     if (!order.value) {
@@ -62,53 +63,29 @@ const readOrder = () => {
   }
 }
 
-const saveOrder = () => {
-  if (!order.value) return
-  const orders = JSON.parse(localStorage.getItem('mockOrders') || '[]') as MockOrder[]
-  const nextOrders = orders.map((item) => (item.orderId === order.value?.orderId ? order.value : item))
-  localStorage.setItem('mockOrders', JSON.stringify(nextOrders))
-}
-
-const recordBehavior = (action: string) => {
-  if (!order.value) return
-  const logs = JSON.parse(localStorage.getItem('behaviorLogs') || '[]')
-  logs.push({
-    userId: 1,
-    action,
-    orderId: order.value.orderId,
-    category: '订单',
-    amount: order.value.payableAmount,
-    timestamp: new Date().toISOString()
-  })
-  localStorage.setItem('behaviorLogs', JSON.stringify(logs.slice(-100)))
-}
-
-const handlePayment = () => {
+const handlePayment = async () => {
   if (!order.value || loading.value) return
   loading.value = true
-
-  window.setTimeout(() => {
-    if (!order.value) return
-    order.value.status = 'paid'
-    order.value.paymentType = selectedMethod.value
-    order.value.paidAt = new Date().toISOString()
-    saveOrder()
-    recordBehavior('order_paid')
+  try {
+    const response = await api.post<{ code: string; data: MockOrder }>(`/orders/${order.value.orderId}/pay`, {
+      paymentType: selectedMethod.value,
+    })
+    order.value = response.data.data
     actionMessage.value = '支付成功，订单已进入待发货'
+    window.setTimeout(() => router.push(`/payment-success/${order.value!.orderId}`), 700)
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '支付失败'
+  } finally {
     loading.value = false
-
-    window.setTimeout(() => {
-      router.push(`/payment-success/${order.value!.orderId}`)
-    }, 700)
-  }, 700)
+  }
 }
 
 const cancelPayment = () => {
   router.push('/orders')
 }
 
-onMounted(() => {
-  readOrder()
+onMounted(async () => {
+  await readOrder()
 })
 </script>
 
@@ -120,7 +97,7 @@ onMounted(() => {
       <div>
         <span>Payment</span>
         <h1>订单支付</h1>
-        <p>当前为前端模拟支付，用于跑通电商下单流程。</p>
+        <p>这是项目内的模拟支付确认，支付成功后会更新订单状态并记录购买行为。</p>
       </div>
       <button type="button" @click="router.push('/orders')">返回订单</button>
     </section>

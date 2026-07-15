@@ -22,7 +22,7 @@ const handleLogin = async () => {
 
   try {
     await userStore.login(loginForm.value)
-    router.push((route.query.redirect as string) || '/')
+    router.push(userStore.getLoginRedirect(route.query.redirect as string | undefined))
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '登录失败'
   } finally {
@@ -37,12 +37,12 @@ const handleLogin = async () => {
       <div>
         <span>Bacon Mall</span>
         <h1>登录后查看购物车、订单和专属推荐</h1>
-        <p>当前阶段使用本地 mock 登录，后续接入 FastAPI 后会替换成真实用户接口。</p>
+        <p>登录信息由 FastAPI 和 SQLite 管理，登录后可使用购物车、订单和个性化推荐。</p>
       </div>
 
       <ul>
-        <li>商品浏览、收藏、加购行为会记录到本地日志</li>
-        <li>订单流程先用前端 mock 跑通，方便后续接后端</li>
+        <li>商品浏览、收藏、加购行为会记录为推荐数据</li>
+        <li>购物车和订单状态由后端统一保存</li>
         <li>测试账号已自动填好，可直接登录体验</li>
       </ul>
     </section>
@@ -51,7 +51,7 @@ const handleLogin = async () => {
       <div class="auth-heading">
         <span>Welcome back</span>
         <h2>登录账号</h2>
-        <p>测试账号：student@example.com / 123456</p>
+        <p>买家：student@example.com / 123456<br />商家：seller@example.com / 123456</p>
       </div>
 
       <form class="auth-form" @submit.prevent="handleLogin">

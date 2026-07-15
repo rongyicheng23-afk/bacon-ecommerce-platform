@@ -20,5 +20,13 @@ export const toggleFavoriteId = (productId: number) => {
     : [productId, ...ids]
 
   saveFavoriteIds(nextIds)
+  // 页面先即时反馈；登录用户再同步到后端，后端会同时写入推荐行为日志。
+  if (localStorage.getItem('token')) {
+    const request = ids.includes(productId)
+      ? api.delete<{ data: number[] }>(`/favorites/${productId}`)
+      : api.post<{ data: number[] }>(`/favorites/${productId}`)
+    void request.then((response) => saveFavoriteIds(response.data.data || nextIds)).catch(() => undefined)
+  }
   return nextIds
 }
+import api from '@/services/api'
