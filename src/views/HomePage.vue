@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProductStore } from '../stores/productStore'
 import type { Product } from '../types'
@@ -18,7 +18,75 @@ const actionMessage = ref('')
 const activeSlide = ref(0)
 const favoriteIds = ref<number[]>([])
 const products = computed(() => productStore.products)
-const bannerProducts = computed(() => products.value.slice(0, 3))
+const bannerProducts = computed(() => products.value.slice(0, 0))
+
+/* ---- digital promo sub-carousel ---- */
+const dpSubIndex = ref(0)
+let dpTimer: number | undefined
+const dpPaused = ref(false)
+
+const findProductByName = (name: string): Product | undefined => {
+  return products.value.find((p) => p.name === name)
+}
+
+const dpSlides = computed(() => {
+  const headphones = findProductByName('智能降噪耳机')
+  const keyboard = findProductByName('轻薄机械键盘')
+  const powerBank = findProductByName('便携移动电源')
+  const charger = findProductByName('无线充电底座')
+  const mouse = findProductByName('人体工学鼠标')
+
+  return [
+    {
+      eyebrow: 'BACON MALL SELECTED',
+      en: 'UNBEATABLE DIGITAL DEALS',
+      cn: '数码好物，焕新日常',
+      desc: '精选耳机、机械键盘与智能设备，兼顾办公效率与日常娱乐体验。',
+      btn: '探索数码家电',
+      leftProduct: headphones,
+      rightProduct: keyboard,
+      leftBadge: '最高立省\n25%',
+      rightBadge: '本周\n新品',
+    },
+    {
+      eyebrow: 'BACON MALL SELECTED',
+      en: 'UNBEATABLE DIGITAL DEALS',
+      cn: '数码好物，焕新日常',
+      desc: '精选耳机、机械键盘与智能设备，兼顾办公效率与日常娱乐体验。',
+      btn: '探索数码家电',
+      leftProduct: powerBank,
+      rightProduct: charger,
+      leftBadge: '便携\n精选',
+      rightBadge: '人气\n推荐',
+    },
+    {
+      eyebrow: 'BACON MALL SELECTED',
+      en: 'UNBEATABLE DIGITAL DEALS',
+      cn: '数码好物，焕新日常',
+      desc: '精选耳机、机械键盘与智能设备，兼顾办公效率与日常娱乐体验。',
+      btn: '探索数码家电',
+      leftProduct: mouse,
+      rightProduct: headphones,
+      leftBadge: '效率\n好物',
+      rightBadge: '热卖\n单品',
+    },
+  ]
+})
+
+const dpNext = () => { dpSubIndex.value = (dpSubIndex.value + 1) % dpSlides.value.length }
+const dpPrev = () => { dpSubIndex.value = (dpSubIndex.value - 1 + dpSlides.value.length) % dpSlides.value.length }
+const dpGoTo = (i: number) => { dpSubIndex.value = i }
+
+const startDpTimer = () => {
+  stopDpTimer()
+  dpTimer = window.setInterval(() => { if (activeSlide.value === 1) dpNext() }, 2500)
+}
+const stopDpTimer = () => { if (dpTimer) { clearInterval(dpTimer); dpTimer = undefined } }
+
+watch(activeSlide, (val) => {
+  if (val === 1) startDpTimer()
+  else stopDpTimer()
+})
 const recommendedProducts = ref<Product[]>([])
 
 const fetchRecommendations = async () => {
@@ -49,7 +117,7 @@ const categoryCards = [
   { label: '充电设备', img: 'https://images.unsplash.com/photo-1622560480605-d83c853bc5c3?auto=format&fit=crop&w=400&q=85', query: { category: '数码', subcategory: '充电设备' } },
   { label: '通勤背包', img: 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=400&q=85', query: { category: '服饰' } },
   { label: '家居好物', img: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=85', query: { category: '家居' } },
-  { label: '品质生活', img: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=85', query: { category: '家居' } },
+  { label: '母婴玩具', img: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=85', query: { category: '家居' } },
 ]
 
 const trendList = computed(() => products.value.slice(0, 5).map((p, i) => ({ ...p, trend: [42, 35, 28, 21, 18][i] })))
@@ -79,7 +147,7 @@ const circleCategories = [
   { label: '服饰穿搭', img: '/circle-digital.png', path: '/category/fashion' },
   { label: '家居生活', img: '/circle-digital.png', path: '/category/home' },
   { label: '灯具照明', img: '/circle-digital.png', path: '/category/home' },
-  { label: '品质生活', img: '/circle-digital.png', path: '/category/quality' },
+  { label: '母婴玩具', img: '/circle-digital.png', path: '/category/quality' },
   { label: '智能设备', img: '/circle-digital.png', path: '/category/digital' },
 ]
 
@@ -137,7 +205,7 @@ const switchSlide = (index: number) => {
   activeSlide.value = index
 }
 
-const totalSlides = computed(() => bannerProducts.value.length + 1)
+const totalSlides = computed(() => bannerProducts.value.length + 3)
 
 const prevSlide = () => {
   activeSlide.value = (activeSlide.value - 1 + totalSlides.value) % totalSlides.value
@@ -229,6 +297,7 @@ onUnmounted(() => {
   if (countdownTimer) {
     window.clearInterval(countdownTimer)
   }
+  stopDpTimer()
 })
 </script>
 
@@ -241,7 +310,7 @@ onUnmounted(() => {
 
     <template v-else>
       <section class="home-hero-grid">
-        <section v-if="bannerProducts.length" class="hero-carousel" aria-label="热门活动">
+        <section class="hero-carousel" aria-label="热门活动">
           <!-- new arrivals promo slide -->
           <article
             :class="['hero-slide', 'new-arrival-slide', { active: 0 === activeSlide }]"
@@ -268,10 +337,76 @@ onUnmounted(() => {
             </div>
           </article>
 
+          <!-- digital promo sub-carousel slide -->
+          <article
+            :class="['hero-slide', 'digital-promo-slide', { active: 1 === activeSlide }]"
+            @mouseenter="dpNext(); startDpTimer()" @mouseleave="startDpTimer()"
+          >
+            <!-- Top notify bar -->
+            <div class="ch-notify" @click.stop="router.push('/new-arrivals')">DIGITAL NEW ARRIVALS 2026 | 精选数码新品限时上线 →</div>
+
+            <!-- Sub-carousel body -->
+            <div class="cat-hero-carousel">
+              <!-- Left column: switching images -->
+              <div class="ch-left-col">
+                <div class="ch-slide" v-for="(slide, si) in dpSlides" :key="'l-'+si" :class="{ active: si === dpSubIndex }">
+                  <img v-if="slide.leftProduct" :src="slide.leftProduct.imageUrls[0]" :alt="slide.leftProduct.name" @error="handleImageError" />
+                  <span class="ch-badge ch-badge-left">{{ slide.leftBadge }}</span>
+                </div>
+              </div>
+              <!-- Center: fixed content -->
+              <div class="ch-center" v-if="dpSlides.length">
+                <span class="ch-eyebrow">{{ dpSlides[0].eyebrow }}</span>
+                <h2 class="ch-en">{{ dpSlides[0].en }}</h2>
+                <h3 class="ch-cn">{{ dpSlides[0].cn }}</h3>
+                <p class="ch-desc">{{ dpSlides[0].desc }}</p>
+                <button class="ch-btn" @click.stop="router.push('/category/digital')">{{ dpSlides[0].btn }} →</button>
+              </div>
+              <!-- Right column: switching images -->
+              <div class="ch-right-col">
+                <div class="ch-slide" v-for="(slide, si) in dpSlides" :key="'r-'+si" :class="{ active: si === dpSubIndex }">
+                  <img v-if="slide.rightProduct" :src="slide.rightProduct.imageUrls[0]" :alt="slide.rightProduct.name" @error="handleImageError" />
+                  <span class="ch-badge ch-badge-right">{{ slide.rightBadge }}</span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- baby & toys hero slide -->
+          <article
+            :class="['hero-slide', 'baby-hero-slide', { active: 2 === activeSlide }]"
+          >
+            <!-- Top notify bar -->
+            <div class="baby-notify" @click.stop="router.push('/category/quality')">EXPLORE BABY & TOYS | 探索母婴玩具 →</div>
+            <!-- Full background image -->
+            <img class="baby-hero-bg" :src="'/464E50BD0B68D40E054E12AAE62A2DD8.png'" alt="母婴房间" @error="handleImageError" />
+            <!-- Left overlay with diagonal clip -->
+            <div class="baby-hero-copy">
+              <!-- decorative yellow flowers -->
+              <span class="baby-flower baby-flower-1">✿</span>
+              <span class="baby-flower baby-flower-2">✿</span>
+              <span class="baby-flower baby-flower-3">❀</span>
+              <span class="baby-flower baby-flower-4">✿</span>
+              <span class="baby-flower baby-flower-5">❀</span>
+              <span class="baby-flower baby-flower-6">✿</span>
+              <span class="baby-flower baby-flower-7">❀</span>
+              <span class="baby-flower baby-flower-8">✿</span>
+              <span class="baby-flower baby-flower-9">❀</span>
+              <span class="baby-flower baby-flower-10">✿</span>
+              <span class="baby-flower baby-flower-11">❀</span>
+              <span class="baby-flower baby-flower-12">✿</span>
+              <span class="baby-eyebrow">BABY & TOYS</span>
+              <h2 class="baby-title">母婴玩具</h2>
+              <p class="baby-tagline">安心陪伴，趣味成长</p>
+              <p class="baby-desc">从柔软陪伴到益智启蒙，<br/>为宝宝发现安心、有趣的成长好物。</p>
+              <button class="baby-btn" @click.stop="router.push('/category/quality')">立即探索 →</button>
+            </div>
+          </article>
+
           <article
             v-for="(product, index) in bannerProducts"
             :key="`banner-${product.productId}`"
-            :class="['hero-slide', { active: index + 1 === activeSlide }]"
+            :class="['hero-slide', { active: index + 3 === activeSlide }]"
             @click="navigateToDetail(product)"
           >
             <img loading="lazy" :src="product.imageUrls[0]" :alt="product.name" @error="handleImageError" />
@@ -582,15 +717,13 @@ onUnmounted(() => {
 }
 
 .hero-slide::after {
-  position: absolute;
-  inset: 0;
-  content: '';
-  background: linear-gradient(90deg, rgba(17, 24, 39, 0.82), rgba(17, 24, 39, 0.34), rgba(17, 24, 39, 0.08));
+  display: none;
 }
 
 .hero-content {
   position: absolute;
   z-index: 2;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
   left: clamp(1.5rem, 5vw, 4.5rem);
   bottom: clamp(1.75rem, 5vw, 4rem);
   max-width: 560px;
@@ -702,7 +835,7 @@ onUnmounted(() => {
 }
 
 .hero-arrow-right {
-  right: 100px;
+  right: 20px;
 }
 
 .hero-carousel:hover .hero-arrow {
@@ -715,6 +848,222 @@ onUnmounted(() => {
   cursor: pointer;
 }
 /* purple notify bar */
+/* digital promo */
+/* ---- digital promo sub-carousel ---- */
+.digital-promo-slide { background: #fff; cursor: default; display: flex; flex-direction: column; }
+/* ---- baby & toys hero slide ---- */
+.baby-hero-slide { cursor: default; display: flex; flex-direction: column; }
+
+.baby-notify {
+  height: 38px; min-height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(90deg, #64107B 0%, #941DB2 100%);
+  color: #fff; font-size: 15px; font-weight: 600;
+  letter-spacing: 0.4px; cursor: pointer;
+  position: relative; z-index: 5;
+}
+
+.baby-hero-bg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: block; object-fit: cover; object-position: center;
+  z-index: 0;
+  transition: transform 0.5s ease;
+}
+.baby-hero-slide:hover .baby-hero-bg { transform: scale(1.015); }
+
+.baby-hero-copy {
+  position: absolute; z-index: 2;
+  top: 38px; left: 0;
+  width: 36%; height: calc(100% - 38px);
+  background: linear-gradient(135deg, #F6EAFF 0%, #EBD6F9 100%);
+  clip-path: polygon(0 0, 100% 0, 88% 100%, 0 100%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  padding: 40px 48px 48px;
+}
+
+/* diagonal soft transition */
+.baby-hero-copy::after {
+  content: '';
+  position: absolute; top: 0; right: -14px;
+  width: 35px; height: 100%;
+  background: rgba(150, 63, 180, 0.16);
+  transform: skewX(-7deg); transform-origin: top;
+  pointer-events: none;
+}
+
+/* decorative flowers */
+.baby-flower {
+  position: absolute; z-index: 3;
+  color: #F4D35E; pointer-events: none;
+  opacity: 0.85;
+}
+.baby-flower-1  { top: 4%;  left: 6%;   font-size: 24px; transform: rotate(15deg); }
+.baby-flower-2  { top: 13%; right: 14%;  font-size: 20px; transform: rotate(-25deg); }
+.baby-flower-3  { top: 33%; left: 4%;   font-size: 18px; transform: rotate(40deg); }
+.baby-flower-4  { top: 48%; right: 8%;   font-size: 22px; transform: rotate(-12deg); }
+.baby-flower-5  { top: 68%; left: 12%;  font-size: 16px; transform: rotate(30deg); }
+.baby-flower-6  { top: 23%; left: 76%;  font-size: 15px; transform: rotate(-35deg); }
+.baby-flower-7  { top: 83%; right: 16%;  font-size: 20px; transform: rotate(18deg); }
+.baby-flower-8  { top: 56%; right: 30%;  font-size: 14px; transform: rotate(-8deg); }
+.baby-flower-9  { top: 8%;  left: 42%;  font-size: 17px; transform: rotate(50deg); }
+.baby-flower-10 { top: 43%; left: 80%;  font-size: 21px; transform: rotate(-30deg); }
+.baby-flower-11 { top: 76%; left: 68%;  font-size: 16px; transform: rotate(22deg); }
+.baby-flower-12 { top: 90%; left: 32%;  font-size: 19px; transform: rotate(-15deg); }
+
+.baby-eyebrow {
+  font-size: 18px; font-weight: 700;
+  letter-spacing: 2px; color: #8A1AA6;
+}
+
+.baby-title {
+  margin: 14px 0 0; font-size: clamp(44px, 4vw, 68px);
+  font-weight: 800; line-height: 1.08; color: #3F1452;
+}
+
+.baby-tagline {
+  margin: 18px 0 0; font-size: clamp(22px, 1.8vw, 30px);
+  font-weight: 700; color: #662779;
+}
+
+.baby-desc {
+  margin: 16px 0 0; font-size: 15px;
+  line-height: 1.8; color: #77677E; max-width: 350px;
+}
+
+.baby-btn {
+  height: 48px; padding: 0 28px; margin-top: 24px;
+  border: none; border-radius: 24px;
+  background: linear-gradient(90deg, #681080 0%, #9820B5 100%);
+  color: #fff; font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+}
+.baby-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(111, 19, 137, 0.24); }
+
+@media (max-width: 1024px) {
+  .baby-hero-copy { width: 40%; padding: 32px 40px 36px; }
+}
+
+@media (max-width: 767px) {
+  .baby-hero-slide { flex-direction: column; }
+  .baby-hero-bg { position: relative; height: 50%; }
+  .baby-hero-copy {
+    position: relative; top: auto; width: 100%; height: auto;
+    clip-path: none; padding: 28px 24px;
+  }
+  .baby-title { font-size: 36px; }
+}
+
+/* notify bar */
+.digital-promo-slide .ch-notify {
+  height: 38px; min-height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(90deg, #64107B 0%, #8F1CAF 100%);
+  color: #fff; font-size: 15px; font-weight: 600;
+  letter-spacing: 0.3px;
+  position: relative; z-index: 5; cursor: pointer;
+}
+
+/* sub-carousel container — 3-column grid, center fixed */
+.cat-hero-carousel {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 30% 40% 30%;
+  overflow: hidden;
+}
+
+/* left & right columns: contain switching slides */
+.ch-left-col, .ch-right-col {
+  position: relative; overflow: hidden;
+}
+
+/* slides inside left/right columns fade in/out */
+.ch-left-col .ch-slide, .ch-right-col .ch-slide {
+  position: absolute; inset: 0;
+  opacity: 0; transition: opacity 0.5s ease;
+}
+.ch-left-col .ch-slide.active, .ch-right-col .ch-slide.active {
+  opacity: 1; z-index: 1;
+}
+.ch-left-col img, .ch-right-col img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transition: transform 0.45s ease;
+}
+.ch-left-col:hover img, .ch-right-col:hover img { transform: scale(1.025); }
+
+/* badges on product images */
+.ch-badge {
+  position: absolute; min-width: 80px; padding: 10px 16px;
+  border-radius: 14px; font-size: 13px; font-weight: 800;
+  text-align: center; z-index: 2; white-space: pre-line; line-height: 1.3;
+}
+.ch-badge-left { top: 72px; left: 48px; background: #980B32; color: #fff; }
+.ch-badge-right { right: 48px; bottom: 72px; background: #F0C94A; color: #34223B; }
+
+/* center content — fixed, no fade */
+.ch-center {
+  background: linear-gradient(145deg, #F2E5FF 0%, #EBD8FC 100%);
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; text-align: center;
+  padding: 48px 32px 70px;
+}
+.ch-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 3px;
+  color: #7B189F; margin-bottom: 10px; text-transform: uppercase;
+}
+.ch-en {
+  margin: 0; font-size: clamp(30px, 2.8vw, 48px); font-weight: 800;
+  letter-spacing: 2px; color: #74128F; line-height: 1.05;
+}
+.ch-cn {
+  margin: 16px 0 0; font-size: clamp(24px, 2vw, 34px);
+  font-weight: 700; color: #4D155F;
+}
+.ch-desc {
+  margin: 14px 0 0; font-size: 14px; line-height: 1.7;
+  color: #75657D; max-width: 380px;
+}
+.ch-btn {
+  margin-top: 22px; height: 46px; padding: 0 26px;
+  border: none; border-radius: 24px;
+  background: linear-gradient(90deg, #681080 0%, #981EB4 100%);
+  color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+}
+.ch-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(111, 19, 137, 0.24); }
+
+/* arrows */
+.ch-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  z-index: 6; width: 48px; height: 48px; border-radius: 50%;
+  background: rgba(255,255,255,0.94); border: 2px solid #7B189F;
+  color: #7B189F; font-size: 1.4rem; cursor: pointer;
+  display: grid; place-items: center;
+  box-shadow: 0 4px 14px rgba(62,22,75,0.12); transition: all 0.2s;
+}
+.ch-arrow:hover { background: #7B189F; color: #fff; transform: translateY(-50%) scale(1.05); }
+.ch-arrow-l { left: 18px; }
+.ch-arrow-r { right: 18px; }
+
+/* dots */
+.ch-dots {
+  position: absolute; bottom: 18px; left: 50%;
+  transform: translateX(-50%); z-index: 6; display: flex; gap: 8px;
+}
+.ch-dots button {
+  width: 8px; height: 8px; border-radius: 50%; border: 0;
+  background: rgba(65,34,72,0.28); cursor: pointer; padding: 0;
+}
+.ch-dots button.active { width: 10px; height: 10px; background: #2B2030; }
+
+@media (max-width: 1200px) { .cat-hero-carousel { grid-template-columns: 32% 36% 32%; } }
+@media (max-width: 767px) {
+  .cat-hero-carousel { height: auto; grid-template-columns: 1fr; }
+  .ch-notify { position: relative; font-size: 12px; }
+  .ch-left-col, .ch-right-col { height: 220px; }
+}
+
 .na-notify-bar {
   position: absolute; top: 0; left: 0; right: 0; height: 40px; z-index: 5;
   background: linear-gradient(90deg, #5A0B72 0%, #7B189F 50%, #9226B3 100%);
@@ -914,10 +1263,6 @@ onUnmounted(() => {
 .new-arrival-slide:hover .new-arrival-cn {
   color: #7B189F;
   text-shadow: 0 8px 22px rgba(123, 24, 159, 0.14);
-}
-
-.new-arrival-slide::after {
-  display: none !important;
 }
 
 @media (max-width: 1100px) {
@@ -1605,10 +1950,6 @@ onUnmounted(() => {
   .hero-carousel {
     height: 380px;
     border-radius: 0;
-  }
-
-  .hero-slide::after {
-    background: linear-gradient(180deg, rgba(17, 24, 39, 0.12), rgba(17, 24, 39, 0.88));
   }
 
   .hero-content {
