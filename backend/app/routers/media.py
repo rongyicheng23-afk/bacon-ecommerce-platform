@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Header, HTTPException, UploadFile, File
 from app.schemas.common import ApiResponse
 from app.services.auth import get_current_user
-from app.services.media_service import upload_image, get_object_url, delete_object
+from app.services.media_service import MediaStorageError, upload_image, get_object_url, delete_object
 
 router = APIRouter(prefix="/api", tags=["媒体"])
 
@@ -43,7 +43,10 @@ async def upload(
         raise HTTPException(400, f"文件过大，最大 {MAX_SIZE // 1024 // 1024} MB")
 
     filename = file.filename or "upload.webp"
-    object_key = upload_image(data, filename, file.content_type or "image/webp", folder)
+    try:
+        object_key = upload_image(data, filename, file.content_type or "image/webp", folder)
+    except MediaStorageError as exc:
+        raise HTTPException(503, str(exc)) from exc
     url = get_object_url(object_key, folder)
 
     # 记录到 media_assets 表
@@ -76,5 +79,8 @@ def delete(object_key: str, folder: str = "products", authorization: AUTH = None
     # 商品图和店铺图仅商家可删
     if folder in ("products", "shop-logos") and user["role"] != "seller":
         raise HTTPException(403, "仅商家可删除商品/店铺图片")
-    delete_object(object_key, folder)
+    try:
+        delete_object(object_key, folder)
+    except MediaStorageError as exc:
+        raise HTTPException(503, str(exc)) from exc
     return ApiResponse(data=None)

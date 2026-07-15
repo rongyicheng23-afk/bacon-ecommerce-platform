@@ -7,11 +7,13 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import CORS_ORIGINS
 from app.db.database import init_db
 from app.routers import auth, products, carts, orders, sellers, behaviors, frontend_compat, media
+from app.services.media_service import ensure_buckets
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    ensure_buckets()
     yield
 
 

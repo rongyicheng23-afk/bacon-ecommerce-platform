@@ -7,14 +7,14 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DATA_DIR="${SCRIPT_DIR}/../minio_data_community"
 mkdir -p "${DATA_DIR}"
 
-# 查找 MinIO 二进制：优先 tools/minio-community，其次 PATH 中的 minio
-if [ -x "${SCRIPT_DIR}/../tools/minio-community" ]; then
-    MINIO_BIN="${SCRIPT_DIR}/../tools/minio-community"
-elif command -v minio &> /dev/null; then
-    MINIO_BIN="minio"
-else
-    echo "❌ 未找到 MinIO"
-    echo "   brew install minio  或  下载社区版到 backend/tools/minio-community"
+# 只使用固定的社区版，避免 Homebrew 当前的 AIStor 在无许可证时拒绝 S3 操作。
+MINIO_BIN="${SCRIPT_DIR}/../tools/minio-community"
+if [ ! -x "${MINIO_BIN}" ]; then
+    echo "未找到 MinIO 社区版: ${MINIO_BIN}"
+    echo "请执行："
+    echo "  mkdir -p ${SCRIPT_DIR}/../tools"
+    echo "  curl -fL https://dl.min.io/server/minio/release/darwin-arm64/archive/minio.RELEASE.2025-09-07T16-13-09Z -o ${MINIO_BIN}"
+    echo "  chmod +x ${MINIO_BIN}"
     exit 1
 fi
 
