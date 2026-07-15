@@ -18,7 +18,7 @@ const actionMessage = ref('')
 const activeSlide = ref(0)
 const favoriteIds = ref<number[]>([])
 const products = computed(() => productStore.products)
-const bannerProducts = computed(() => products.value.slice(0, 2))
+const bannerProducts = computed(() => products.value.slice(0, 0))
 
 /* ---- digital promo sub-carousel ---- */
 const dpSubIndex = ref(0)
@@ -310,7 +310,7 @@ onUnmounted(() => {
 
     <template v-else>
       <section class="home-hero-grid">
-        <section v-if="bannerProducts.length" class="hero-carousel" aria-label="热门活动">
+        <section class="hero-carousel" aria-label="热门活动">
           <!-- new arrivals promo slide -->
           <article
             :class="['hero-slide', 'new-arrival-slide', { active: 0 === activeSlide }]"
@@ -372,12 +372,35 @@ onUnmounted(() => {
             </div>
           </article>
 
-          <!-- digital promo banner image slide -->
+          <!-- baby & toys hero slide -->
           <article
-            :class="['hero-slide', 'banner-img-slide', { active: 2 === activeSlide }]"
-            @click="router.push('/category/digital')"
+            :class="['hero-slide', 'baby-hero-slide', { active: 2 === activeSlide }]"
           >
-            <img :src="'/digital-promo-banner.png'" alt="数码家电活动" @error="handleImageError" />
+            <!-- Top notify bar -->
+            <div class="baby-notify" @click.stop="router.push('/category/quality')">EXPLORE BABY & TOYS | 探索母婴玩具 →</div>
+            <!-- Full background image -->
+            <img class="baby-hero-bg" :src="'/464E50BD0B68D40E054E12AAE62A2DD8.png'" alt="母婴房间" @error="handleImageError" />
+            <!-- Left overlay with diagonal clip -->
+            <div class="baby-hero-copy">
+              <!-- decorative yellow flowers -->
+              <span class="baby-flower baby-flower-1">✿</span>
+              <span class="baby-flower baby-flower-2">✿</span>
+              <span class="baby-flower baby-flower-3">❀</span>
+              <span class="baby-flower baby-flower-4">✿</span>
+              <span class="baby-flower baby-flower-5">❀</span>
+              <span class="baby-flower baby-flower-6">✿</span>
+              <span class="baby-flower baby-flower-7">❀</span>
+              <span class="baby-flower baby-flower-8">✿</span>
+              <span class="baby-flower baby-flower-9">❀</span>
+              <span class="baby-flower baby-flower-10">✿</span>
+              <span class="baby-flower baby-flower-11">❀</span>
+              <span class="baby-flower baby-flower-12">✿</span>
+              <span class="baby-eyebrow">BABY & TOYS</span>
+              <h2 class="baby-title">母婴玩具</h2>
+              <p class="baby-tagline">安心陪伴，趣味成长</p>
+              <p class="baby-desc">从柔软陪伴到益智启蒙，<br/>为宝宝发现安心、有趣的成长好物。</p>
+              <button class="baby-btn" @click.stop="router.push('/category/quality')">立即探索 →</button>
+            </div>
           </article>
 
           <article
@@ -828,8 +851,109 @@ onUnmounted(() => {
 /* digital promo */
 /* ---- digital promo sub-carousel ---- */
 .digital-promo-slide { background: #fff; cursor: default; display: flex; flex-direction: column; }
-.banner-img-slide { cursor: pointer; }
-.banner-img-slide img { width: 100%; height: 100%; object-fit: cover; }
+/* ---- baby & toys hero slide ---- */
+.baby-hero-slide { cursor: default; display: flex; flex-direction: column; }
+
+.baby-notify {
+  height: 38px; min-height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(90deg, #64107B 0%, #941DB2 100%);
+  color: #fff; font-size: 15px; font-weight: 600;
+  letter-spacing: 0.4px; cursor: pointer;
+  position: relative; z-index: 5;
+}
+
+.baby-hero-bg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: block; object-fit: cover; object-position: center;
+  z-index: 0;
+  transition: transform 0.5s ease;
+}
+.baby-hero-slide:hover .baby-hero-bg { transform: scale(1.015); }
+
+.baby-hero-copy {
+  position: absolute; z-index: 2;
+  top: 38px; left: 0;
+  width: 36%; height: calc(100% - 38px);
+  background: linear-gradient(135deg, #F6EAFF 0%, #EBD6F9 100%);
+  clip-path: polygon(0 0, 100% 0, 88% 100%, 0 100%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  padding: 40px 48px 48px;
+}
+
+/* diagonal soft transition */
+.baby-hero-copy::after {
+  content: '';
+  position: absolute; top: 0; right: -14px;
+  width: 35px; height: 100%;
+  background: rgba(150, 63, 180, 0.16);
+  transform: skewX(-7deg); transform-origin: top;
+  pointer-events: none;
+}
+
+/* decorative flowers */
+.baby-flower {
+  position: absolute; z-index: 3;
+  color: #F4D35E; pointer-events: none;
+  opacity: 0.85;
+}
+.baby-flower-1  { top: 4%;  left: 6%;   font-size: 24px; transform: rotate(15deg); }
+.baby-flower-2  { top: 13%; right: 14%;  font-size: 20px; transform: rotate(-25deg); }
+.baby-flower-3  { top: 33%; left: 4%;   font-size: 18px; transform: rotate(40deg); }
+.baby-flower-4  { top: 48%; right: 8%;   font-size: 22px; transform: rotate(-12deg); }
+.baby-flower-5  { top: 68%; left: 12%;  font-size: 16px; transform: rotate(30deg); }
+.baby-flower-6  { top: 23%; left: 76%;  font-size: 15px; transform: rotate(-35deg); }
+.baby-flower-7  { top: 83%; right: 16%;  font-size: 20px; transform: rotate(18deg); }
+.baby-flower-8  { top: 56%; right: 30%;  font-size: 14px; transform: rotate(-8deg); }
+.baby-flower-9  { top: 8%;  left: 42%;  font-size: 17px; transform: rotate(50deg); }
+.baby-flower-10 { top: 43%; left: 80%;  font-size: 21px; transform: rotate(-30deg); }
+.baby-flower-11 { top: 76%; left: 68%;  font-size: 16px; transform: rotate(22deg); }
+.baby-flower-12 { top: 90%; left: 32%;  font-size: 19px; transform: rotate(-15deg); }
+
+.baby-eyebrow {
+  font-size: 18px; font-weight: 700;
+  letter-spacing: 2px; color: #8A1AA6;
+}
+
+.baby-title {
+  margin: 14px 0 0; font-size: clamp(44px, 4vw, 68px);
+  font-weight: 800; line-height: 1.08; color: #3F1452;
+}
+
+.baby-tagline {
+  margin: 18px 0 0; font-size: clamp(22px, 1.8vw, 30px);
+  font-weight: 700; color: #662779;
+}
+
+.baby-desc {
+  margin: 16px 0 0; font-size: 15px;
+  line-height: 1.8; color: #77677E; max-width: 350px;
+}
+
+.baby-btn {
+  height: 48px; padding: 0 28px; margin-top: 24px;
+  border: none; border-radius: 24px;
+  background: linear-gradient(90deg, #681080 0%, #9820B5 100%);
+  color: #fff; font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+}
+.baby-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(111, 19, 137, 0.24); }
+
+@media (max-width: 1024px) {
+  .baby-hero-copy { width: 40%; padding: 32px 40px 36px; }
+}
+
+@media (max-width: 767px) {
+  .baby-hero-slide { flex-direction: column; }
+  .baby-hero-bg { position: relative; height: 50%; }
+  .baby-hero-copy {
+    position: relative; top: auto; width: 100%; height: auto;
+    clip-path: none; padding: 28px 24px;
+  }
+  .baby-title { font-size: 36px; }
+}
 
 /* notify bar */
 .digital-promo-slide .ch-notify {

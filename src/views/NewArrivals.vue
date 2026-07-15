@@ -112,15 +112,6 @@ onMounted(async () => {
         </div>
       </section>
 
-      <!-- 6. Story -->
-      <section class="np-story reveal">
-        <div class="np-story-img"><img src="https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1600&q=85" alt="story" @error="handleImageError" /></div>
-        <div class="np-story-overlay"></div>
-        <div class="np-story-body">
-          <span class="np-story-kicker">NEW SEASON STORY</span><h3>每一次上新<br>都从真实需求开始</h3>
-          <button class="np-btn-play" @click="() => {}">▶ 观看新品故事</button>
-        </div>
-      </section>
 
       <!-- 7. Category Nav -->
       <div class="np-cnav reveal">
@@ -213,13 +204,6 @@ onMounted(async () => {
 .np-feat-card p { color: #756D7E; font-size: 0.9rem; line-height: 1.7; margin: 0; }
 .np-feat-count { display: block; margin: 0.8rem 0; color: #980B32; font-size: 0.82rem; font-weight: 800; }
 
-/* Story */
-.np-story { position: relative; border-radius: 22px; overflow: hidden; min-height: 400px; display: flex; align-items: center; margin-bottom: 6rem; }
-.np-story-img { position: absolute; inset: 0; } .np-story-img img { width: 100%; height: 100%; object-fit: cover; }
-.np-story-overlay { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(15,5,25,0.65) 0%, rgba(15,5,25,0.25) 60%, rgba(15,5,25,0.1) 100%); }
-.np-story-body { position: relative; z-index: 2; padding: 3rem; }
-.np-story-kicker { color: #F4D35E; font-size: 0.7rem; font-weight: 900; letter-spacing: 2px; }
-.np-story-body h3 { margin: 0.4rem 0 1rem; color: #fff; font-size: 2rem; font-weight: 900; line-height: 1.25; }
 .np-btn-play { display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; border: 1.5px solid rgba(255,255,255,0.5); border-radius: 999px; background: rgba(255,255,255,0.12); color: #fff; cursor: pointer; font-size: 0.9rem; font-weight: 700; transition: background 0.2s; }
 .np-btn-play:hover { background: rgba(255,255,255,0.2); }
 
@@ -282,7 +266,6 @@ onMounted(async () => {
   .np-hero-body h1 { font-size: 2rem; }
   .np-intro { margin: 3rem auto; } .np-intro-stats { gap: 1.5rem; }
   .np-feat-card { margin: -1.5rem 1rem 0 !important; padding: 1.5rem; }
-  .np-story { min-height: 300px; } .np-story-body h3 { font-size: 1.3rem; }
   .np-grid { gap: 0.65rem; } .np-values { grid-template-columns: 1fr; }
 }
 </style>
