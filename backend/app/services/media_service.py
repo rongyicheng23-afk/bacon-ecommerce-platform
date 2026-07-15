@@ -1,10 +1,5 @@
-"""媒体存储服务 — 本地文件系统（默认）/ MinIO（配置 MINIO_ENDPOINT 后启用）
-
-MinIO 不可用时自动回退到本地存储，不影响业务运行。
-"""
-import io
-import os
-import uuid
+"""媒体存储 — 自动检测 MinIO / 本地回退"""
+import io, os, uuid, threading
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -12,91 +7,93 @@ UPLOAD_DIR = BASE_DIR / "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 _client = None
-_minio_available = None  # None=未检测, True=可用, False=不可用
+_minio_ok = None  # None=未检测, True=可用, False=不可用
 
 
-def _check_minio():
-    """检测 MinIO 是否可用（带超时，不阻塞）"""
-    global _minio_available, _client
-    if _minio_available is not None:
-        return _minio_available
-
-    endpoint = os.getenv("MINIO_ENDPOINT", "")
-    if not endpoint:
-        _minio_available = False
-        return False
-
+def _try_minio():
+    """在子线程中检测 MinIO（防止 SDK 挂起主线程）"""
     try:
         from minio import Minio
-        from app.core.config import MINIO_ACCESS_KEY, MINIO_SECRET_KEY, MINIO_SECURE
-        import socket
-        host, port = endpoint.rsplit(":", 1)
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(2)
-        result = sock.connect_ex((host, int(port)))
-        sock.close()
-        if result != 0:
-            _minio_available = False
-            return False
-
-        _client = Minio(endpoint, access_key=MINIO_ACCESS_KEY, secret_key=MINIO_SECRET_KEY, secure=MINIO_SECURE)
-        # 确保 bucket
-        from app.core.config import MINIO_BUCKET_PRODUCTS, MINIO_BUCKET_AVATARS, MINIO_BUCKET_LOGOS
-        for bucket in [MINIO_BUCKET_PRODUCTS, MINIO_BUCKET_AVATARS, MINIO_BUCKET_LOGOS]:
-            if not _client.bucket_exists(bucket):
-                _client.make_bucket(bucket)
-                _client.set_bucket_policy(bucket, {
-                    "Version": "2012-10-17",
-                    "Statement": [{"Effect": "Allow", "Principal": {"AWS": ["*"]}, "Action": ["s3:GetObject"], "Resource": [f"arn:aws:s3:::{bucket}/*"]}],
-                })
-        _minio_available = True
-        return True
+        endpoint = os.getenv("MINIO_ENDPOINT", "")
+        if not endpoint:
+            return None
+        c = Minio(endpoint, access_key=os.getenv("MINIO_ACCESS_KEY","minioadmin"),
+                  secret_key=os.getenv("MINIO_SECRET_KEY","minioadmin"), secure=False)
+        c.list_buckets()
+        return c
     except Exception:
-        _minio_available = False
-        return False
+        return None
+
+
+def _ensure_minio():
+    global _client, _minio_ok
+    if _minio_ok is not None:
+        return _client if _minio_ok else None
+
+    result = [None]
+    def runner():
+        result[0] = _try_minio()
+    t = threading.Thread(target=runner, daemon=True)
+    t.start()
+    t.join(timeout=3)  # 最多等 3 秒
+
+    if result[0] is not None:
+        _client = result[0]
+        _minio_ok = True
+        return _client
+    else:
+        _minio_ok = False
+        return None
 
 
 def ensure_buckets():
-    """启动时调用，不阻塞"""
-    _check_minio()
+    _ensure_minio()
 
 
-def upload_image(data: bytes, filename: str, content_type: str = "image/webp",
-                 folder: str = "products") -> str:
+def upload_image(data, filename, content_type="image/webp", folder="products"):
     ext = filename.rsplit(".", 1)[-1] if "." in filename else "webp"
     object_key = f"{folder}/{uuid.uuid4().hex}.{ext}"
 
-    if _check_minio() and _client:
+    client = _ensure_minio()
+    if client:
         try:
-            from app.core.config import MINIO_BUCKET_PRODUCTS, MINIO_BUCKET_AVATARS, MINIO_BUCKET_LOGOS
-            bucket = {"avatars": MINIO_BUCKET_AVATARS, "shop-logos": MINIO_BUCKET_LOGOS}.get(folder, MINIO_BUCKET_PRODUCTS)
-            _client.put_object(bucket, object_key, io.BytesIO(data), length=len(data), content_type=content_type)
-            return object_key
-        except Exception:
-            global _minio_available
-            _minio_available = False
+            bucket = os.getenv("MINIO_BUCKET_PRODUCTS", "product-images")
+            if folder == "avatars":
+                bucket = os.getenv("MINIO_BUCKET_AVATARS", "avatars")
+            elif folder == "shop-logos":
+                bucket = os.getenv("MINIO_BUCKET_LOGOS", "shop-logos")
 
-    # 本地文件系统回退
+            def do_upload():
+                client.put_object(bucket, object_key, io.BytesIO(data), len(data), content_type)
+            t = threading.Thread(target=do_upload, daemon=True)
+            t.start()
+            t.join(timeout=5)
+            if not t.is_alive():
+                return object_key
+        except Exception:
+            pass
+
+    # 本地回退
     target = UPLOAD_DIR / object_key
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(data)
     return object_key
 
 
-def get_object_url(object_key: str, folder: str = "products") -> str:
-    if _check_minio():
-        from app.core.config import MINIO_ENDPOINT, MINIO_BUCKET_PRODUCTS, MINIO_BUCKET_AVATARS, MINIO_BUCKET_LOGOS
-        bucket = {"avatars": MINIO_BUCKET_AVATARS, "shop-logos": MINIO_BUCKET_LOGOS}.get(folder, MINIO_BUCKET_PRODUCTS)
-        return f"http://{MINIO_ENDPOINT}/{bucket}/{object_key}"
+def get_object_url(object_key, folder="products"):
+    if _ensure_minio():
+        ep = os.getenv("MINIO_ENDPOINT", "127.0.0.1:9002")
+        bucket = os.getenv("MINIO_BUCKET_PRODUCTS", "product-images")
+        return f"http://{ep}/{bucket}/{object_key}"
     return f"/static/uploads/{object_key}"
 
 
-def delete_object(object_key: str, folder: str = "products") -> None:
-    if _check_minio() and _client:
-        from app.core.config import MINIO_BUCKET_PRODUCTS, MINIO_BUCKET_AVATARS, MINIO_BUCKET_LOGOS
-        bucket = {"avatars": MINIO_BUCKET_AVATARS, "shop-logos": MINIO_BUCKET_LOGOS}.get(folder, MINIO_BUCKET_PRODUCTS)
+def delete_object(object_key, folder="products"):
+    client = _ensure_minio()
+    if client:
         try:
-            _client.remove_object(bucket, object_key)
+            bucket = os.getenv("MINIO_BUCKET_PRODUCTS", "product-images")
+            client.remove_object(bucket, object_key)
         except Exception:
             pass
     else:
