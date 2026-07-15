@@ -21,29 +21,32 @@
 ## 项目结构
 
 ```
-bacon-mall-frontend/               ← Git 仓库根目录
+bacon-mall-frontend/               ← Git 仓库根目录（monorepo）
 ├── src/                           # Vue 3 前端源码
+│   ├── views/                     # 页面组件
+│   ├── components/                # 通用组件
+│   ├── stores/                    # Pinia 状态管理
+│   ├── services/                  # API 客户端
+│   └── router/                    # 路由配置
 ├── package.json                   # 前端依赖
-├── .env                           # 前端环境变量
+├── .env                           # 前端环境变量（API 地址）
 ├── docs/                          # 项目文档
-└── backend/                       # ⚠️ 旧副本，已废弃，请勿修改
-                                    #    ↓ 实际后端在这里 ↓
-
-bacon-mall-backend/                ← 🟢 真实后端（用 VS Code 打开此目录开终端）
-├── app/
-│   ├── main.py                    # 应用入口
-│   ├── core/config.py             # 配置 + .env 加载
-│   ├── db/                        # 数据库模型、种子、迁移
-│   ├── routers/                   # API 路由
-│   ├── schemas/                   # Pydantic 模型
-│   └── services/                  # 业务逻辑
-├── bigdata/                       # Hadoop 推荐引擎
-│   ├── streaming/                 # Mapper/Reducer
-│   └── scripts/                   # 管道脚本
-├── scripts/                       # 工具脚本（MinIO 启动等）
-├── requirements.txt
-├── .env                           # MinIO 等配置
-└── .env.example
+└── backend/                       # FastAPI 后端
+    ├── app/
+    │   ├── main.py                # 应用入口
+    │   ├── core/config.py         # 配置 + .env 加载
+    │   ├── db/                    # 数据库模型、种子
+    │   ├── routers/               # API 路由
+    │   ├── schemas/               # Pydantic 模型
+    │   └── services/              # 业务逻辑
+    ├── bigdata/                   # Hadoop 推荐引擎
+    │   ├── streaming/             # Mapper/Reducer
+    │   └── scripts/               # 管道脚本
+    ├── scripts/                   # 工具脚本（MinIO 启动等）
+    ├── docs/                      # 后端文档（商品图片台账等）
+    ├── requirements.txt
+    ├── .env                       # MinIO / CORS 等配置
+    └── .env.example
 ```
 
 ---
@@ -68,18 +71,18 @@ npm install
 ### 3. 安装后端依赖
 
 ```bash
-cd ../bacon-mall-backend
-python3 -m venv .venv
+cd backend
+/opt/homebrew/bin/python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. 启动 MinIO（可选，存储商品图片）
+### 4. 启动 MinIO（存储商品图片）
 
 ```bash
-cd ../bacon-mall-backend
+cd backend
 bash scripts/start_minio.sh
-# API: http://127.0.0.1:9002  控制台: http://127.0.0.1:9003
+# API: http://127.0.0.1:9002  控制台: http://127.0.0.1:9001
 # 账号: minioadmin / minioadmin
 ```
 
@@ -87,14 +90,14 @@ bash scripts/start_minio.sh
 
 **需要同时开三个终端：**
 
-终端 1 — MinIO（可选）：
+终端 1 — MinIO：
 ```bash
-cd bacon-mall-backend && bash scripts/start_minio.sh
+cd bacon-mall-frontend/backend && bash scripts/start_minio.sh
 ```
 
 终端 2 — 后端：
 ```bash
-cd bacon-mall-backend && source .venv/bin/activate
+cd bacon-mall-frontend/backend && source .venv/bin/activate
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 ```
 
@@ -110,7 +113,7 @@ cd bacon-mall-frontend && npm run dev -- --host 127.0.0.1 --port 5175
 | `http://127.0.0.1:5175/` | 前端页面 |
 | `http://127.0.0.1:8001/docs` | 后端 API 文档（Swagger） |
 | `http://127.0.0.1:8001/api/health` | 后端健康检查 |
-| `http://127.0.0.1:9003` | MinIO 控制台 |
+| `http://127.0.0.1:9001` | MinIO 控制台 |
 
 ---
 
@@ -156,17 +159,17 @@ cd bacon-mall-frontend && npm run dev -- --host 127.0.0.1 --port 5175
 **原因**：后端未启动，或前端 `.env` 中 API 地址不对。
 
 **解决**：
-1. 确认终端 1 的后端正运行（看到 `Uvicorn running on http://127.0.0.1:8000`）
-2. 确认 `项目根目录/.env` 中有 `VITE_API_BASE_URL=http://127.0.0.1:8000/api`
+1. 确认终端 2 的后端正运行（看到 `Uvicorn running on http://127.0.0.1:8001`）
+2. 确认项目根目录 `.env` 中有 `VITE_API_BASE_URL=http://127.0.0.1:8001/api`
 3. 重启前端（`Ctrl+C` 后重新 `npm run dev`）
 
 ### 后端启动报端口占用
 
 ```bash
-# 查出占用 8000 端口的进程
-lsof -i :8000
+# 查出占用 8001 端口的进程
+lsof -i :8001
 # 换一个端口启动
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8002
 ```
 如果换了端口，记得同步改前端 `.env` 中的端口号。
 
@@ -176,7 +179,7 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 cd backend
 rm -f bacon_mall.db
 # 重启后端会自动建表 + 种子数据
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 ```
 
 ### 旧数据库升级

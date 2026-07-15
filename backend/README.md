@@ -1,43 +1,45 @@
 # Bacon Mall Backend
 
-这是 Bacon Mall 的 FastAPI 后端。正式应用代码位于 `app/` 目录。
+FastAPI 后端，位于 monorepo 的 `backend/` 目录下。
 
 ## 启动方式
 
 ```bash
-cd /Users/rongyicheng/Desktop/专业实习2-项目/bacon-mall-backend
+cd bacon-mall-frontend/backend
 /opt/homebrew/bin/python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-如果 8000 端口被占用，可以换成：
-
-```bash
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 ```
 
 启动后打开：
 
-```txt
-http://127.0.0.1:8000/docs
+- Swagger 文档：http://127.0.0.1:8001/docs
+- 健康检查：http://127.0.0.1:8001/api/health
+
+## MinIO 对象存储
+
+```bash
+bash scripts/start_minio.sh
 ```
 
-根目录的 `main.py` 仅用于兼容旧命令，新开发统一从 `app.main` 启动。
+| 服务 | 地址 | 账号 |
+|------|------|------|
+| API | http://127.0.0.1:9002 | minioadmin / minioadmin |
+| 控制台 | http://127.0.0.1:9001 | minioadmin / minioadmin |
+
+三个桶：`product-images` / `avatars` / `shop-logos`（启动后自动创建）。
 
 ## 测试账号
 
-买家：
+| 角色 | 邮箱 | 密码 |
+|------|------|------|
+| 买家 | student@example.com | 123456 |
+| 商家 | seller@example.com | 123456 |
 
-```txt
-student@example.com
-123456
-```
+## 数据库重建
 
-商家：
-
-```txt
-seller@example.com
-123456
+```bash
+rm -f bacon_mall.db
+# 重启后端会自动建表 + 种子数据
 ```

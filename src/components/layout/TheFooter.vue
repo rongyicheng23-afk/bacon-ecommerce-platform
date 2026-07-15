@@ -28,6 +28,7 @@ import { RouterLink } from 'vue-router'
 
     <div class="footer-bottom">
       <p>&copy; 2026 Bacon Mall. Professional Internship Project.</p>
+      <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer">商品图片由 Pexels 提供</a>
     </div>
   </footer>
 </template>
@@ -87,5 +88,12 @@ import { RouterLink } from 'vue-router'
 .footer-bottom p {
   margin: 0;
   font-size: 0.86rem;
+}
+
+.footer-bottom a {
+  display: inline-block;
+  margin-top: 0.4rem;
+  color: #cbd5e1;
+  font-size: 0.78rem;
 }
 </style>
