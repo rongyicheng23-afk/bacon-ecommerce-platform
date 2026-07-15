@@ -2,11 +2,12 @@ import { defineStore } from 'pinia'
 import type { User, LoginRequest, RegisterRequest } from '../types/user'
 import { userService } from '@/services/userService'
 
-const currentUserKey = 'currentUser'
+const CURRENT_USER_KEY = 'currentUser'
+const TOKEN_KEY = 'token'
 
-const readCurrentUser = () => {
+const readCurrentUser = (): User | null => {
   try {
-    const user = JSON.parse(localStorage.getItem(currentUserKey) || 'null') as User | null
+    const user = JSON.parse(localStorage.getItem(CURRENT_USER_KEY) || 'null') as User | null
     return user ? { ...user, role: user.role || 'buyer' } : null
   } catch {
     return null
@@ -18,8 +19,8 @@ const getUserLandingPath = (user: User | null) => {
 }
 
 const saveCurrentUser = (user: User, token: string) => {
-  localStorage.setItem('token', token)
-  localStorage.setItem(currentUserKey, JSON.stringify({ ...user, role: user.role || 'buyer' }))
+  localStorage.setItem(TOKEN_KEY, token)
+  localStorage.setItem(CURRENT_USER_KEY, JSON.stringify({ ...user, role: user.role || 'buyer' }))
 }
 
 /** 判断 redirect 路径是否与用户角色兼容 */
@@ -34,7 +35,7 @@ const isRedirectCompatible = (user: User, path: string): boolean => {
 export const useUserStore = defineStore('user', {
   state: () => ({
     currentUser: readCurrentUser(),
-    token: localStorage.getItem('token'),
+    token: localStorage.getItem(TOKEN_KEY),
     loading: false,
     error: null as string | null
   }),
@@ -48,6 +49,26 @@ export const useUserStore = defineStore('user', {
   },
 
   actions: {
+    /** 页面刷新后验证本地 token 是否仍有效 */
+    async initAuth() {
+      const token = localStorage.getItem(TOKEN_KEY)
+      if (!token) return
+      try {
+        const user = await userService.fetchMe()
+        if (user) {
+          this.token = token
+          this.currentUser = user
+          saveCurrentUser(user, token)
+        }
+      } catch {
+        // token 无效 → 清除
+        this.token = null
+        this.currentUser = null
+        localStorage.removeItem(TOKEN_KEY)
+        localStorage.removeItem(CURRENT_USER_KEY)
+      }
+    },
+
     async login(credentials: LoginRequest) {
       this.loading = true
       this.error = null
@@ -69,8 +90,7 @@ export const useUserStore = defineStore('user', {
       this.loading = true
       this.error = null
       try {
-        const { confirmPassword: _confirmPassword, ...payload } = data
-        const response = await userService.register(payload as RegisterRequest)
+        const response = await userService.register(data)
         if (response.code !== '0000') throw new Error(response.info || '注册失败')
         this.token = response.data.token
         this.currentUser = response.data.user
@@ -87,8 +107,8 @@ export const useUserStore = defineStore('user', {
       await userService.logout()
       this.token = null
       this.currentUser = null
-      localStorage.removeItem('token')
-      localStorage.removeItem(currentUserKey)
+      localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem(CURRENT_USER_KEY)
     },
 
     /** 登录后跳转：检查 redirect 与角色是否兼容 */

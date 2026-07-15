@@ -1,9 +1,17 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 import TheHeader from './components/layout/TheHeader.vue'
 import TheFooter from './components/layout/TheFooter.vue'
 import FloatingAssistant from './components/FloatingAssistant.vue'
 import RecommendationSidebar from './components/RecommendationSidebar.vue'
+import { useUserStore } from './stores/userStore'
+
+const userStore = useUserStore()
+
+onMounted(() => {
+  userStore.initAuth()
+})
 </script>
 
 <template>
