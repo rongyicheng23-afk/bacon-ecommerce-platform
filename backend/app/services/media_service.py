@@ -67,14 +67,19 @@ def upload_image(data: bytes, filename: str, content_type: str = "image/webp",
     object_key = f"{folder}/{uuid.uuid4().hex}.{ext}"
 
     if _check_minio() and _client:
-        from app.core.config import MINIO_BUCKET_PRODUCTS, MINIO_BUCKET_AVATARS, MINIO_BUCKET_LOGOS
-        bucket = {"avatars": MINIO_BUCKET_AVATARS, "shop-logos": MINIO_BUCKET_LOGOS}.get(folder, MINIO_BUCKET_PRODUCTS)
-        _client.put_object(bucket, object_key, io.BytesIO(data), length=len(data), content_type=content_type)
-    else:
-        target = UPLOAD_DIR / object_key
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(data)
+        try:
+            from app.core.config import MINIO_BUCKET_PRODUCTS, MINIO_BUCKET_AVATARS, MINIO_BUCKET_LOGOS
+            bucket = {"avatars": MINIO_BUCKET_AVATARS, "shop-logos": MINIO_BUCKET_LOGOS}.get(folder, MINIO_BUCKET_PRODUCTS)
+            _client.put_object(bucket, object_key, io.BytesIO(data), length=len(data), content_type=content_type)
+            return object_key
+        except Exception:
+            global _minio_available
+            _minio_available = False
 
+    # 本地文件系统回退
+    target = UPLOAD_DIR / object_key
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(data)
     return object_key
 
 
