@@ -10,9 +10,23 @@ interface SeedProduct {
   price: number
   imageUrls: string[]
   category: string
+  subcategory?: string
 }
 
 const productSeeds: SeedProduct[] = [
+  {
+    name: '西高地玩偶',
+    description: '软萌西高地白梗犬造型毛绒玩偶，面料细腻柔软，填充饱满有弹性，适合拥抱、陪伴和家居装饰，大人小孩都爱不释手。',
+    price: 89,
+    imageUrls: [
+      '/westie-plush.png',
+      '/westie-plush.png',
+      '/westie-plush.png',
+      '/westie-plush.png'
+    ],
+    category: '家居',
+    subcategory: '玩具'
+  },
   {
     name: '智能降噪耳机',
     description: '通勤、运动和学习都适合的无线蓝牙耳机，支持主动降噪与通透模式。',
@@ -1313,6 +1327,7 @@ export const mockProducts: Product[] = productSeeds.map((seed, groupIndex) => {
     status: 'active' as const,
     imageUrls: seed.imageUrls,
     category: seed.category,
+    subcategory: seed.subcategory,
     skus,
     createdAt: now,
     updatedAt: now

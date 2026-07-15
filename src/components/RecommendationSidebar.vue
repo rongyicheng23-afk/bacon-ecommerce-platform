@@ -12,7 +12,7 @@ let dragStartY = 0
 let dragStartTop = 0
 let hasMoved = false
 
-const calcCenterY = () => Math.max(160, (window.innerHeight - 200) / 2 + 130)
+const calcCenterY = () => Math.max(160, (window.innerHeight - 200) / 2 + 260)
 
 const startDrag = (e: PointerEvent) => {
   e.preventDefault()
@@ -28,7 +28,7 @@ const onDrag = (e: PointerEvent) => {
   if (!dragging.value) return
   const dy = e.clientY - dragStartY
   if (Math.abs(dy) > 3) hasMoved = true
-  posY.value = Math.max(170, Math.min(dragStartTop + dy, window.innerHeight - 130))
+  posY.value = Math.max(200, Math.min(dragStartTop + dy, window.innerHeight - 130))
 }
 
 const stopDrag = () => {
