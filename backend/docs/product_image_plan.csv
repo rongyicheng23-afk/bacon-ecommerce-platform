@@ -1,36 +1,115 @@
-﻿商品编号,商品名,分类,搜索关键词,图片来源,原始链接,本地文件名,详情图1,详情图2,MinIO主图URL,状态
-1001,无线降噪耳机 Pro,数码,"wireless headphones, mechanical keyboard, wireless mouse, power bank, webcam",Pexels / Unsplash,(搜索后填入),DIG-001-cover.jpg,DIG-001-detail-1.jpg,DIG-001-detail-2.jpg,(上传后填入),待上传
-1002,机械键盘 红轴版,数码,"wireless headphones, mechanical keyboard, wireless mouse, power bank, webcam",Pexels / Unsplash,(搜索后填入),DIG-002-cover.jpg,DIG-002-detail-1.jpg,DIG-002-detail-2.jpg,(上传后填入),待上传
-1003,人体工学无线鼠标,数码,"wireless headphones, mechanical keyboard, wireless mouse, power bank, webcam",Pexels / Unsplash,(搜索后填入),DIG-003-cover.jpg,DIG-003-detail-1.jpg,DIG-003-detail-2.jpg,(上传后填入),待上传
-1004,20000mAh快充移动电源,数码,"wireless headphones, mechanical keyboard, wireless mouse, power bank, webcam",Pexels / Unsplash,(搜索后填入),DIG-004-cover.jpg,DIG-004-detail-1.jpg,DIG-004-detail-2.jpg,(上传后填入),待上传
-1005,1080P高清摄像头,数码,"wireless headphones, mechanical keyboard, wireless mouse, power bank, webcam",Pexels / Unsplash,(搜索后填入),DIG-005-cover.jpg,DIG-005-detail-1.jpg,DIG-005-detail-2.jpg,(上传后填入),待上传
-1101,通勤双肩背包,服饰,"minimal backpack, canvas sneakers, hoodie flat lay, cotton tshirt, sun protection jacket",Pexels / Unsplash,(搜索后填入),FAS-001-cover.jpg,FAS-001-detail-1.jpg,FAS-001-detail-2.jpg,(上传后填入),待上传
-1102,经典帆布鞋 低帮,服饰,"minimal backpack, canvas sneakers, hoodie flat lay, cotton tshirt, sun protection jacket",Pexels / Unsplash,(搜索后填入),FAS-002-cover.jpg,FAS-002-detail-1.jpg,FAS-002-detail-2.jpg,(上传后填入),待上传
-1103,加绒连帽卫衣,服饰,"minimal backpack, canvas sneakers, hoodie flat lay, cotton tshirt, sun protection jacket",Pexels / Unsplash,(搜索后填入),FAS-003-cover.jpg,FAS-003-detail-1.jpg,FAS-003-detail-2.jpg,(上传后填入),待上传
-1104,纯棉短袖T恤 两件装,服饰,"minimal backpack, canvas sneakers, hoodie flat lay, cotton tshirt, sun protection jacket",Pexels / Unsplash,(搜索后填入),FAS-004-cover.jpg,FAS-004-detail-1.jpg,FAS-004-detail-2.jpg,(上传后填入),待上传
-1105,羊毛混纺围巾,服饰,"minimal backpack, canvas sneakers, hoodie flat lay, cotton tshirt, sun protection jacket",Pexels / Unsplash,(搜索后填入),FAS-005-cover.jpg,FAS-005-detail-1.jpg,FAS-005-detail-2.jpg,(上传后填入),待上传
-1201,LED护眼台灯,家居,"desk lamp, thermos bottle, humidifier home, bedsheet set, memory foam cushion",Pexels / Unsplash,(搜索后填入),HOME-001-cover.jpg,HOME-001-detail-1.jpg,HOME-001-detail-2.jpg,(上传后填入),待上传
-1202,316不锈钢保温杯 500ml,家居,"desk lamp, thermos bottle, humidifier home, bedsheet set, memory foam cushion",Pexels / Unsplash,(搜索后填入),HOME-002-cover.jpg,HOME-002-detail-1.jpg,HOME-002-detail-2.jpg,(上传后填入),待上传
-1203,超声波香薰加湿器 500ml,家居,"desk lamp, thermos bottle, humidifier home, bedsheet set, memory foam cushion",Pexels / Unsplash,(搜索后填入),HOME-003-cover.jpg,HOME-003-detail-1.jpg,HOME-003-detail-2.jpg,(上传后填入),待上传
-1204,全棉床笠三件套 1.5m,家居,"desk lamp, thermos bottle, humidifier home, bedsheet set, memory foam cushion",Pexels / Unsplash,(搜索后填入),HOME-004-cover.jpg,HOME-004-detail-1.jpg,HOME-004-detail-2.jpg,(上传后填入),待上传
-1205,多层实木置物架,家居,"desk lamp, thermos bottle, humidifier home, bedsheet set, memory foam cushion",Pexels / Unsplash,(搜索后填入),HOME-005-cover.jpg,HOME-005-detail-1.jpg,HOME-005-detail-2.jpg,(上传后填入),待上传
-1301,加厚防滑瑜伽垫 10mm,运动,"yoga mat, jump rope, badminton racket, knee support, sports water bottle",Pexels / Unsplash,(搜索后填入),SPO-001-cover.jpg,SPO-001-detail-1.jpg,SPO-001-detail-2.jpg,(上传后填入),待上传
-1302,无绳负重跳绳,运动,"yoga mat, jump rope, badminton racket, knee support, sports water bottle",Pexels / Unsplash,(搜索后填入),SPO-002-cover.jpg,SPO-002-detail-1.jpg,SPO-002-detail-2.jpg,(上传后填入),待上传
-1303,速干运动T恤 男款,运动,"yoga mat, jump rope, badminton racket, knee support, sports water bottle",Pexels / Unsplash,(搜索后填入),SPO-003-cover.jpg,SPO-003-detail-1.jpg,SPO-003-detail-2.jpg,(上传后填入),待上传
-1304,弹簧支撑运动护膝 一对,运动,"yoga mat, jump rope, badminton racket, knee support, sports water bottle",Pexels / Unsplash,(搜索后填入),SPO-004-cover.jpg,SPO-004-detail-1.jpg,SPO-004-detail-2.jpg,(上传后填入),待上传
-1305,Tritan运动水壶 750ml,运动,"yoga mat, jump rope, badminton racket, knee support, sports water bottle",Pexels / Unsplash,(搜索后填入),SPO-005-cover.jpg,SPO-005-detail-1.jpg,SPO-005-detail-2.jpg,(上传后填入),待上传
-1401,明前龙井绿茶 250g礼盒,食品,"green tea gift, dark chocolate, instant coffee, mixed nuts, beef jerky",Pexels / Unsplash,(搜索后填入),FOOD-001-cover.jpg,FOOD-001-detail-1.jpg,FOOD-001-detail-2.jpg,(上传后填入),待上传
-1402,72%黑巧克力 12片礼盒,食品,"green tea gift, dark chocolate, instant coffee, mixed nuts, beef jerky",Pexels / Unsplash,(搜索后填入),FOOD-002-cover.jpg,FOOD-002-detail-1.jpg,FOOD-002-detail-2.jpg,(上传后填入),待上传
-1403,澳洲进口即食燕麦片 1kg,食品,"green tea gift, dark chocolate, instant coffee, mixed nuts, beef jerky",Pexels / Unsplash,(搜索后填入),FOOD-003-cover.jpg,FOOD-003-detail-1.jpg,FOOD-003-detail-2.jpg,(上传后填入),待上传
-1404,新疆红枣枸杞茶 30包,食品,"green tea gift, dark chocolate, instant coffee, mixed nuts, beef jerky",Pexels / Unsplash,(搜索后填入),FOOD-004-cover.jpg,FOOD-004-detail-1.jpg,FOOD-004-detail-2.jpg,(上传后填入),待上传
-1405,云南小粒速溶黑咖啡 50条,食品,"green tea gift, dark chocolate, instant coffee, mixed nuts, beef jerky",Pexels / Unsplash,(搜索后填入),FOOD-005-cover.jpg,FOOD-005-detail-1.jpg,FOOD-005-detail-2.jpg,(上传后填入),待上传
-1501,氨基酸温和洁面乳 120g,美妆,"facial cleanser, sunscreen lotion, lipstick set, face mask, serum bottle",Pexels / Unsplash,(搜索后填入),BEA-001-cover.jpg,BEA-001-detail-1.jpg,BEA-001-detail-2.jpg,(上传后填入),待上传
-1502,清爽防晒霜 SPF50+ PA++++,美妆,"facial cleanser, sunscreen lotion, lipstick set, face mask, serum bottle",Pexels / Unsplash,(搜索后填入),BEA-002-cover.jpg,BEA-002-detail-1.jpg,BEA-002-detail-2.jpg,(上传后填入),待上传
-1503,丝绒哑光口红三支套装,美妆,"facial cleanser, sunscreen lotion, lipstick set, face mask, serum bottle",Pexels / Unsplash,(搜索后填入),BEA-003-cover.jpg,BEA-003-detail-1.jpg,BEA-003-detail-2.jpg,(上传后填入),待上传
-1504,神经酰胺保湿面霜 50g,美妆,"facial cleanser, sunscreen lotion, lipstick set, face mask, serum bottle",Pexels / Unsplash,(搜索后填入),BEA-004-cover.jpg,BEA-004-detail-1.jpg,BEA-004-detail-2.jpg,(上传后填入),待上传
-1505,玻尿酸补水面膜 20片装,美妆,"facial cleanser, sunscreen lotion, lipstick set, face mask, serum bottle",Pexels / Unsplash,(搜索后填入),BEA-005-cover.jpg,BEA-005-detail-1.jpg,BEA-005-detail-2.jpg,(上传后填入),待上传
-1601,《深入理解计算机系统》原书第3版,图书,"programming book, algorithm book, javascript book, python book, sci fi novel",Pexels / Unsplash,(搜索后填入),BOOK-001-cover.jpg,BOOK-001-detail-1.jpg,BOOK-001-detail-2.jpg,(上传后填入),待上传
-1602,《算法导论》原书第4版,图书,"programming book, algorithm book, javascript book, python book, sci fi novel",Pexels / Unsplash,(搜索后填入),BOOK-002-cover.jpg,BOOK-002-detail-1.jpg,BOOK-002-detail-2.jpg,(上传后填入),待上传
-1603,《设计模式：可复用面向对象软件的基础》,图书,"programming book, algorithm book, javascript book, python book, sci fi novel",Pexels / Unsplash,(搜索后填入),BOOK-003-cover.jpg,BOOK-003-detail-1.jpg,BOOK-003-detail-2.jpg,(上传后填入),待上传
-1604,《JavaScript高级程序设计》第4版,图书,"programming book, algorithm book, javascript book, python book, sci fi novel",Pexels / Unsplash,(搜索后填入),BOOK-004-cover.jpg,BOOK-004-detail-1.jpg,BOOK-004-detail-2.jpg,(上传后填入),待上传
-1605,《Python编程：从入门到实践》第3版,图书,"programming book, algorithm book, javascript book, python book, sci fi novel",Pexels / Unsplash,(搜索后填入),BOOK-005-cover.jpg,BOOK-005-detail-1.jpg,BOOK-005-detail-2.jpg,(上传后填入),待上传
+﻿productId,分类,商品名,英文搜索词,图片来源页面,摄影师/作者,本地文件名,MinIO URL,状态
+1069,图书,《深入理解计算机系统》原书第3版,,,,1069-cover.jpg,,待找图
+1070,图书,《算法导论》原书第4版,,,,1070-cover.jpg,,待找图
+1071,图书,《设计模式：可复用面向对象软件的基础》,,,,1071-cover.jpg,,待找图
+1072,图书,《JavaScript高级程序设计》第4版,,,,1072-cover.jpg,,待找图
+1073,图书,《Python编程：从入门到实践》第3版,,,,1073-cover.jpg,,待找图
+1074,图书,《人性的弱点》全集,,,,1074-cover.jpg,,待找图
+1075,图书,《思考，快与慢》,,,,1075-cover.jpg,,待找图
+1076,图书,《三体》全集 典藏版,,,,1076-cover.jpg,,待找图
+1077,图书,《百年孤独》50周年纪念版,,,,1077-cover.jpg,,待找图
+1078,图书,《小王子》中英法三语珍藏版,,,,1078-cover.jpg,,待找图
+1110,图书,《深入理解计算机系统》,,,,1110-cover.jpg,,待找图
+1111,图书,《算法导论》第4版,,,,1111-cover.jpg,,待找图
+1112,图书,《JavaScript高级程序设计》,,,,1112-cover.jpg,,待找图
+1113,图书,《Python编程从入门到实践》,,,,1113-cover.jpg,,待找图
+1114,图书,《三体》全集典藏版,,,,1114-cover.jpg,,待找图
+1025,家居,LED护眼台灯,,,,1025-cover.jpg,,待找图
+1026,家居,316不锈钢保温杯 500ml,,,,1026-cover.jpg,,待找图
+1027,家居,超声波香薰加湿器 500ml,,,,1027-cover.jpg,,待找图
+1028,家居,全棉床笠三件套 1.5m,,,,1028-cover.jpg,,待找图
+1029,家居,多层实木置物架,,,,1029-cover.jpg,,待找图
+1030,家居,记忆棉办公坐垫,,,,1030-cover.jpg,,待找图
+1031,家居,全遮光隔热窗帘 1.5×2.4m,,,,1031-cover.jpg,,待找图
+1032,家居,可升降移动电脑桌,,,,1032-cover.jpg,,待找图
+1033,家居,收纳箱三件套 66L,,,,1033-cover.jpg,,待找图
+1034,家居,浴室防滑垫 40×70cm,,,,1034-cover.jpg,,待找图
+1035,家居,珊瑚绒午休毯 150×200cm,,,,1035-cover.jpg,,待找图
+1090,家居,LED护眼台灯,,,,1090-cover.jpg,,待找图
+1091,家居,316不锈钢保温杯,,,,1091-cover.jpg,,待找图
+1092,家居,超声波香薰加湿器,,,,1092-cover.jpg,,待找图
+1093,家居,全棉床笠三件套,,,,1093-cover.jpg,,待找图
+1094,家居,记忆棉办公坐垫,,,,1094-cover.jpg,,待找图
+1001,数码,无线降噪耳机 Pro,,,,1001-cover.jpg,http://127.0.0.1:9002/product-images/products/28f50129bd284f9995861d7a74e0d3d5.png,已绑定
+1002,数码,机械键盘 红轴版,,,,1002-cover.jpg,http://127.0.0.1:9002/product-images/products/e1160ac3d50b4459b682c8fb1b1bffa4.jpg,已绑定
+1003,数码,人体工学无线鼠标,,,,1003-cover.jpg,,待找图
+1004,数码,20000mAh快充移动电源,,,,1004-cover.jpg,,待找图
+1005,数码,1080P高清摄像头,,,,1005-cover.jpg,,待找图
+1006,数码,智能运动手环,,,,1006-cover.jpg,,待找图
+1007,数码,铝合金平板支架,,,,1007-cover.jpg,,待找图
+1008,数码,GaN 65W三口充电器,,,,1008-cover.jpg,,待找图
+1009,数码,USB-C 七合一扩展坞,,,,1009-cover.jpg,,待找图
+1010,数码,蓝牙便携音箱,,,,1010-cover.jpg,,待找图
+1011,数码,防蓝光护目眼镜,,,,1011-cover.jpg,,待找图
+1012,数码,无线投屏器,,,,1012-cover.jpg,,待找图
+1079,数码,无线蓝牙耳机 Pro,,,,1079-cover.jpg,,待找图
+1080,数码,无线降噪耳机 Pro,,,,1080-cover.jpg,,待找图
+1081,数码,机械键盘 红轴版,,,,1081-cover.jpg,,待找图
+1082,数码,20000mAh快充电源,,,,1082-cover.jpg,,待找图
+1083,数码,智能运动手环,,,,1083-cover.jpg,,待找图
+1084,数码,1080P高清摄像头,,,,1084-cover.jpg,,待找图
+1013,服饰,通勤双肩背包,,,,1013-cover.jpg,,待找图
+1014,服饰,经典帆布鞋 低帮,,,,1014-cover.jpg,,待找图
+1015,服饰,加绒连帽卫衣,,,,1015-cover.jpg,,待找图
+1016,服饰,纯棉短袖T恤 两件装,,,,1016-cover.jpg,,待找图
+1017,服饰,羊毛混纺围巾,,,,1017-cover.jpg,,待找图
+1018,服饰,商务休闲长裤,,,,1018-cover.jpg,,待找图
+1019,服饰,轻薄防晒衣 UPF50+,,,,1019-cover.jpg,,待找图
+1020,服饰,精梳棉袜 5双装,,,,1020-cover.jpg,,待找图
+1021,服饰,头层牛皮自动扣皮带,,,,1021-cover.jpg,,待找图
+1022,服饰,轻便跑鞋 飞织面,,,,1022-cover.jpg,,待找图
+1023,服饰,防晒冰袖 两双装,,,,1023-cover.jpg,,待找图
+1024,服饰,帆布腰带 无孔款,,,,1024-cover.jpg,,待找图
+1085,服饰,通勤双肩背包,,,,1085-cover.jpg,,待找图
+1086,服饰,经典帆布鞋 低帮,,,,1086-cover.jpg,,待找图
+1087,服饰,加绒连帽卫衣,,,,1087-cover.jpg,,待找图
+1088,服饰,纯棉短袖T恤 两件装,,,,1088-cover.jpg,,待找图
+1089,服饰,轻薄防晒衣 UPF50+,,,,1089-cover.jpg,,待找图
+1058,美妆,氨基酸温和洁面乳 120g,,,,1058-cover.jpg,,待找图
+1059,美妆,清爽防晒霜 SPF50+ PA++++,,,,1059-cover.jpg,,待找图
+1060,美妆,丝绒哑光口红三支套装,,,,1060-cover.jpg,,待找图
+1061,美妆,神经酰胺保湿面霜 50g,,,,1061-cover.jpg,,待找图
+1062,美妆,玻尿酸补水面膜 20片装,,,,1062-cover.jpg,,待找图
+1063,美妆,烟酰胺亮肤精华液 30ml,,,,1063-cover.jpg,,待找图
+1064,美妆,12色大地玫瑰眼影盘,,,,1064-cover.jpg,,待找图
+1065,美妆,三合一温和卸妆水 500ml,,,,1065-cover.jpg,,待找图
+1066,美妆,极细双头眉笔 防水持久,,,,1066-cover.jpg,,待找图
+1067,美妆,香氛氨基酸沐浴露 500ml,,,,1067-cover.jpg,,待找图
+1068,美妆,男士控油洁面套装 三件套,,,,1068-cover.jpg,,待找图
+1105,美妆,氨基酸温和洁面乳,,,,1105-cover.jpg,,待找图
+1106,美妆,清爽防晒霜 SPF50+,,,,1106-cover.jpg,,待找图
+1107,美妆,丝绒哑光口红套装,,,,1107-cover.jpg,,待找图
+1108,美妆,玻尿酸补水面膜 20片,,,,1108-cover.jpg,,待找图
+1109,美妆,烟酰胺亮肤精华液,,,,1109-cover.jpg,,待找图
+1036,运动,加厚防滑瑜伽垫 10mm,,,,1036-cover.jpg,,待找图
+1037,运动,无绳负重跳绳,,,,1037-cover.jpg,,待找图
+1038,运动,速干运动T恤 男款,,,,1038-cover.jpg,,待找图
+1039,运动,弹簧支撑运动护膝 一对,,,,1039-cover.jpg,,待找图
+1040,运动,Tritan运动水壶 750ml,,,,1040-cover.jpg,,待找图
+1041,运动,全碳素羽毛球拍 一对,,,,1041-cover.jpg,,待找图
+1042,运动,弹力带套装 5阻力级,,,,1042-cover.jpg,,待找图
+1043,运动,可折叠铝合金登山杖,,,,1043-cover.jpg,,待找图
+1044,运动,超薄隐形运动腰包,,,,1044-cover.jpg,,待找图
+1045,运动,防雾泳镜 高清款,,,,1045-cover.jpg,,待找图
+1046,运动,透气健身手套 半指款,,,,1046-cover.jpg,,待找图
+1095,运动,加厚防滑瑜伽垫,,,,1095-cover.jpg,,待找图
+1096,运动,无绳负重跳绳,,,,1096-cover.jpg,,待找图
+1097,运动,碳素羽毛球拍一对,,,,1097-cover.jpg,,待找图
+1098,运动,运动护膝 一对装,,,,1098-cover.jpg,,待找图
+1099,运动,Tritan运动水壶 750ml,,,,1099-cover.jpg,,待找图
+1047,食品,明前龙井绿茶 250g礼盒,,,,1047-cover.jpg,,待找图
+1048,食品,72%黑巧克力 12片礼盒,,,,1048-cover.jpg,,待找图
+1049,食品,澳洲进口即食燕麦片 1kg,,,,1049-cover.jpg,,待找图
+1050,食品,新疆红枣枸杞茶 30包,,,,1050-cover.jpg,,待找图
+1051,食品,云南小粒速溶黑咖啡 50条,,,,1051-cover.jpg,,待找图
+1052,食品,内蒙古风干牛肉干 250g,,,,1052-cover.jpg,,待找图
+1053,食品,手冲咖啡套装 入门款,,,,1053-cover.jpg,,待找图
+1054,食品,混合坚果礼盒 1.2kg 6罐,,,,1054-cover.jpg,,待找图
+1055,食品,蒟蒻果冻 0脂低卡 12枚,,,,1055-cover.jpg,,待找图
+1056,食品,全麦面包粉 高筋套装 1kg,,,,1056-cover.jpg,,待找图
+1057,食品,新西兰麦卢卡蜂蜜 UMF10+,,,,1057-cover.jpg,,待找图
+1100,食品,明前龙井绿茶礼盒,,,,1100-cover.jpg,,待找图
+1101,食品,72%黑巧克力礼盒,,,,1101-cover.jpg,,待找图
+1102,食品,云南速溶黑咖啡 50条,,,,1102-cover.jpg,,待找图
+1103,食品,混合坚果礼盒 1.2kg,,,,1103-cover.jpg,,待找图
+1104,食品,内蒙古风干牛肉干,,,,1104-cover.jpg,,待找图
