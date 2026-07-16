@@ -47,7 +47,7 @@ python scripts/export_behaviors.py
 bash bigdata/scripts/run_pipeline.sh local
 ```
 
-管道的 5 个步骤：
+管道的 6 个步骤：
 1. 导出未导出过的行为日志 → JSONL
 2. 上传 HDFS（本地模式跳过）
 3. 计算用户分类/商品偏好分数
@@ -71,6 +71,22 @@ bash bigdata/scripts/run_pipeline.sh hadoop-remote
 ```bash
 # 确保 Hadoop 集群已启动
 bash bigdata/scripts/run_pipeline.sh hadoop
+```
+
+## 每日自动运行（macOS）
+
+本项目已为当前 Mac 注册 `com.bacon-mall.recommendation` 的 LaunchAgent：每天 `02:00` 自动运行 `backend/scripts/run_scheduled_recommendation.sh`，等价于执行：
+
+```bash
+bash bigdata/scripts/run_pipeline.sh hadoop-remote
+```
+
+执行日志位于 `backend/logs/recommendation-pipeline.log`，错误日志位于 `backend/logs/recommendation-pipeline-error.log`。同一时间只允许一个任务运行，避免重复计算。
+
+自动任务运行前，Mac 必须已开机并登录，三台 Hadoop 虚拟机和 Hadoop 集群也必须处于运行状态；否则本次任务会失败并把原因写入错误日志。需要立刻手动触发一次时，可执行：
+
+```bash
+launchctl kickstart -k gui/$(id -u)/com.bacon-mall.recommendation
 ```
 
 ## 推荐算法
