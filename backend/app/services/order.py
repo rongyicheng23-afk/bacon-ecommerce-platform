@@ -70,7 +70,7 @@ def get_cart(user_id: int) -> dict:
                 "quantity": r["quantity"], "price": r["sku_price"],
                 "stock": r["sku_stock"], "name": r["name"],
                 "description": r["description"],
-                "imageUrl": r["sku_image"] or json.loads(r["image_urls"])[0],
+                "imageUrl": json.loads(r["image_urls"])[0] or r["sku_image"],
                 "category": r["category"], "selected": bool(r["selected"]),
                 "createdAt": r["created_at"], "updatedAt": r["updated_at"],
             })
@@ -278,7 +278,7 @@ def create_order(user_id: int, data: dict) -> dict:
             )
             conn.execute(
                 "INSERT INTO order_items (order_id, product_id, sku_id, product_name, sku_name, price, quantity, image_url) VALUES (?,?,?,?,?,?,?,?)",
-                (order_id, r["product_id"], r["sku_id"], r["product_name"], r["sku_name"], r["sku_price"], r["quantity"], r["sku_image"] or json.loads(r["image_urls"])[0]),
+                (order_id, r["product_id"], r["sku_id"], r["product_name"], r["sku_name"], r["sku_price"], r["quantity"], json.loads(r["image_urls"])[0] or r["sku_image"]),
             )
         # 清除购物车已下单商品
         conn.execute("DELETE FROM cart_items WHERE user_id = ? AND selected = 1", (user_id,))
