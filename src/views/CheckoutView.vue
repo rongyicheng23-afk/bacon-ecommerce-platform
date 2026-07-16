@@ -35,6 +35,9 @@ const deliveryType = ref('standard')
 const paymentType = ref('alipay')
 const remark = ref('')
 const actionMessage = ref('')
+const showAddressForm = ref(false)
+const savingAddress = ref(false)
+const addressForm = ref({ name: '', phone: '', detail: '' })
 
 const addresses = ref<Array<{ id: number; name: string; phone: string; detail: string; isDefault?: boolean }>>([])
 
@@ -63,6 +66,43 @@ const readCheckoutDraft = () => {
     draft.value = data?.items?.length ? data : null
   } catch {
     draft.value = null
+  }
+}
+
+const loadAddresses = async () => {
+  try {
+    addresses.value = await addressService.list()
+  } catch {
+    addresses.value = []
+  }
+  const defaultAddr = addresses.value.find((address) => address.isDefault)
+  selectedAddressId.value = defaultAddr?.id ?? addresses.value[0]?.id ?? 0
+}
+
+const saveAddress = async () => {
+  const form = addressForm.value
+  if (!form.name.trim() || !form.phone.trim() || !form.detail.trim()) {
+    actionMessage.value = '请完整填写收件人、手机号和详细地址'
+    return
+  }
+
+  savingAddress.value = true
+  try {
+    const address = await addressService.create({
+      name: form.name.trim(),
+      phone: form.phone.trim(),
+      detail: form.detail.trim(),
+      isDefault: addresses.value.length === 0,
+    })
+    await loadAddresses()
+    selectedAddressId.value = address.id
+    addressForm.value = { name: '', phone: '', detail: '' }
+    showAddressForm.value = false
+    actionMessage.value = '收货地址已保存并选中'
+  } catch (error) {
+    actionMessage.value = error instanceof Error ? error.message : '保存地址失败'
+  } finally {
+    savingAddress.value = false
   }
 }
 
@@ -95,9 +135,7 @@ const handleImageError = (event: Event) => {
 
 onMounted(async () => {
   readCheckoutDraft()
-  try { addresses.value = await addressService.list() } catch { addresses.value = [] }
-  const defaultAddr = addresses.value.find((a) => a.isDefault)
-  selectedAddressId.value = defaultAddr?.id ?? addresses.value[0]?.id ?? 0
+  await loadAddresses()
 })
 </script>
 
@@ -126,8 +164,22 @@ onMounted(async () => {
           <section class="checkout-card">
             <div class="section-title">
               <h2>收货地址</h2>
-              <span>请选择本次订单的收货信息</span>
+              <div class="section-actions">
+                <span>请选择本次订单的收货信息</span>
+                <button type="button" class="add-address-button" @click="showAddressForm = !showAddressForm">
+                  {{ showAddressForm ? '收起表单' : '新增地址' }}
+                </button>
+              </div>
             </div>
+
+            <form v-if="showAddressForm" class="checkout-address-form" @submit.prevent="saveAddress">
+              <input v-model="addressForm.name" required maxlength="50" placeholder="收件人姓名" />
+              <input v-model="addressForm.phone" required maxlength="30" placeholder="手机号" />
+              <input v-model="addressForm.detail" required maxlength="300" placeholder="省 / 市 / 区 / 街道 / 门牌号" />
+              <button type="submit" :disabled="savingAddress">
+                {{ savingAddress ? '保存中...' : '保存并使用' }}
+              </button>
+            </form>
 
             <div class="address-list">
               <label
@@ -333,6 +385,57 @@ onMounted(async () => {
   font-size: 0.86rem;
 }
 
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.add-address-button,
+.checkout-address-form button {
+  min-height: 34px;
+  padding: 0 0.85rem;
+  border: 1px solid #980B32;
+  border-radius: 8px;
+  color: #980B32;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.checkout-address-form {
+  display: grid;
+  grid-template-columns: 140px 180px minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.85rem;
+  border-radius: 12px;
+  background: #F7F4F8;
+}
+
+.checkout-address-form input {
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 0.75rem;
+  border: 1px solid #D9D2DE;
+  border-radius: 8px;
+  outline: none;
+}
+
+.checkout-address-form input:focus {
+  border-color: #980B32;
+}
+
+.checkout-address-form button {
+  color: #fff;
+  background: #980B32;
+}
+
+.checkout-address-form button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .address-list,
 .option-grid,
 .payment-options {
@@ -528,6 +631,19 @@ onMounted(async () => {
   }
 
   .payment-options {
+    grid-template-columns: 1fr;
+  }
+
+  .section-actions,
+  .checkout-address-form {
+    width: 100%;
+  }
+
+  .section-actions {
+    justify-content: space-between;
+  }
+
+  .checkout-address-form {
     grid-template-columns: 1fr;
   }
 }
