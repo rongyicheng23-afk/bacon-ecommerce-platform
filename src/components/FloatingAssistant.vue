@@ -48,13 +48,12 @@ const spawnParticles = () => {
 const SNAP_GAP = 24 // px from edge when snapped
 const TRIGGER_SIZE = 48
 
-// read persisted side preference
-const storedSide = (() => {
-  try { return localStorage.getItem('assistant_side') } catch { return null }
-})()
-const side = ref<'left' | 'right'>(storedSide === 'right' ? 'right' : 'left')
-const posX = ref(0) // current x (px from left edge of trigger)
-const posY = ref(0) // current y (px from top of trigger)
+// read persisted preferences
+const storedSide = (() => { try { return localStorage.getItem('assistant_side') } catch { return null } })()
+const storedY = (() => { try { const v = localStorage.getItem('assistant_y'); return v ? Number(v) : 0 } catch { return 0 } })()
+const side = ref<'left' | 'right'>(storedSide === 'left' ? 'left' : 'right')
+const posX = ref(0)
+const posY = ref(storedY)
 const dragging = ref(false)
 
 let dragStartX = 0
@@ -63,7 +62,10 @@ let dragStartLeft = 0
 let dragStartTop = 0
 let hasMoved = false
 
-const calcCenterY = (): number => Math.max(80, (window.innerHeight - TRIGGER_SIZE) / 2)
+const calcCenterY = (): number => {
+  if (side.value === 'right') return Math.max(80, (window.innerHeight - TRIGGER_SIZE) / 2)
+  return Math.max(20, (window.innerHeight - TRIGGER_SIZE) * 0.10)
+}
 
 const centerY = () => {
   posY.value = calcCenterY()
@@ -142,7 +144,7 @@ const stopDrag = () => {
   const newSide: 'left' | 'right' = triggerCenter > window.innerWidth * 0.4 ? 'right' : 'left'
 
   side.value = newSide
-  try { localStorage.setItem('assistant_side', newSide) } catch { /* noop */ }
+  try { localStorage.setItem('assistant_side', newSide); localStorage.setItem('assistant_y', String(posY.value)) } catch { /* noop */ }
 
   // update posX to reflect actual position from left edge
   if (newSide === 'right') {
@@ -150,7 +152,6 @@ const stopDrag = () => {
   } else {
     posX.value = SNAP_GAP
   }
-
   if (!hasMoved) {
     isOpen.value = !isOpen.value
   }
@@ -168,7 +169,7 @@ onMounted(() => {
   } else {
     posX.value = SNAP_GAP
   }
-  posY.value = calcCenterY()
+  if (!storedY) posY.value = calcCenterY()
   window.addEventListener('resize', centerY)
 })
 
@@ -179,35 +180,53 @@ onBeforeUnmount(() => {
 /* ---- suggestions ---- */
 const products = computed(() => productStore.products)
 
-const suggestions = computed(() => {
-  if (products.value.length === 0) return []
+const randomSeed = ref(0)
+const isRefreshed = ref(false)
+const randomProducts = computed(() => {
+  const _ = randomSeed.value
+  return [...products.value].sort(() => Math.random() - 0.5).slice(0, 1)
+})
 
-  const categories = [...new Set(products.value.map((p) => p.category || '精选'))]
-  const randomCategory = categories[Math.floor(Math.random() * categories.length)]
-
-  const hotCount = products.value.filter((p) => p.stock < 50).length
-  const randomProducts = [...products.value].sort(() => Math.random() - 0.5).slice(0, 3)
-
+const defaultSuggestions = computed(() => {
+  const _ = randomSeed.value
+  const singleProduct = randomProducts.value[0]
   return [
-    { label: `猜你喜欢${randomCategory}？`, action: 'category', payload: randomCategory },
-    { label: `今日热卖榜（${hotCount}件热卖）`, action: 'hot' },
-    { label: `为你挑 3 件`, action: 'pick', payload: randomProducts },
+    { label: '新品首发', action: 'new-arrivals' },
+    { label: '今日热卖榜', action: 'hot' },
+    { label: singleProduct ? `为你挑一件 · ${singleProduct.name.slice(0, 6)}` : '为你挑一件', action: 'pick', payload: singleProduct },
     { label: '换一批推荐', action: 'refresh' },
   ]
 })
 
+const refreshedSuggestions = computed(() => {
+  const _ = randomSeed.value
+  const randomProduct = products.value[Math.floor(Math.random() * products.value.length)]
+  return [
+    { label: '母婴玩具', action: 'baby' },
+    { label: '今日特价', action: 'deals' },
+    { label: randomProduct ? `猜你喜欢 · ${randomProduct.name.slice(0, 6)}` : '猜你喜欢', action: 'guess', payload: randomProduct },
+    { label: '换一批推荐', action: 'refresh' },
+  ]
+})
+
+const suggestions = computed(() => isRefreshed.value ? refreshedSuggestions.value : defaultSuggestions.value)
+
 const handleSuggestion = (suggestion: (typeof suggestions.value)[number]) => {
-  if (suggestion.action === 'category') {
-    router.push({ path: '/products', query: { category: suggestion.payload as string } })
+  if (suggestion.action === 'new-arrivals') {
+    router.push('/new-arrivals')
   } else if (suggestion.action === 'hot') {
-    router.push({ path: '/products', query: { sort: 'stock-desc' } })
-  } else if (suggestion.action === 'pick') {
-    const list = suggestion.payload as Array<{ productId: number }>
-    if (list.length > 0) {
-      router.push(`/product/${list[0].productId}`)
-    }
+    router.push('/hot-sales')
+  } else if (suggestion.action === 'pick' || suggestion.action === 'guess') {
+    const p = suggestion.payload as { productId: number } | undefined
+    if (p) router.push(`/product/${p.productId}`)
+  } else if (suggestion.action === 'baby') {
+    router.push('/category/quality')
+  } else if (suggestion.action === 'deals') {
+    router.push('/products?sort=price-asc')
   } else if (suggestion.action === 'refresh') {
-    activeSuggestion.value = '已为你刷新推荐 ✨'
+    isRefreshed.value = !isRefreshed.value
+    if (isRefreshed.value) randomSeed.value++
+    activeSuggestion.value = isRefreshed.value ? '已刷新 ✨' : '已恢复 ✨'
     setTimeout(() => (activeSuggestion.value = ''), 1500)
   }
 
