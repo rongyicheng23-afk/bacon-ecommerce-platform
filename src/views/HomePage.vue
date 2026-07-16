@@ -111,7 +111,7 @@ const categoryCards = [
   { label: '充电设备', img: 'https://images.unsplash.com/photo-1622560480605-d83c853bc5c3?auto=format&fit=crop&w=400&q=85', query: { category: '数码', subcategory: '充电设备' } },
   { label: '通勤背包', img: 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=400&q=85', query: { category: '服饰' } },
   { label: '家居好物', img: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=85', query: { category: '家居' } },
-  { label: '母婴玩具', img: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=85', query: { category: '家居' } },
+  { label: '运动户外', img: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=400&q=85', query: { category: '运动' } },
 ]
 
 const trendList = computed(() => products.value.slice(0, 5).map((p, i) => ({ ...p, trend: [42, 35, 28, 21, 18][i] })))
@@ -141,7 +141,7 @@ const circleCategories = [
   { label: '服饰穿搭', img: '/circle-digital.png', path: '/category/fashion' },
   { label: '家居生活', img: '/circle-digital.png', path: '/category/home' },
   { label: '灯具照明', img: '/circle-digital.png', path: '/category/home' },
-  { label: '母婴玩具', img: '/circle-digital.png', path: '/category/quality' },
+  { label: '运动户外', img: '/circle-digital.png', path: '/category/sports' },
   { label: '智能设备', img: '/circle-digital.png', path: '/category/digital' },
 ]
 
@@ -371,9 +371,9 @@ onUnmounted(() => {
             :class="['hero-slide', 'baby-hero-slide', { active: 2 === activeSlide }]"
           >
             <!-- Top notify bar -->
-            <div class="baby-notify" @click.stop="router.push('/category/quality')">EXPLORE BABY & TOYS | 探索母婴玩具 →</div>
+            <div class="baby-notify" @click.stop="router.push('/category/sports')">EXPLORE SPORTS & OUTDOOR | 探索运动户外 →</div>
             <!-- Full background image -->
-            <img class="baby-hero-bg" :src="'/464E50BD0B68D40E054E12AAE62A2DD8.png'" alt="母婴房间" @error="handleImageError" />
+            <img class="baby-hero-bg" :src="'/464E50BD0B68D40E054E12AAE62A2DD8.png'" alt="运动户外精选" @error="handleImageError" />
             <!-- Left overlay with diagonal clip -->
             <div class="baby-hero-copy">
               <!-- decorative yellow flowers -->
@@ -389,11 +389,11 @@ onUnmounted(() => {
               <span class="baby-flower baby-flower-10">✿</span>
               <span class="baby-flower baby-flower-11">❀</span>
               <span class="baby-flower baby-flower-12">✿</span>
-              <span class="baby-eyebrow">BABY & TOYS</span>
-              <h2 class="baby-title">母婴玩具</h2>
-              <p class="baby-tagline">安心陪伴，趣味成长</p>
-              <p class="baby-desc">从柔软陪伴到益智启蒙，<br/>为宝宝发现安心、有趣的成长好物。</p>
-              <button class="baby-btn" @click.stop="router.push('/category/quality')">立即探索 →</button>
+              <span class="baby-eyebrow">SPORTS & OUTDOOR</span>
+              <h2 class="baby-title">运动户外</h2>
+              <p class="baby-tagline">活力随行，自在探索</p>
+              <p class="baby-desc">从日常健身到户外出行，<br/>发现实用、舒适的运动好物。</p>
+              <button class="baby-btn" @click.stop="router.push('/category/sports')">立即探索 →</button>
             </div>
           </article>
 

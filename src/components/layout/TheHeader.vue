@@ -135,7 +135,7 @@ onUnmounted(() => {
     <nav class="channel-nav" aria-label="主导航">
       <div class="channel-inner">
         <RouterLink to="/" exact-active-class="" :class="{ active: route.path === '/' }">首页</RouterLink>
-        <RouterLink to="/category/quality" :class="{ active: route.path.startsWith('/category/quality') }">母婴玩具</RouterLink>
+        <RouterLink to="/category/sports" :class="{ active: route.path.startsWith('/category/sports') }">运动户外</RouterLink>
         <RouterLink to="/category/digital" :class="{ active: route.path.startsWith('/category/digital') }">数码家电</RouterLink>
         <RouterLink to="/category/fashion" :class="{ active: route.path.startsWith('/category/fashion') }">服饰穿搭</RouterLink>
         <RouterLink to="/category/home" :class="{ active: route.path.startsWith('/category/home') }">家居生活</RouterLink>

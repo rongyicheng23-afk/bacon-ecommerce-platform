@@ -202,7 +202,7 @@ const refreshedSuggestions = computed(() => {
   const _ = randomSeed.value
   const randomProduct = products.value[Math.floor(Math.random() * products.value.length)]
   return [
-    { label: '母婴玩具', action: 'baby' },
+    { label: '运动户外', action: 'sports' },
     { label: '今日特价', action: 'deals' },
     { label: randomProduct ? `猜你喜欢 · ${randomProduct.name.slice(0, 6)}` : '猜你喜欢', action: 'guess', payload: randomProduct },
     { label: '换一批推荐', action: 'refresh' },
@@ -219,8 +219,8 @@ const handleSuggestion = (suggestion: (typeof suggestions.value)[number]) => {
   } else if (suggestion.action === 'pick' || suggestion.action === 'guess') {
     const p = suggestion.payload as { productId: number } | undefined
     if (p) router.push(`/product/${p.productId}`)
-  } else if (suggestion.action === 'baby') {
-    router.push('/category/quality')
+  } else if (suggestion.action === 'sports') {
+    router.push('/category/sports')
   } else if (suggestion.action === 'deals') {
     router.push('/products?sort=price-asc')
   } else if (suggestion.action === 'refresh') {

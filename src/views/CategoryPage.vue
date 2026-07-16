@@ -22,9 +22,13 @@ const selectedSubcategory = ref('全部')
 const categoryKey = computed(() => (route.params.category as string) || '')
 const categoryToBackend: Record<string, string> = {
   digital: '数码', fashion: '服饰', home: '家居', sports: '运动',
-  food: '食品', beauty: '美妆', books: '图书',
+  food: '食品', beauty: '美妆', books: '图书', quality: '运动',
 }
 const categoryFilter = computed(() => categoryToBackend[categoryKey.value] || '')
+const backendToCategoryKey: Record<string, string> = {
+  数码: 'digital', 服饰: 'fashion', 家居: 'home', 运动: 'sports',
+  食品: 'food', 美妆: 'beauty', 图书: 'books',
+}
 
 const heroContent: Record<string, { en: string; title: string; desc: string; gradient: string }> = {
   digital: { en: 'DIGITAL ELECTRONICS', title: '数码家电', desc: '智能设备、高效办公、便携生活', gradient: 'linear-gradient(135deg, #1e293b 0%, #1e3a5f 50%, #2563eb 100%)' },
@@ -35,6 +39,7 @@ const heroContent: Record<string, { en: string; title: string; desc: string; gra
   beauty:  { en: 'BEAUTY & CARE', title: '美妆护理', desc: '护肤彩妆、身体护理、精致生活', gradient: 'linear-gradient(135deg, #2d1b2e 0%, #4a1d5e 50%, #ec4899 100%)' },
   books:   { en: 'BOOKS & READING', title: '图书阅读', desc: '科技人文、文学小说、知识生活', gradient: 'linear-gradient(135deg, #1e293b 0%, #3b2d5b 50%, #7B189F 100%)' },
 }
+const activeHero = computed(() => heroContent[categoryKey.value] || heroContent[backendToCategoryKey[categoryFilter.value] || 'digital'])
 
 const products = computed(() => productStore.products)
 const loading = computed(() => productStore.loading)
@@ -82,8 +87,13 @@ const selectCategory = async (c: string) => {
     else return // 已是"全部"主分类，不需要重新请求
     await doFetch()
   } else if (isMainCat(c)) {
+    const target = backendToCategoryKey[c]
+    if (target && target !== categoryKey.value) {
+      await router.push(`/category/${target}`)
+      return
+    }
     selectedSubcategory.value = '全部'
-    await doFetch() // 主分类切换（实际本页只能有一个主分类，但保留灵活性）
+    await doFetch()
   } else {
     selectedSubcategory.value = c
     await doFetch()
@@ -149,11 +159,11 @@ onMounted(async () => {
     <p v-if="actionMessage" class="cat-toast">{{ actionMessage }}</p>
 
     <!-- Hero -->
-    <section class="cat-hero" :style="{ background: heroContent[categoryKey]?.gradient || heroContent.digital.gradient }">
+    <section class="cat-hero" :style="{ background: activeHero.gradient }">
       <div>
-        <span>{{ heroContent[categoryKey]?.en || 'CATEGORY' }}</span>
-        <h1>{{ heroContent[categoryKey]?.title || categoryKey }}</h1>
-        <p>{{ heroContent[categoryKey]?.desc || '探索精选好物' }}</p>
+        <span>{{ activeHero.en }}</span>
+        <h1>{{ activeHero.title }}</h1>
+        <p>{{ activeHero.desc }}</p>
       </div>
     </section>
 
