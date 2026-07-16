@@ -25,17 +25,11 @@ const dpSubIndex = ref(0)
 let dpTimer: number | undefined
 const dpPaused = ref(false)
 
-const findProductByName = (name: string): Product | undefined => {
-  return products.value.find((p) => p.name === name)
-}
+// 数码品类商品池，用于首页数码推荐轮播
+const digitalProducts = computed(() => products.value.filter((p) => p.category === '数码').slice(0, 6))
 
 const dpSlides = computed(() => {
-  const headphones = findProductByName('智能降噪耳机')
-  const keyboard = findProductByName('轻薄机械键盘')
-  const powerBank = findProductByName('便携移动电源')
-  const charger = findProductByName('无线充电底座')
-  const mouse = findProductByName('人体工学鼠标')
-
+  const p = digitalProducts.value
   return [
     {
       eyebrow: 'BACON MALL SELECTED',
@@ -43,8 +37,8 @@ const dpSlides = computed(() => {
       cn: '数码好物，焕新日常',
       desc: '精选耳机、机械键盘与智能设备，兼顾办公效率与日常娱乐体验。',
       btn: '探索数码家电',
-      leftProduct: headphones,
-      rightProduct: keyboard,
+      leftProduct: p[0],
+      rightProduct: p[1],
       leftBadge: '最高立省\n25%',
       rightBadge: '本周\n新品',
     },
@@ -54,8 +48,8 @@ const dpSlides = computed(() => {
       cn: '数码好物，焕新日常',
       desc: '精选耳机、机械键盘与智能设备，兼顾办公效率与日常娱乐体验。',
       btn: '探索数码家电',
-      leftProduct: powerBank,
-      rightProduct: charger,
+      leftProduct: p[2],
+      rightProduct: p[3],
       leftBadge: '便携\n精选',
       rightBadge: '人气\n推荐',
     },
@@ -65,8 +59,8 @@ const dpSlides = computed(() => {
       cn: '数码好物，焕新日常',
       desc: '精选耳机、机械键盘与智能设备，兼顾办公效率与日常娱乐体验。',
       btn: '探索数码家电',
-      leftProduct: mouse,
-      rightProduct: headphones,
+      leftProduct: p[4],
+      rightProduct: p[5],
       leftBadge: '效率\n好物',
       rightBadge: '热卖\n单品',
     },
@@ -283,7 +277,7 @@ onMounted(async () => {
   loading.value = products.value.length === 0
   try {
     if (products.value.length === 0) {
-      await productStore.fetchProducts()
+      await productStore.fetchProducts({ pageSize: 100 })
     }
     await fetchRecommendations()
   } catch (err) {

@@ -51,10 +51,22 @@ bash bigdata/scripts/run_pipeline.sh local
 1. 导出未导出过的行为日志 → JSONL
 2. 上传 HDFS（本地模式跳过）
 3. 计算用户分类/商品偏好分数
-4. 生成推荐结果，写入 recommendation_results 表
-5. 记录运行日志到 recommendation_runs 表
+4. 生成推荐结果 TSV 文件
+5. 将推荐结果导入 SQLite 的 `recommendation_results` 表
+6. 记录运行日志到 `recommendation_runs` 表
 
 ## Hadoop 集群运行
+
+后端和 SQLite 在 Mac、Hadoop 在 `master` 虚拟机时，从 Mac 的 `backend/` 目录执行：
+
+```bash
+source .venv/bin/activate
+bash bigdata/scripts/run_pipeline.sh hadoop-remote
+```
+
+该模式会自动把 JSONL 日志与 Streaming 脚本传到 `root@127.0.0.1:2222` 的 `master`，在 HDFS/YARN 上运行两个作业，再把聚合结果取回 Mac 导入 SQLite。可用环境变量覆盖默认连接：`HADOOP_SSH_TARGET`、`HADOOP_SSH_PORT`、`HADOOP_REMOTE_DIR`。
+
+如果是在已经同时具备 Hadoop 客户端和 SQLite 数据库的机器上运行，才使用：
 
 ```bash
 # 确保 Hadoop 集群已启动

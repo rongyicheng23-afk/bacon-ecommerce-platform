@@ -6,12 +6,11 @@ import type { Product } from '../types'
 import { addProductToCart } from '@/utils/cart'
 import { readFavoriteIds, toggleFavoriteId } from '@/utils/favorites'
 import { behaviorService } from '@/services/behaviorService'
-type SortType = 'default' | 'discount-desc' | 'price-asc' | 'price-desc' | 'sales-desc'
+type SortType = 'default' | 'price-asc' | 'price-desc' | 'stock-desc'
 
 const route = useRoute()
 const router = useRouter()
 const productStore = useProductStore()
-const loading = ref(true)
 const error = ref<string | null>(null)
 const keyword = ref('')
 const selectedCategory = ref('全部')
@@ -23,6 +22,8 @@ const stockOnly = ref(false)
 const actionMessage = ref('')
 const favoriteIds = ref<number[]>([])
 const dealTab = ref('all')
+const currentPage = ref(1)
+let isUpdatingQuery = false
 
 /* countdown */
 const countdown = ref({ hours: 3, minutes: 26, seconds: 18 })
@@ -31,46 +32,45 @@ let timer: number | undefined
 const pad = (n: number) => String(n).padStart(2, '0')
 
 const products = computed(() => productStore.products)
-const mainCategories = computed(() => ['全部', ...new Set(products.value.map((p) => p.category || '精选'))])
+const loading = computed(() => productStore.loading)
+const totalProducts = computed(() => productStore.total)
+const totalPages = computed(() => Math.max(1, Math.ceil(totalProducts.value / productStore.pageSize)))
+
+const mainCategories = computed(() => ['全部', ...productStore.categories])
+
+// 子分类：从 categoryTree 提取
 const subcategories = computed(() => {
   if (selectedCategory.value === '全部') return []
-  return ['全部', ...new Set(
-    products.value.filter((p) => (p.category || '精选') === selectedCategory.value && p.subcategory).map((p) => p.subcategory!)
-  )]
+  const tree = productStore.categoryTree
+  const node = tree.find((c: any) => c.name === selectedCategory.value)
+  if (node && node.children && node.children.length > 0) {
+    return ['全部', ...node.children.map((c: any) => c.name)]
+  }
+  return []
 })
-const categories = computed(() => selectedCategory.value !== '全部' && subcategories.value.length > 1 ? subcategories.value : mainCategories.value)
-
 const dealStats = computed(() => {
   const list = products.value
+  if (list.length === 0) return { count: 0, maxDrop: 0, minPrice: 0 }
   const maxDrop = Math.max(...list.map((p) => Math.round((1 - (p.price * 0.65) / p.price) * 100)))
   const minPrice2 = Math.min(...list.map((p) => Math.round(p.price * 0.65)))
-  return { count: list.length, maxDrop, minPrice: minPrice2 }
+  return { count: totalProducts.value, maxDrop, minPrice: minPrice2 }
 })
 
 const quickTabs = ['限时秒杀', '大牌直降', '百元以内', '满减专区', '清仓好物', '今日上新']
 
+// 当前页商品中前端再做价格/库存筛选
 const filteredProducts = computed(() => {
-  const normalizedKeyword = keyword.value.trim().toLowerCase()
   const min = Number(minPrice.value)
   const max = Number(maxPrice.value)
   let list = products.value.filter((product) => {
-    const matchedCategory = selectedCategory.value === '全部' || (product.category || '精选') === selectedCategory.value
-    const matchedSubcategory = selectedSubcategory.value === '全部' || product.subcategory === selectedSubcategory.value
-    const matchedKeyword = !normalizedKeyword || product.name.toLowerCase().includes(normalizedKeyword) || product.description.toLowerCase().includes(normalizedKeyword)
     const matchedMinPrice = !minPrice.value || product.price >= min
     const matchedMaxPrice = !maxPrice.value || product.price <= max
     const matchedStock = !stockOnly.value || product.stock > 0
-    return matchedCategory && matchedSubcategory && matchedKeyword && matchedMinPrice && matchedMaxPrice && matchedStock
+    return matchedMinPrice && matchedMaxPrice && matchedStock
   })
   if (dealTab.value === 'flash') list = list.filter((_p: Product, i: number) => i % 3 === 0)
   if (dealTab.value === 'under100') list = list.filter((p: Product) => p.price < 100)
-  return [...list].sort((a, b) => {
-    if (sortType.value === 'price-asc') return a.price - b.price
-    if (sortType.value === 'price-desc') return b.price - a.price
-    if (sortType.value === 'sales-desc') return b.stock - a.stock
-    if (sortType.value === 'discount-desc') return (b.price - a.price) - (a.price - b.price)
-    return a.productId - b.productId
-  })
+  return list
 })
 
 const flashDeals = computed(() => products.value.slice(0, 5))
@@ -91,9 +91,10 @@ const syncQuery = () => {
   minPrice.value = typeof route.query.minPrice === 'string' ? route.query.minPrice : ''
   maxPrice.value = typeof route.query.maxPrice === 'string' ? route.query.maxPrice : ''
   stockOnly.value = route.query.stock === '1'
+  currentPage.value = typeof route.query.page === 'string' ? Math.max(1, parseInt(route.query.page)) : 1
 }
 
-const isSortType = (v: unknown): v is SortType => ['default', 'discount-desc', 'price-asc', 'price-desc', 'sales-desc'].includes(v as string)
+const isSortType = (v: unknown): v is SortType => ['default', 'price-asc', 'price-desc', 'stock-desc'].includes(v as string)
 
 const navigateToDetail = (product: Product) => {
   behaviorService.send({ productId: product.productId, productName: product.name, action: 'view', category: product.category, source: 'product_catalog' })
@@ -108,24 +109,102 @@ const toggleFavorite = (p: Product) => {
   setTimeout(() => actionMessage.value = '', 1500)
 }
 const addToCart = (p: Product) => { addProductToCart(p); actionMessage.value = `已加购《${p.name}》`; setTimeout(() => actionMessage.value = '', 1500) }
-const submitSearch = () => {
+
+/** 发起 API 请求，同步 URL */
+const doFetch = async () => {
   const queryText = keyword.value.trim()
   if (queryText) behaviorService.send({ action: 'search', queryText, source: 'product_catalog' })
-  router.replace({ path: '/products', query: { q: queryText || undefined, category: selectedCategory.value === '全部' ? undefined : selectedCategory.value, subcategory: selectedSubcategory.value === '全部' ? undefined : selectedSubcategory.value, sort: sortType.value === 'default' ? undefined : sortType.value, minPrice: minPrice.value || undefined, maxPrice: maxPrice.value || undefined, stock: stockOnly.value ? '1' : undefined } })
+
+  const apiParams = {
+    category: selectedCategory.value === '全部' ? undefined : selectedCategory.value,
+    subcategory: selectedSubcategory.value === '全部' ? undefined : selectedSubcategory.value,
+    keyword: queryText || undefined,
+    sort: sortType.value === 'default' ? undefined : sortType.value,
+    page: currentPage.value,
+    pageSize: 20,
+  }
+  error.value = null
+  try {
+    await productStore.fetchProducts(apiParams)
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '商品加载失败'
+  }
 }
-const selectCategory = (c: string) => {
-  if (c === '全部') { if (selectedSubcategory.value !== '全部') selectedSubcategory.value = '全部'; else selectedCategory.value = '全部' }
-  else if (mainCategories.value.includes(c)) { selectedCategory.value = c; selectedSubcategory.value = '全部' }
-  else selectedSubcategory.value = c
+
+const updateRouteAndFetch = async () => {
+  isUpdatingQuery = true
+  try {
+    await router.replace({ path: '/products', query: buildQuery() })
+  } finally {
+    isUpdatingQuery = false
+  }
+  await doFetch()
+}
+
+const submitSearch = async () => {
+  currentPage.value = 1
+  await updateRouteAndFetch()
+}
+
+const buildQuery = () => ({
+  q: keyword.value.trim() || undefined,
+  category: selectedCategory.value === '全部' ? undefined : selectedCategory.value,
+  subcategory: selectedSubcategory.value === '全部' ? undefined : selectedSubcategory.value,
+  sort: sortType.value === 'default' ? undefined : sortType.value,
+  minPrice: minPrice.value || undefined,
+  maxPrice: maxPrice.value || undefined,
+  stock: stockOnly.value ? '1' : undefined,
+  page: currentPage.value > 1 ? String(currentPage.value) : undefined,
+})
+
+const selectCategory = async (c: string) => {
+  currentPage.value = 1
+  selectedCategory.value = c
+  selectedSubcategory.value = '全部'
+  await updateRouteAndFetch()
+}
+
+const selectSubcategory = async (c: string) => {
+  currentPage.value = 1
+  selectedSubcategory.value = c
+  await updateRouteAndFetch()
+}
+
+const goPage = async (p: number) => {
+  currentPage.value = p
+  await updateRouteAndFetch()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+const resetFilters = () => {
+  keyword.value = ''
+  selectedCategory.value = '全部'
+  selectedSubcategory.value = '全部'
+  sortType.value = 'default'
+  minPrice.value = ''
+  maxPrice.value = ''
+  stockOnly.value = false
+  currentPage.value = 1
   submitSearch()
 }
-const resetFilters = () => { keyword.value = ''; selectedCategory.value = '全部'; selectedSubcategory.value = '全部'; sortType.value = 'default'; minPrice.value = ''; maxPrice.value = ''; stockOnly.value = false; submitSearch() }
+
 const handleImageError = (e: Event) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=900&q=85' }
 
-watch(() => route.query, syncQuery)
+watch(() => route.query, () => {
+  // URL 来自浏览器前进、后退或其他页面跳转时，按 URL 重新筛选。
+  syncQuery()
+  if (!isUpdatingQuery) void doFetch()
+}, { flush: 'sync' })
+
 onMounted(async () => {
-  syncQuery(); favoriteIds.value = readFavoriteIds()
-  try { if (products.value.length === 0) await productStore.fetchProducts() } catch (err) { error.value = err instanceof Error ? err.message : '加载失败' } finally { loading.value = false }
+  syncQuery()
+  favoriteIds.value = readFavoriteIds()
+  try {
+    await productStore.fetchCategoryTree()
+    await doFetch()
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '商品加载失败'
+  }
   timer = window.setInterval(() => {
     if (countdown.value.seconds > 0) countdown.value.seconds--
     else if (countdown.value.minutes > 0) { countdown.value.minutes--; countdown.value.seconds = 59 }
@@ -178,7 +257,13 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
       <div class="filter-line">
         <span class="filter-label">分类</span>
         <div class="category-tabs">
-          <button v-for="c in categories" :key="c" :class="{ active: c === selectedCategory || c === selectedSubcategory }" @click="selectCategory(c)">{{ c }}</button>
+          <button v-for="c in mainCategories" :key="c" type="button" :class="{ active: c === selectedCategory }" @click="selectCategory(c)">{{ c }}</button>
+        </div>
+      </div>
+      <div v-if="selectedCategory !== '全部' && subcategories.length > 1" class="filter-line subcategory-line">
+        <span class="filter-label">子类</span>
+        <div class="category-tabs">
+          <button v-for="c in subcategories" :key="c" type="button" :class="{ active: c === selectedSubcategory }" @click="selectSubcategory(c)">{{ c }}</button>
         </div>
       </div>
       <div class="filter-line">
@@ -193,13 +278,12 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
         </form>
       </div>
       <div class="sort-row">
-        <strong>共 {{ filteredProducts.length }} 件特价商品</strong>
+        <strong>{{ selectedCategory === '全部' ? '全部商品' : `${selectedCategory}${selectedSubcategory === '全部' ? '' : ` · ${selectedSubcategory}`}` }} · 共 {{ totalProducts }} 件</strong>
         <select v-model="sortType" @change="submitSearch">
           <option value="default">综合排序</option>
-          <option value="discount-desc">折扣从高到低</option>
           <option value="price-asc">价格从低到高</option>
           <option value="price-desc">价格从高到低</option>
-          <option value="sales-desc">销量优先</option>
+          <option value="stock-desc">库存最多</option>
         </select>
       </div>
 
@@ -210,7 +294,14 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
     </section>
 
     <div v-if="loading" class="state">加载中...</div>
-    <div v-else-if="error" class="state error">{{ error }}</div>
+    <div v-else-if="error" class="state error">
+      <p>{{ error }}</p>
+      <button class="retry-btn" @click="submitSearch">重新加载</button>
+    </div>
+    <div v-else-if="!loading && products.length === 0 && !error" class="state empty">
+      <p>暂无符合条件的结果</p>
+      <button class="ghost-btn" @click="resetFilters">清除筛选</button>
+    </div>
     <template v-else>
       <!-- Flash deals -->
       <section v-if="flashDeals.length && dealTab === 'all'" class="deal-section">
@@ -290,6 +381,18 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
           </article>
         </div>
       </section>
+
+      <!-- Pagination -->
+      <nav v-if="totalPages > 1" class="pagination">
+        <button :disabled="currentPage <= 1" @click="goPage(currentPage - 1)">‹ 上一页</button>
+        <template v-for="p in totalPages" :key="p">
+          <button v-if="p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2"
+            :class="{ active: p === currentPage }"
+            @click="goPage(p)">{{ p }}</button>
+          <span v-else-if="p === currentPage - 3 || p === currentPage + 3" class="ellipsis">…</span>
+        </template>
+        <button :disabled="currentPage >= totalPages" @click="goPage(currentPage + 1)">下一页 ›</button>
+      </nav>
     </template>
   </main>
 </template>
@@ -406,6 +509,26 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 
 .state { padding: 3rem; text-align: center; color: #756D7E; }
 .state.error { color: #ff2f68; }
+.state.empty p { margin: 0 0 1rem; }
+.retry-btn {
+  min-height: 32px; padding: 0 1.2rem; border: 0; border-radius: 999px;
+  background: #7B189F; color: #fff; cursor: pointer; font-size: 0.82rem; font-weight: 800;
+}
+
+/* ---- pagination ---- */
+.pagination {
+  display: flex; justify-content: center; align-items: center; gap: 4px;
+  margin-top: 2rem; padding: 1rem 0;
+}
+.pagination button {
+  min-width: 36px; height: 36px; border: 1px solid #e5e7eb; border-radius: 8px;
+  background: #fff; color: #241B2F; cursor: pointer; font-size: 0.82rem; font-weight: 700;
+  transition: all 0.15s;
+}
+.pagination button:hover:not(:disabled):not(.active) { border-color: #7B189F; color: #7B189F; }
+.pagination button.active { background: #7B189F; color: #fff; border-color: #7B189F; }
+.pagination button:disabled { opacity: 0.35; cursor: not-allowed; }
+.pagination .ellipsis { padding: 0 4px; color: #A39BAA; }
 
 @media (min-width: 1500px) { .deal-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 @media (max-width: 1200px) { .deal-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

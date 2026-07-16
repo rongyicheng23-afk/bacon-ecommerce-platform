@@ -217,23 +217,19 @@ const fetchProduct = async () => {
   try {
     loading.value = true
     error.value = null
-    const response = await productService.getProduct(productId)
-    if (response.code === '0000' && response.data) {
-      product.value = Array.isArray(response.data) ? response.data[0] : response.data
-      if (product.value) {
-        selectedSkuId.value = product.value.skus[0]?.skuId || 0
-        mainImageIndex.value = 0
-        quantity.value = 1
-        recordBehavior(product.value, 'view')
-      }
-      if (productStore.products.length === 0) {
-        await productStore.fetchProducts()
-      }
-    } else {
-      error.value = response.info || '获取商品信息失败'
+    product.value = await productService.getProduct(productId)
+    if (product.value) {
+      selectedSkuId.value = product.value.skus[0]?.skuId || 0
+      mainImageIndex.value = 0
+      quantity.value = 1
+      recordBehavior(product.value, 'view')
     }
-  } catch {
-    error.value = '获取商品信息失败'
+    // 预热商品列表供关联商品展示
+    if (productStore.products.length === 0) {
+      productStore.fetchProducts()
+    }
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '商品不存在或已下架'
   } finally {
     loading.value = false
   }
@@ -336,7 +332,13 @@ onMounted(async () => {
     <p v-if="actionMessage" class="action-toast">{{ actionMessage }}</p>
 
     <div v-if="loading" class="state">加载中...</div>
-    <div v-else-if="error" class="state error">{{ error }}</div>
+    <div v-else-if="error" class="state error">
+      <p>{{ error }}</p>
+      <div class="error-actions">
+        <button class="retry-btn" @click="fetchProduct()">重新加载</button>
+        <button class="ghost-btn" @click="router.push('/products')">返回商品列表</button>
+      </div>
+    </div>
 
     <template v-else-if="product">
       <section class="product-shell">
@@ -1069,8 +1071,24 @@ onMounted(async () => {
   text-align: center;
 }
 
-.error {
+.state.error {
   color: #ff4d4f;
+}
+
+.state.error p { margin: 0 0 1rem; }
+
+.error-actions {
+  display: flex; justify-content: center; gap: 0.6rem; margin-top: 0.5rem;
+}
+
+.retry-btn {
+  min-height: 34px; padding: 0 1.2rem; border: 0; border-radius: 999px;
+  background: #7B189F; color: #fff; cursor: pointer; font-size: 0.84rem; font-weight: 800;
+}
+
+.ghost-btn {
+  min-height: 34px; padding: 0 1rem; border: 1px solid #e5e7eb; border-radius: 999px;
+  background: #fff; color: #756D7E; cursor: pointer; font-size: 0.84rem; font-weight: 700;
 }
 
 @media (min-width: 768px) and (max-width: 1100px) {

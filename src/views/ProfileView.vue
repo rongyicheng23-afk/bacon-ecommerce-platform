@@ -4,9 +4,10 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/userStore'
 import { useProductStore } from '@/stores/productStore'
 import type { Product } from '@/types'
-import { readFavoriteIds } from '@/utils/favorites'
 import type { Address } from '@/utils/addresses'
 import { addressService } from '@/services/addressService'
+import { commerceService } from '@/services/commerceService'
+import api from '@/services/api'
 
 interface BehaviorLog {
   userId?: number
@@ -38,6 +39,7 @@ const actionText: Record<string, string> = {
   favorite: '收藏',
   cart: '加购',
   buy: '购买',
+  purchase: '购买',
   checkout: '结算',
   submit_order: '提交订单',
   order_paid: '支付订单',
@@ -53,20 +55,15 @@ const statusText: Record<MockOrder['status'], string> = {
   cancelled: '已取消'
 }
 
-const readLocalData = () => {
-  try {
-    behaviorLogs.value = JSON.parse(localStorage.getItem('behaviorLogs') || '[]')
-  } catch {
-    behaviorLogs.value = []
-  }
-
-  try {
-    orders.value = JSON.parse(localStorage.getItem('mockOrders') || '[]')
-  } catch {
-    orders.value = []
-  }
-
-  favoriteIds.value = readFavoriteIds()
+const loadProfileData = async () => {
+  const [historyResponse, ordersResponse, favorites] = await Promise.all([
+    api.get<{ code: string; data: BehaviorLog[] }>('/behaviors/me'),
+    api.get<{ code: string; data: MockOrder[] }>('/orders'),
+    commerceService.favorites(),
+  ])
+  behaviorLogs.value = historyResponse.data.data || []
+  orders.value = ordersResponse.data.data || []
+  favoriteIds.value = favorites
 }
 
 const recentLogs = computed(() => {
@@ -91,7 +88,8 @@ const categoryPreference = computed(() => {
     view: 1,
     favorite: 3,
     cart: 4,
-    buy: 5
+    buy: 5,
+    purchase: 5
   }
   const scoreMap = productLogs.value.reduce<Record<string, number>>((result, log) => {
     const category = log.category || '未分类'
@@ -125,7 +123,7 @@ const behaviorStats = computed(() => {
     views: behaviorLogs.value.filter((log) => log.action === 'view').length,
     favorites: behaviorLogs.value.filter((log) => log.action === 'favorite').length,
     carts: behaviorLogs.value.filter((log) => log.action === 'cart').length,
-    orders: behaviorLogs.value.filter((log) => log.action === 'submit_order').length
+    orders: behaviorLogs.value.filter((log) => log.action === 'purchase').length
   }
 })
 
@@ -138,13 +136,14 @@ const formatDate = (dateString: string) => {
   })
 }
 
-const clearBehaviorLogs = () => {
-  localStorage.removeItem('behaviorLogs')
-  behaviorLogs.value = []
-  actionMessage.value = '浏览和行为记录已清空'
-  window.setTimeout(() => {
-    actionMessage.value = ''
-  }, 1600)
+const clearBehaviorLogs = async () => {
+  try {
+    await api.delete('/history')
+    behaviorLogs.value = behaviorLogs.value.filter((log) => log.action !== 'view')
+    actionMessage.value = '浏览记录已清空'
+  } catch (error) {
+    actionMessage.value = error instanceof Error ? error.message : '清空记录失败'
+  }
 }
 
 // ---- 收货地址管理 ----
@@ -198,12 +197,13 @@ const handleImageError = (event: Event) => {
 }
 
 onMounted(async () => {
-  readLocalData()
-
-  if (productStore.products.length === 0) {
-    await productStore.fetchProducts()
+  try {
+    if (productStore.products.length === 0) await productStore.fetchProducts({ pageSize: 100 })
+    const [, addresses] = await Promise.all([loadProfileData(), addressService.list()])
+    myAddresses.value = addresses
+  } catch (error) {
+    actionMessage.value = error instanceof Error ? error.message : '个人中心数据加载失败'
   }
-  try { myAddresses.value = await addressService.list() } catch { myAddresses.value = [] }
 })
 </script>
 
@@ -249,7 +249,7 @@ onMounted(async () => {
             <span>Behavior</span>
             <h2>我的行为记录</h2>
           </div>
-          <button type="button" :disabled="behaviorLogs.length === 0" @click="clearBehaviorLogs">清空记录</button>
+          <button type="button" :disabled="behaviorStats.views === 0" @click="clearBehaviorLogs">清空浏览记录</button>
         </div>
 
         <div class="behavior-summary">

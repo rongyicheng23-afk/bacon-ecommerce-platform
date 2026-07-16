@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
+import { behaviorService } from '@/services/behaviorService'
 
 type OrderStatus = 'pending_payment' | 'paid' | 'shipped' | 'completed' | 'cancelled'
 
@@ -71,6 +72,17 @@ const handlePayment = async () => {
       paymentType: selectedMethod.value,
     })
     order.value = response.data.data
+    order.value.items.forEach((item) => {
+      void behaviorService.send({
+        productId: item.productId,
+        productName: item.name || item.productName,
+        action: 'purchase',
+        quantity: item.quantity,
+        orderId: order.value!.orderId,
+        amount: item.price * item.quantity,
+        source: 'payment',
+      })
+    })
     actionMessage.value = '支付成功，订单已进入待发货'
     window.setTimeout(() => router.push(`/payment-success/${order.value!.orderId}`), 700)
   } catch (err) {

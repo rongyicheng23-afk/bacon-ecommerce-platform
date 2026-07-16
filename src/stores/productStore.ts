@@ -1,35 +1,35 @@
 import { defineStore } from 'pinia'
-import { productService } from '../services/productService'
+import { productService, type ProductListParams } from '../services/productService'
 import type { Product } from '../types'
 
 export const useProductStore = defineStore('product', {
   state: () => ({
     products: [] as Product[],
     total: 0,
+    page: 1,
+    pageSize: 20,
     loading: false,
-    error: null as string | null
+    error: null as string | null,
+    categories: [] as any[],
+    categoryTree: [] as any[]
   }),
 
   actions: {
-    async fetchProducts() {
+    async fetchProducts(params: ProductListParams = {}) {
       this.loading = true
       this.error = null
       try {
-        const response = await productService.getProducts()
+        const response = await productService.getProducts({
+          page: this.page,
+          pageSize: this.pageSize,
+          ...params
+        })
 
         if (response.code === '0000' && response.data) {
-          const raw = response.data as unknown as Record<string, unknown>
-          // 后端返回 { items, total, page, pageSize } 分页对象
-          if (raw.items) {
-            this.products = raw.items as Product[]
-            this.total = (raw.total as number) || 0
-          } else if (Array.isArray(raw)) {
-            this.products = raw as Product[]
-            this.total = (raw as Product[]).length
-          } else {
-            this.products = [raw as unknown as Product]
-            this.total = 1
-          }
+          this.products = response.data.items || []
+          this.total = response.data.total || 0
+          this.page = response.data.page || 1
+          this.pageSize = response.data.pageSize || 20
         } else {
           throw new Error(response.info || '获取商品列表失败')
         }
@@ -38,6 +38,17 @@ export const useProductStore = defineStore('product', {
         throw error
       } finally {
         this.loading = false
+      }
+    },
+
+    async fetchCategoryTree() {
+      try {
+        const data = await productService.getCategoryTree()
+        this.categoryTree = data
+        // 提取一级分类名列表
+        this.categories = data.map((c: any) => c.name)
+      } catch {
+        // 静默失败
       }
     }
   }

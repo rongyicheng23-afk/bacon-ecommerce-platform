@@ -21,6 +21,7 @@ class ProductOut(BaseModel):
     status: str
     imageUrls: list[str]
     category: str
+    subcategory: str = ""
     skus: list[ProductSkuOut] = Field(default_factory=list)
     createdAt: str
     updatedAt: str

@@ -78,6 +78,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
             status      TEXT    NOT NULL DEFAULT 'active' CHECK(status IN ('active','inactive','draft','deleted')),
             image_urls  TEXT    NOT NULL DEFAULT '[]',
             category    TEXT    NOT NULL,
+            subcategory TEXT    NOT NULL DEFAULT '',
             created_at  TEXT    NOT NULL,
             updated_at  TEXT    NOT NULL,
             FOREIGN KEY (seller_id) REFERENCES users(user_id),
@@ -270,6 +271,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
     _add_column_if_missing(conn, "sessions", "expires_at", "TEXT")
     _add_column_if_missing(conn, "products", "sales_count", "INTEGER NOT NULL DEFAULT 0")
     _add_column_if_missing(conn, "products", "shop_id", "INTEGER REFERENCES shops(shop_id)")
+    _add_column_if_missing(conn, "products", "subcategory", "TEXT NOT NULL DEFAULT ''")
     _add_column_if_missing(conn, "product_skus", "sku_code", "TEXT DEFAULT ''")
     _add_column_if_missing(conn, "product_skus", "created_at", "TEXT DEFAULT ''")
     _add_column_if_missing(conn, "product_skus", "updated_at", "TEXT DEFAULT ''")
@@ -297,4 +299,71 @@ def create_tables(conn: sqlite3.Connection) -> None:
     )
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_behavior_exported ON behavior_logs(exported_at, created_at)"
+    )
+
+    # 为无子分类的旧商品自动补齐 subcategory
+    _seed_subcategories(conn)
+
+
+def _seed_subcategories(conn: sqlite3.Connection) -> None:
+    """根据商品名称关键词自动填充 subcategory 字段（仅更新空值行）。"""
+    if not conn.execute("SELECT 1 FROM products WHERE subcategory = '' OR subcategory IS NULL LIMIT 1").fetchone():
+        return
+
+    mapping = [
+        # 数码
+        ("%耳机%", "音频设备"), ("%音箱%", "音频设备"),
+        ("%键盘%", "电脑配件"), ("%鼠标%", "电脑配件"), ("%扩展坞%", "电脑配件"),
+        ("%支架%", "电脑配件"), ("%投屏%", "电脑配件"),
+        ("%充电%", "充电设备"), ("%移动电源%", "充电设备"), ("%数据线%", "充电设备"),
+        ("%摄像头%", "电脑配件"), ("%手环%", "智能穿戴"), ("%云台%", "摄影配件"),
+        # 服饰
+        ("%背包%", "箱包"), ("%鞋%", "鞋服"), ("%卫衣%", "鞋服"), ("%T恤%", "鞋服"),
+        ("%毛衣%", "鞋服"), ("%衬衫%", "鞋服"), ("%裤%", "鞋服"), ("%防晒衣%", "鞋服"),
+        ("%围巾%", "配饰"), ("%袜%", "配饰"), ("%皮带%", "配饰"), ("%冰袖%", "配饰"),
+        ("%腰带%", "配饰"),
+        # 家居
+        ("%台灯%", "灯具照明"), ("%补光灯%", "灯具照明"), ("%落地灯%", "灯具照明"),
+        ("%挂灯%", "灯具照明"), ("%杯%", "收纳清洁"), ("%置物架%", "收纳清洁"),
+        ("%收纳%", "收纳清洁"), ("%刀架%", "收纳清洁"), ("%衣架%", "收纳清洁"),
+        ("%防滑垫%", "收纳清洁"), ("%窗帘%", "家纺"), ("%毯%", "家纺"),
+        ("%坐垫%", "家纺"), ("%床笠%", "家纺"), ("%加湿器%", "灯具照明"),
+        ("%挂钟%", "灯具照明"), ("%桌%", "收纳清洁"),
+        # 运动
+        ("%水壶%", "户外装备"), ("%登山杖%", "户外装备"), ("%腰包%", "户外装备"),
+        ("%露营%", "户外装备"), ("%手套%", "运动配件"), ("%弹力带%", "运动配件"),
+        ("%毛巾%", "运动配件"), ("%泳镜%", "运动配件"), ("%羽毛球%", "运动配件"),
+        ("%护膝%", "运动配件"), ("%跳绳%", "运动配件"), ("%瑜伽%", "运动配件"),
+        ("%短袖%", "运动配件"), ("%跑鞋%", "鞋服"),
+        # 食品
+        ("%茶%", "冲调饮品"), ("%咖啡%", "冲调饮品"), ("%蜂蜜%", "冲调饮品"),
+        ("%燕麦%", "冲调饮品"), ("%巧克力%", "休闲零食"), ("%坚果%", "休闲零食"),
+        ("%牛肉%", "休闲零食"), ("%果冻%", "休闲零食"), ("%零食%", "休闲零食"),
+        ("%大礼包%", "休闲零食"), ("%面包%", "烘焙食材"), ("%粉%", "烘焙食材"),
+        # 美妆
+        ("%面霜%", "面部护肤"), ("%防晒%", "面部护肤"), ("%洗面奶%", "面部护肤"),
+        ("%面膜%", "面部护肤"), ("%精华%", "面部护肤"), ("%卸妆%", "面部护肤"),
+        ("%洁面%", "面部护肤"), ("%口红%", "彩妆"), ("%眼影%", "彩妆"),
+        ("%眉笔%", "彩妆"), ("%沐浴%", "身体护理"), ("%护发%", "身体护理"),
+        ("%精油%", "身体护理"),
+        # 图书
+        ("%计算机%", "科技"),
+        ("%算法%", "科技"),
+        ("%设计模式%", "科技"),
+        ("%JavaScript%", "科技"),
+        ("%Python%", "科技"),
+        ("%人性%", "人文社科"),
+        ("%思考%", "人文社科"),
+        ("%三体%", "文学小说"),
+        ("%百年孤独%", "文学小说"),
+        ("%小王子%", "文学小说"),
+    ]
+    for pattern, subcat in mapping:
+        conn.execute(
+            "UPDATE products SET subcategory = ? WHERE (subcategory = '' OR subcategory IS NULL) AND (name LIKE ? OR name LIKE ?)",
+            (subcat, pattern, pattern),
+        )
+    # 仍未匹配的归为默认
+    conn.execute(
+        "UPDATE products SET subcategory = '其他' WHERE subcategory = '' OR subcategory IS NULL"
     )

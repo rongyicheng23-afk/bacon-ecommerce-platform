@@ -17,8 +17,9 @@ def product_list(
     sort: Literal["price-asc", "price-desc", "stock-desc"] | None = None,
     page: int = Query(1, ge=1),
     pageSize: int = Query(20, ge=1, le=200),
+    subcategory: str | None = None,
 ) -> ApiResponse:
-    result = list_products(category=category, keyword=keyword, sort=sort, page=page, page_size=pageSize)
+    result = list_products(category=category, keyword=keyword, sort=sort, page=page, page_size=pageSize, subcategory=subcategory)
     return ApiResponse(data=result)
 
 

@@ -9,7 +9,6 @@ import { readFavoriteIds, toggleFavoriteId } from '@/utils/favorites'
 const route = useRoute()
 const router = useRouter()
 const productStore = useProductStore()
-const loading = ref(true)
 const error = ref<string | null>(null)
 const actionMessage = ref('')
 const favoriteIds = ref<number[]>([])
@@ -17,54 +16,89 @@ const sortType = ref<'default' | 'price-asc' | 'price-desc' | 'stock-desc'>('def
 const minPrice = ref('')
 const maxPrice = ref('')
 const stockOnly = ref(false)
-
-const categoryKey = computed(() => (route.params.category as string) || '')
-const categoryLabel = computed(() => {
-  const map: Record<string, string> = { digital: '数码家电', fashion: '服饰穿搭', home: '家居生活', quality: '品质生活' }
-  return map[categoryKey.value] || '商品分类'
-})
-const categoryFilter = computed(() => {
-  const map: Record<string, string> = { digital: '数码', fashion: '服饰', home: '家居', quality: '家居' }
-  return map[categoryKey.value] || ''
-})
-
-const products = computed(() => productStore.products)
-const selectedMainCategory = ref('全部')
 const selectedSubcategory = ref('全部')
 
-const mainCategories = computed(() => ['全部', ...new Set(products.value.map((p) => p.category || '精选'))])
-const isMainCat = (v: string) => mainCategories.value.includes(v)
+// route param → backend category mapping
+const categoryKey = computed(() => (route.params.category as string) || '')
+const categoryToBackend: Record<string, string> = {
+  digital: '数码', fashion: '服饰', home: '家居', sports: '运动',
+  food: '食品', beauty: '美妆', books: '图书',
+}
+const categoryFilter = computed(() => categoryToBackend[categoryKey.value] || '')
+
+const heroContent: Record<string, { en: string; title: string; desc: string; gradient: string }> = {
+  digital: { en: 'DIGITAL ELECTRONICS', title: '数码家电', desc: '智能设备、高效办公、便携生活', gradient: 'linear-gradient(135deg, #1e293b 0%, #1e3a5f 50%, #2563eb 100%)' },
+  fashion: { en: 'FASHION & STYLE', title: '服饰穿搭', desc: '背包、出行与日常搭配好物', gradient: 'linear-gradient(135deg, #2d1b2e 0%, #4a1d5e 50%, #a855f7 100%)' },
+  home:    { en: 'HOME & LIVING', title: '家居生活', desc: '温馨居家、品质生活、好物优选', gradient: 'linear-gradient(135deg, #1e293b 0%, #1e3a5f 50%, #2563eb 100%)' },
+  sports:  { en: 'SPORTS & OUTDOOR', title: '运动户外', desc: '活力运动、户外探索、健康生活', gradient: 'linear-gradient(135deg, #1e293b 0%, #0f4c3a 50%, #059669 100%)' },
+  food:    { en: 'FOOD & BEVERAGE', title: '食品饮料', desc: '零食冲调、烘焙食材、美味生活', gradient: 'linear-gradient(135deg, #2d1b1b 0%, #5c1a1a 50%, #e04b4b 100%)' },
+  beauty:  { en: 'BEAUTY & CARE', title: '美妆护理', desc: '护肤彩妆、身体护理、精致生活', gradient: 'linear-gradient(135deg, #2d1b2e 0%, #4a1d5e 50%, #ec4899 100%)' },
+  books:   { en: 'BOOKS & READING', title: '图书阅读', desc: '科技人文、文学小说、知识生活', gradient: 'linear-gradient(135deg, #1e293b 0%, #3b2d5b 50%, #7B189F 100%)' },
+}
+
+const products = computed(() => productStore.products)
+const loading = computed(() => productStore.loading)
+const totalProducts = computed(() => productStore.total)
+
+// Category/subcategory tabs derived from backend categoryTree
+const mainCategories = computed(() => ['全部', ...productStore.categories])
 
 const subcategories = computed(() => {
-  if (selectedMainCategory.value === '全部') return []
-  return ['全部', ...new Set(
-    products.value.filter((p) => (p.category || '精选') === selectedMainCategory.value && p.subcategory).map((p) => p.subcategory!)
-  )]
+  if (!categoryFilter.value) return []
+  const tree = productStore.categoryTree
+  const node = tree.find((c: any) => c.name === categoryFilter.value)
+  if (node && node.children && node.children.length > 0) {
+    return ['全部', ...node.children.map((c: any) => c.name)]
+  }
+  return []
 })
 
 const categories = computed(() => {
-  if (selectedMainCategory.value !== '全部' && subcategories.value.length > 1) return subcategories.value
+  if (subcategories.value.length > 1) return subcategories.value
   return mainCategories.value
 })
 
-const selectCategory = (c: string) => {
-  if (c === '全部') {
-    if (selectedSubcategory.value !== '全部') selectedSubcategory.value = '全部'
-    else selectedMainCategory.value = '全部'
-  } else if (isMainCat(c)) { selectedMainCategory.value = c; selectedSubcategory.value = '全部' }
-  else selectedSubcategory.value = c
+const isMainCat = (v: string) => mainCategories.value.includes(v)
+
+/** 发起 API 请求 */
+const doFetch = async (sub = selectedSubcategory.value) => {
+  error.value = null
+  try {
+    await productStore.fetchProducts({
+      category: categoryFilter.value || undefined,
+      subcategory: sub !== '全部' ? sub : undefined,
+      sort: sortType.value === 'default' ? undefined : sortType.value,
+      page: 1,
+      pageSize: 200, // 分类页一次性加载较多商品，前端再做价格筛选
+    })
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '商品加载失败'
+  }
 }
 
+const selectCategory = async (c: string) => {
+  if (c === '全部') {
+    if (selectedSubcategory.value !== '全部') selectedSubcategory.value = '全部'
+    else return // 已是"全部"主分类，不需要重新请求
+    await doFetch()
+  } else if (isMainCat(c)) {
+    selectedSubcategory.value = '全部'
+    await doFetch() // 主分类切换（实际本页只能有一个主分类，但保留灵活性）
+  } else {
+    selectedSubcategory.value = c
+    await doFetch()
+  }
+}
+
+// 前端再做价格/库存筛选
 const filteredProducts = computed(() => {
   const min = Number(minPrice.value)
   const max = Number(maxPrice.value)
   let list = products.value.filter((p) => {
-    const mainOk = selectedMainCategory.value === '全部' || (p.category || '精选') === selectedMainCategory.value
-    const subOk = selectedSubcategory.value === '全部' || p.subcategory === selectedSubcategory.value
     const minOk = !minPrice.value || p.price >= min
     const maxOk = !maxPrice.value || p.price <= max
     const stockOk = !stockOnly.value || p.stock > 0
-    return mainOk && subOk && minOk && maxOk && stockOk
+    return minOk && maxOk && stockOk
   })
   return [...list].sort((a, b) => {
     if (sortType.value === 'price-asc') return a.price - b.price
@@ -91,22 +125,22 @@ const toggleFavorite = (p: Product) => {
 }
 const addToCart = (p: Product) => { addProductToCart(p); actionMessage.value = `已加购《${p.name}》`; setTimeout(() => actionMessage.value = '', 1500) }
 const goDetail = (p: Product) => router.push(`/product/${p.productId}`)
-const resetFilters = () => { selectedMainCategory.value = '全部'; selectedSubcategory.value = '全部'; sortType.value = 'default'; minPrice.value = ''; maxPrice.value = ''; stockOnly.value = false }
+const resetFilters = () => { selectedSubcategory.value = '全部'; sortType.value = 'default'; minPrice.value = ''; maxPrice.value = ''; stockOnly.value = false }
 const handleImageError = (e: Event) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=900&q=85' }
 
-const heroContent: Record<string, { en: string; title: string; desc: string; gradient: string }> = {
-  digital:  { en: 'DIGITAL ELECTRONICS', title: '数码家电', desc: '智能设备、高效办公、便携生活', gradient: 'linear-gradient(135deg, #1e293b 0%, #1e3a5f 50%, #2563eb 100%)' },
-  fashion:  { en: 'FASHION & STYLE', title: '服饰穿搭', desc: '背包、出行与日常搭配好物', gradient: 'linear-gradient(135deg, #2d1b2e 0%, #4a1d5e 50%, #a855f7 100%)' },
-  home:     { en: 'HOME & LIVING', title: '家居生活', desc: '温馨居家、品质生活、好物优选', gradient: 'linear-gradient(135deg, #1e293b 0%, #1e3a5f 50%, #2563eb 100%)' },
-  quality:  { en: 'QUALITY LIFE', title: '品质生活', desc: '精选好物，提升日常生活品质', gradient: 'linear-gradient(135deg, #1e293b 0%, #3b2d5b 50%, #7B189F 100%)' },
-}
-
-watch(() => route.params.category, () => { selectedMainCategory.value = categoryFilter.value || '全部' })
+watch(() => route.params.category, () => {
+  selectedSubcategory.value = '全部'
+  void doFetch()
+})
 
 onMounted(async () => {
   favoriteIds.value = readFavoriteIds()
-  selectedMainCategory.value = categoryFilter.value || '全部'
-  try { if (products.value.length === 0) await productStore.fetchProducts() } catch (err) { error.value = err instanceof Error ? err.message : '加载失败' } finally { loading.value = false }
+  try {
+    await productStore.fetchCategoryTree()
+    await doFetch()
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '商品加载失败'
+  }
 })
 </script>
 
@@ -118,13 +152,16 @@ onMounted(async () => {
     <section class="cat-hero" :style="{ background: heroContent[categoryKey]?.gradient || heroContent.digital.gradient }">
       <div>
         <span>{{ heroContent[categoryKey]?.en || 'CATEGORY' }}</span>
-        <h1>{{ heroContent[categoryKey]?.title || categoryLabel }}</h1>
+        <h1>{{ heroContent[categoryKey]?.title || categoryKey }}</h1>
         <p>{{ heroContent[categoryKey]?.desc || '探索精选好物' }}</p>
       </div>
     </section>
 
     <div v-if="loading" class="cat-state">加载中...</div>
-    <div v-else-if="error" class="cat-state err">{{ error }}</div>
+    <div v-else-if="error" class="cat-state err">
+      <p>{{ error }}</p>
+      <button class="cat-retry" @click="doFetch()">重新加载</button>
+    </div>
 
     <template v-else>
       <!-- Filter -->
@@ -132,22 +169,22 @@ onMounted(async () => {
         <div class="cat-filter-line">
           <span class="cat-filter-label">分类</span>
           <div class="cat-tabs">
-            <button v-for="c in categories" :key="c" :class="{ active: c === selectedMainCategory || c === selectedSubcategory }" @click="selectCategory(c)">{{ c }}</button>
+            <button v-for="c in categories" :key="c" type="button" :class="{ active: c === selectedSubcategory }" @click="selectCategory(c)">{{ c }}</button>
           </div>
         </div>
         <div class="cat-filter-line">
           <span class="cat-filter-label">价格</span>
-          <form class="cat-price-row" @submit.prevent>
+          <form class="cat-price-row" @submit.prevent="doFetch()">
             <input v-model="minPrice" type="number" placeholder="最低价" />
             <span>-</span>
             <input v-model="maxPrice" type="number" placeholder="最高价" />
             <label class="cat-check"><input v-model="stockOnly" type="checkbox" />仅看有货</label>
-            <button type="submit" class="cat-confirm" @click="() => {}">确定</button>
+            <button type="submit" class="cat-confirm">确定</button>
             <button type="button" class="cat-reset" @click="resetFilters">重置</button>
           </form>
         </div>
         <div class="cat-sort-row">
-          <strong>共 {{ filteredProducts.length }} 件商品</strong>
+          <strong>共 {{ totalProducts }} 件商品</strong>
           <select v-model="sortType">
             <option value="default">综合排序</option>
             <option value="price-asc">价格从低到高</option>
@@ -246,6 +283,8 @@ onMounted(async () => {
 .cat-empty p { color: #756D7E; font-size: 0.88rem; margin: 0 0 1rem; }
 .cat-empty button { min-height: 36px; padding: 0 1.25rem; border: 0; border-radius: 999px; background: #7B189F; color: #fff; cursor: pointer; font-weight: 800; }
 .cat-state { padding: 3rem; text-align: center; color: #756D7E; } .cat-state.err { color: #ff2f68; }
+.cat-state.err p { margin: 0 0 0.8rem; }
+.cat-retry { min-height: 32px; padding: 0 1.2rem; border: 0; border-radius: 999px; background: #7B189F; color: #fff; cursor: pointer; font-size: 0.82rem; font-weight: 800; }
 
 @media (min-width: 1500px) { .cat-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 @media (max-width: 1100px) { .cat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

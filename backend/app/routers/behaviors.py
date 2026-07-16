@@ -84,6 +84,30 @@ def browsing_history(authorization: AUTH = None) -> ApiResponse:
     } for r in rows])
 
 
+@router.get("/behaviors/me", response_model=ApiResponse)
+def my_behaviors(authorization: AUTH = None) -> ApiResponse:
+    """当前用户的真实行为记录，供个人中心展示，不影响 Hadoop 原始日志。"""
+    user = get_current_user(authorization)
+    if not user:
+        raise HTTPException(401, "请先登录")
+    with get_connection() as conn:
+        rows = conn.execute(
+            """SELECT bl.user_id, bl.product_id, bl.product_name, bl.action, bl.category, bl.amount, bl.created_at
+               FROM behavior_logs bl
+               JOIN users u ON u.user_id = bl.user_id
+               WHERE bl.user_id = ?
+                 AND (bl.action != 'view' OR u.history_cleared_at IS NULL OR bl.created_at > u.history_cleared_at)
+               ORDER BY bl.created_at DESC, bl.log_id DESC LIMIT 200""",
+            (user["userId"],),
+        ).fetchall()
+    return ApiResponse(data=[{
+        "userId": r["user_id"], "productId": r["product_id"],
+        "productName": r["product_name"], "action": r["action"],
+        "category": r["category"], "amount": r["amount"],
+        "timestamp": r["created_at"],
+    } for r in rows])
+
+
 @router.delete("/history", response_model=ApiResponse)
 def clear_history(authorization: AUTH = None) -> ApiResponse:
     user = get_current_user(authorization)

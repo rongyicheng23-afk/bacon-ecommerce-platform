@@ -19,6 +19,7 @@ def row_to_product(row, skus: list[dict]) -> dict:
         "name": row["name"], "description": row["description"],
         "price": row["price"], "stock": row["stock"], "status": row["status"],
         "imageUrls": json.loads(row["image_urls"]), "category": row["category"],
+        "subcategory": row["subcategory"] if "subcategory" in row.keys() else "",
         "skus": skus, "createdAt": row["created_at"], "updatedAt": row["updated_at"],
     }
 
@@ -29,13 +30,17 @@ def _load_skus(conn: sqlite3.Connection, product_id: int) -> list[dict]:
 
 
 def list_products(category: str | None = None, keyword: str | None = None,
-                  sort: str | None = None, page: int = 1, page_size: int = 20) -> dict:
+                  sort: str | None = None, page: int = 1, page_size: int = 20,
+                  subcategory: str | None = None) -> dict:
     with get_connection() as conn:
         wheres = ["status = 'active'"]
         params: list = []
         if category:
             wheres.append("category = ?")
             params.append(category)
+        if subcategory:
+            wheres.append("subcategory = ?")
+            params.append(subcategory)
         if keyword:
             wheres.append("(name LIKE ? OR description LIKE ?)")
             params.extend([f"%{keyword}%", f"%{keyword}%"])
@@ -91,7 +96,15 @@ def get_category_tree() -> list[dict]:
             rows = conn.execute(
                 "SELECT DISTINCT category FROM products WHERE status = 'active' ORDER BY category"
             ).fetchall()
-            return [{"categoryId": 0, "name": r["category"], "parentId": None, "children": []} for r in rows]
+            roots = [{"categoryId": 0, "name": r["category"], "parentId": None, "children": []} for r in rows]
+            # 从商品中提取子分类
+            for root in roots:
+                subs = conn.execute(
+                    "SELECT DISTINCT subcategory FROM products WHERE status = 'active' AND category = ? AND subcategory != '' AND subcategory != '其他' ORDER BY subcategory",
+                    (root["name"],),
+                ).fetchall()
+                root["children"] = [{"categoryId": 0, "name": s["subcategory"], "parentId": None, "children": []} for s in subs]
+            return roots
 
         nodes = {}
         for c in cats:
@@ -111,6 +124,22 @@ def get_category_tree() -> list[dict]:
                 parent["children"].append(node)
             else:
                 roots.append(node)
+
+        # 从商品中补充子分类（如果 categories 表没有子分类记录）
+        for root in roots:
+            if not root["children"]:
+                subs = conn.execute(
+                    "SELECT DISTINCT subcategory FROM products WHERE status = 'active' AND category = ? AND subcategory != '' AND subcategory != '其他' ORDER BY subcategory",
+                    (root["name"],),
+                ).fetchall()
+                for s in subs:
+                    root["children"].append({
+                        "categoryId": 0,
+                        "name": s["subcategory"],
+                        "parentId": None,
+                        "children": [],
+                    })
+
         return roots
 
 
