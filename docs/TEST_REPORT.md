@@ -8,6 +8,8 @@
 | Python | 3.12.12 |
 | Node.js | ≥ 18 |
 | 数据库 | SQLite 3 |
+| 对象存储 | MinIO Community（9001/9002） |
+| 大数据集群 | 1 master + 2 worker，Hadoop 3.3.0 / HDFS / YARN |
 | 浏览器 | Chrome 126+ |
 
 ---
@@ -30,9 +32,9 @@
 
 | 用例 | 操作 | 预期 | 结果 |
 |------|------|------|------|
-| 商品列表 | GET /api/products | 104 件商品，支持分页 | ✅ |
+| 商品列表 | GET /api/products | 114 件商品，支持分页 | ✅ |
 | 商品搜索 | keyword=耳机 | 返回匹配商品 | ✅ |
-| 分类筛选 | category=数码 | 返回 22 件数码商品 | ✅ |
+| 分类筛选 | category=数码 | 返回 18 件数码商品 | ✅ |
 | 价格排序 | sort=price-asc | 按价格升序 | ✅ |
 | 商品详情 | GET /api/product/get?productId=1001 | 返回含 9 SKU 的完整信息 | ✅ |
 | 分类列表 | GET /api/categories | 7 个分类 | ✅ |
@@ -106,11 +108,15 @@
 
 | 用例 | 操作 | 预期 | 结果 |
 |------|------|------|------|
-| 本地模式 | bash run_pipeline.sh local | 5 步全部成功 | ✅ |
+| 本地模式 | bash run_pipeline.sh local | 6 步全部成功 | ✅ |
 | 导出日志 | Step 1 | JSONL 文件生成 | ✅ |
 | 偏好计算 | Step 3 | 分类偏好 + 商品偏好 | ✅ |
-| 推荐生成 | Step 4 | 写入 recommendation_results | ✅ |
-| 运行记录 | Step 5 | 写入 recommendation_runs | ✅ |
+| 推荐生成 | Step 4 | 生成 recommendations.txt | ✅ |
+| 结果回写 | Step 5 | 导入 recommendation_results | ✅ |
+| 运行记录 | Step 6 | 写入 recommendation_runs | ✅ |
+| Hadoop 远程模式 | bash run_pipeline.sh hadoop-remote | HDFS/YARN Streaming 完整运行 | ✅ |
+| 分类偏好作业 | application_1783652639582_0001 | 2 Map + 1 Reduce，SUCCEEDED | ✅ |
+| 商品偏好作业 | application_1783652639582_0002 | 2 Map + 1 Reduce，SUCCEEDED | ✅ |
 
 ---
 

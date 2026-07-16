@@ -1,160 +1,122 @@
 # Bacon Mall 演示脚本
 
-## 演示路径
+## 演示目标
 
-```
-用户登录 → 浏览数码商品 → 收藏耳机 → 加购键盘 → 购买移动电源
-    → 导出行为日志 → Hadoop 计算 → 导入推荐 → 首页数码占比上升
-```
+展示完整链路：买家行为写入业务数据库，Hadoop Streaming 在 HDFS/YARN 上离线计算，推荐结果回写 SQLite，首页正常展示推荐商品。
 
----
-
-## 第一步：启动系统
+## 1. 启动服务
 
 ```bash
-# 终端 1 — 后端
-cd backend && source .venv/bin/activate
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+# 终端 1：MinIO（如尚未启动）
+cd backend
+./scripts/start_minio.sh
 
-# 终端 2 — 前端
+# 终端 2：FastAPI
+cd backend
+source .venv/bin/activate
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
+
+# 终端 3：Vue
 npm run dev -- --host 127.0.0.1
 ```
 
-打开 `http://127.0.0.1:5173/`
+前端地址以 Vite 终端输出为准；后端 Swagger 为 `http://127.0.0.1:8001/docs`。
 
----
+演示账号：
 
-## 第二步：用户登录 + 浏览数码商品
+| 身份 | 账号 | 密码 |
+| --- | --- | --- |
+| 买家 | `student@example.com` | `123456` |
+| 商家 | `seller@example.com` | `123456` |
 
-```bash
-# 登录（或浏览器操作）
-curl -X POST http://127.0.0.1:8000/api/user/login \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"student@example.com","password":"123456"}'
-```
+## 2. 买家电商流程
 
-在浏览器中：
-1. 登录 `student@example.com / 123456`
-2. 首页 → 浏览以下数码商品（点击进入详情页）：
+1. 用买家账号登录，首页展示“为你精选”。
+2. 进入商品页，演示搜索、一级分类和二级分类筛选。
+3. 打开一个数码商品详情，完成浏览、收藏和加购。
+4. 在购物车选择商品，进入结算页，确认收货地址并提交订单。
+5. 在支付页完成模拟支付。
+6. 打开个人中心，展示真实行为记录、兴趣分类、订单和收货地址。
 
-| 商品ID | 商品名 | 分类 |
-|--------|--------|------|
-| 1001 | 智能降噪耳机 | 数码 |
-| 1002 | 轻薄机械键盘 | 数码 |
-| 1006 | 便携移动电源 | 数码 |
-| 1009 | 人体工学鼠标 | 数码 |
-| 1013 | 智能手环 | 数码 |
-| 1015 | 桌面LED补光灯 | 数码 |
-| 1019 | 高清网络摄像头 | 数码 |
+## 3. 商家流程
 
-每次进入详情页 = 一条 `view` 行为日志。
+1. 退出并用商家账号登录。
+2. 进入商家后台，展示商品数量、订单数量和营收看板。
+3. 打开待发货订单并执行发货。
+4. 切回买家账号，在订单列表确认收货。
 
----
+## 4. Hadoop 离线推荐
 
-## 第三步：收藏 + 加购 + 购买
+先启动三台虚拟机，在 `master` 中执行：
 
 ```bash
-TOKEN="<从上一步获取>"
-
-# 1. 收藏耳机 (productId=1001)
-curl -X POST http://127.0.0.1:8000/api/favorites/1001 \
-  -H "Authorization: Bearer $TOKEN"
-
-# 2. 加购键盘 (productId=1002, quantity=1)
-curl -X POST http://127.0.0.1:8000/api/cart/add \
-  -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '{"product_id":1002,"quantity":1}'
-
-# 3. 购买移动电源 (productId=1006)
-# 先加购
-curl -X POST http://127.0.0.1:8000/api/cart/add \
-  -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '{"product_id":1006,"quantity":1}'
-
-# 下单
-curl -X POST http://127.0.0.1:8000/api/order/create \
-  -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '{"products":[{"productId":1006,"quantity":1}]}'
-
-# 获取订单ID并支付
-ORDER_ID=$(curl -s http://127.0.0.1:8000/api/order/list \
-  -H "Authorization: Bearer $TOKEN" | \
-  python3 -c "import sys,json; print(json.load(sys.stdin)['data'][0]['orderId'])")
-
-curl -X POST http://127.0.0.1:8000/api/payment/pay \
-  -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d "{\"orderId\":$ORDER_ID,\"paymentMethod\":1}"
+start-all.sh
+jps
 ```
 
-**此时行为日志表已有：7 view + 1 favorite + 2 cart + 1 purchase = 11 条。**
-
----
-
-## 第四步：查看行为日志
+再从 Mac 的 `backend/` 目录运行：
 
 ```bash
-cd backend && source .venv/bin/activate
-python3 -c "
-from app.db.database import get_connection
-with get_connection() as conn:
-    rows = conn.execute('SELECT action, category, COUNT(*) FROM behavior_logs GROUP BY action, category').fetchall()
-    for r in rows: print(f'{r[0]:12s} {r[1]:6s} x{r[2]}')
-"
+source .venv/bin/activate
+bash bigdata/scripts/run_pipeline.sh hadoop-remote
 ```
 
----
+该命令依次完成：
 
-## 第五步：导出 → Hadoop → 推荐
+1. 导出 SQLite 中未导出的行为日志 JSONL。
+2. 通过 SSH 上传日志与 Python Mapper/Reducer 到 `master`。
+3. 上传 JSONL 到 HDFS。
+4. 在 YARN 上运行分类偏好、商品偏好两个 Hadoop Streaming 作业。
+5. 下载 HDFS 计算结果到 Mac。
+6. 生成推荐结果并导入 SQLite 的 `recommendation_results` 表。
+
+2026-07-16 已实际验收：
+
+- `application_1783652639582_0001`：用户分类偏好，`SUCCEEDED`。
+- `application_1783652639582_0002`：用户商品偏好，`SUCCEEDED`。
+- 两个作业各执行 `2` 个 Map、`1` 个 Reduce。
+- 导入 `16` 条推荐结果，覆盖 `1` 位用户。
+
+## 5. 证据页面
+
+Mac 建立端口转发：
 
 ```bash
-# 本地模式（不需要 Hadoop 集群）
-bash bigdata/scripts/run_pipeline.sh local
+ssh -fN -p 2222 -L 50070:master:50070 -L 8088:master:8088 root@127.0.0.1
 ```
 
----
+- HDFS：`http://127.0.0.1:50070/`
+  - `/bacon-mall/raw/behavior/date=2026-07-16`
+  - `/bacon-mall/warehouse/user_category_scores/date=2026-07-16`
+  - `/bacon-mall/warehouse/user_product_scores/date=2026-07-16`
+- YARN：`http://127.0.0.1:8088/`，展示两个 `SUCCEEDED` 应用。
 
-## 第六步：查看推荐结果
+若 `50070` 不可用，使用 Hadoop 3 的 `9870` 页面并建立对应端口转发。
 
-```bash
-python3 -c "
-from app.db.database import get_connection
-with get_connection() as conn:
-    recs = conn.execute('''
-        SELECT p.name, p.category, r.score, r.reason_code
-        FROM recommendation_results r
-        JOIN products p ON p.product_id = r.product_id
-        WHERE r.user_id = 1
-        ORDER BY r.rank_no LIMIT 10
-    ''').fetchall()
-    for r in recs:
-        print(f'  {r[\"name\"]:20s} {r[\"category\"]:4s} {r[\"score\"]:5.1f} — {r[\"reason_code\"]}')
-"
-```
+## 6. 最终检查
 
-**预期：Top 10 中数码商品 ≥ 8 个。**
+- [ ] 前端、FastAPI、MinIO 正常运行。
+- [ ] 买家可完成浏览、收藏、加购、下单、支付、确认收货。
+- [ ] 商家可查看订单并发货。
+- [ ] 个人中心显示真实行为和订单。
+- [ ] 首页通过 `/api/recommendations` 显示离线推荐结果。
+- [ ] HDFS 有原始日志和两类聚合结果。
+- [ ] YARN 显示两个 `SUCCEEDED` Streaming 应用。
 
----
+## 7. 已归档证据
 
-## 第七步：刷新首页
+### 三节点 Hadoop 集群状态
 
-浏览器刷新 `http://127.0.0.1:5173/`
+![Hadoop 集群状态](./evidence/hadoop-cluster-health.png)
 
-"为你精选"区域应展示更多数码商品（耳机、键盘、鼠标、摄像头…）。
+### HDFS 原始行为日志
 
----
+![HDFS 原始行为日志](./evidence/hdfs-raw-behavior.png)
 
-## 演示检查清单
+### YARN Streaming 作业成功
 
-- [ ] 后端启动，`/docs` 可访问
-- [ ] 前端首页正常加载 104 件商品
-- [ ] 登录成功，行为日志开始记录
-- [ ] 浏览数码商品 → behavior_logs 有 view 记录
-- [ ] 收藏/加购/购买 → behavior_logs 有对应记录
-- [ ] 导出 JSONL 文件 → `exports/behavior-YYYY-MM-DD.jsonl`
-- [ ] 管道运行成功 → `recommendation_results` 表有数据
-- [ ] 推荐结果可解释 → reason_code 显示"偏好数码分类"
-- [ ] 首页推荐变化 → 数码商品占比上升
+![YARN 两个成功应用](./evidence/yarn-streaming-succeeded.png)
+
+### 推荐管道完成与结果回写
+
+![推荐管道完成](./evidence/hadoop-pipeline-complete.png)
